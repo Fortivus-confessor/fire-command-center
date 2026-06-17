@@ -396,7 +396,7 @@ function EscalasPage() {
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label className={errors.centroComando ? "text-destructive" : ""}>Centro de Comando</Label>
-                  <Select value={form.centroComando ? String(form.centroComando) : undefined} onValueChange={(v) => setForm({ ...form, centroComando: v, equipeId: '' })}>
+                  <Select value={form.centroComando || ""} onValueChange={(v) => setForm({ ...form, centroComando: v, equipeId: '' })}>
                     <SelectTrigger className={errors.centroComando ? "border-destructive" : ""}>
                       <SelectValue placeholder="Selecione o centro" />
                     </SelectTrigger>
@@ -410,7 +410,7 @@ function EscalasPage() {
                 </div>
                 <div className="space-y-2">
                   <Label className={errors.equipeId ? "text-destructive" : ""}>Equipe</Label>
-                  <Select disabled={!form.centroComando} value={form.equipeId ? String(form.equipeId) : undefined} onValueChange={(v) => setForm({ ...form, equipeId: v })}>
+                  <Select disabled={!form.centroComando} value={form.equipeId || ""} onValueChange={(v) => setForm({ ...form, equipeId: v })}>
                     <SelectTrigger className={errors.equipeId ? "border-destructive" : ""}>
                       <SelectValue placeholder="Selecione a equipe" />
                     </SelectTrigger>
@@ -452,7 +452,7 @@ function EscalasPage() {
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label className={errors.veiculoId ? "text-destructive" : ""}>Veículo Associado</Label>
-                  <Select value={form.veiculoId ? String(form.veiculoId) : undefined} onValueChange={(v) => setForm({ ...form, veiculoId: v })}>
+                  <Select value={form.veiculoId || "Nenhum"} onValueChange={(v) => setForm({ ...form, veiculoId: v })}>
                     <SelectTrigger className={cn(
                       activeVehicles.has(form.veiculoId) ? 'border-warning text-warning' : '',
                       errors.veiculoId ? "border-destructive" : ""
@@ -561,7 +561,7 @@ function EscalasPage() {
 
               <div className="space-y-2">
                 <Label className={errors.comandanteId ? "text-destructive" : ""}>Comandante da Escala</Label>
-                <Select disabled={form.integranteIds.length === 0} value={form.comandanteId ? String(form.comandanteId) : undefined} onValueChange={(v) => setForm({ ...form, comandanteId: v })}>
+                <Select disabled={form.integranteIds.length === 0} value={form.comandanteId || ""} onValueChange={(v) => setForm({ ...form, comandanteId: v })}>
                   <SelectTrigger className={errors.comandanteId ? "border-destructive" : ""}>
                     <SelectValue placeholder="Selecione o comandante" />
                   </SelectTrigger>
