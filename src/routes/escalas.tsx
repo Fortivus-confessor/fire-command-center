@@ -202,7 +202,7 @@ function EscalasPage() {
     const formInicio = new Date(form.dataInicio).getTime();
     const formFim = new Date(form.dataFim).getTime();
 
-    for (const escala of (escalasDB || [])) {
+    for (const escala of (data || [])) {
       if (!escala.ativa) continue;
       if (escala.id === editingItem?.id) continue;
       
@@ -221,6 +221,15 @@ function EscalasPage() {
     }
     return false;
   }
+
+  const isFormComplete = form.centroComando && form.equipeId && form.dataInicio && form.dataFim;
+
+  const usuariosCentro = isFormComplete ? usuariosDB.filter((u: any) => {
+    if (String(u.centroComandoId) !== String(form.centroComando)) return false;
+    if (u.estadoOperacional === 'AFASTADO' || u.estadoOperacional === 'FERIAS') return false;
+    if (isOverlapping(String(u.id))) return false;
+    return true;
+  }) : [];
 
   function handleSave() {
     setErrorMsg('');
@@ -288,13 +297,6 @@ function EscalasPage() {
     setForm(prev => ({ ...prev, integranteIds: prev.integranteIds.filter(x => !selectedRight.includes(x)) }));
     setSelectedRight([]);
   }
-
-  const usuariosCentro = usuariosDB.filter((u: any) => {
-    if (String(u.centroComandoId) !== String(form.centroComando)) return false;
-    if (u.estadoOperacional === 'AFASTADO' || u.estadoOperacional === 'FERIAS') return false;
-    if (isOverlapping(String(u.id))) return false;
-    return true;
-  });
 
   function moveAllRight() {
     const disponiveisId = usuariosCentro
