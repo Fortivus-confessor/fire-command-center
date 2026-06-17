@@ -45,7 +45,7 @@ export const Route = createFileRoute('/usuarios')({
   component: UsuariosPage,
 });
 
-type UserRole = 'ADMIN' | 'CENTRO_COMANDO_CENTRAL' | 'CENTRO_COMANDO' | 'COMBATENTE';
+type UserRole = 'ROLE_ADMIN' | 'ROLE_CENTRO_COMANDO_CENTRAL' | 'ROLE_CENTRO_COMANDO' | 'ROLE_COMBATENTE';
 
 interface UsuarioDTO {
   id?: string;
@@ -66,24 +66,24 @@ const emptyForm: UsuarioDTO = {
   nome: '',
   email: '',
   cpf: '',
-  perfil: 'COMBATENTE',
+  perfil: 'ROLE_COMBATENTE',
   estadoOperacional: 'DISPONIVEL',
   centroComandoId: '',
 };
 
 const roleLabels: Record<string, string> = {
-  ADMIN: 'Admin',
-  CENTRO_COMANDO_CENTRAL: 'CC Central',
-  CENTRO_COMANDO: 'CC Regional',
-  COMBATENTE: 'Combatente',
+  ROLE_ADMIN: 'Administrador',
+  ROLE_CENTRO_COMANDO_CENTRAL: 'Centro de Comando Central',
+  ROLE_CENTRO_COMANDO: 'Centro de Comando',
+  ROLE_COMBATENTE: 'Combatente',
 };
 
 function roleBadge(r: string) {
   switch (r) {
-    case 'ADMIN': return <Badge className="bg-fire/20 text-fire border-fire/30">{roleLabels[r]}</Badge>;
-    case 'CENTRO_COMANDO_CENTRAL': return <Badge className="bg-command/20 text-command border-command/30">{roleLabels[r]}</Badge>;
-    case 'CENTRO_COMANDO': return <Badge className="bg-warning/20 text-warning border-warning/30">{roleLabels[r]}</Badge>;
-    case 'COMBATENTE': return <Badge className="bg-success/20 text-success border-success/30">{roleLabels[r]}</Badge>;
+    case 'ROLE_ADMIN': return <Badge className="bg-fire/20 text-fire border-fire/30">{roleLabels[r]}</Badge>;
+    case 'ROLE_CENTRO_COMANDO_CENTRAL': return <Badge className="bg-command/20 text-command border-command/30">{roleLabels[r]}</Badge>;
+    case 'ROLE_CENTRO_COMANDO': return <Badge className="bg-warning/20 text-warning border-warning/30">{roleLabels[r]}</Badge>;
+    case 'ROLE_COMBATENTE': return <Badge className="bg-success/20 text-success border-success/30">{roleLabels[r]}</Badge>;
     default: return <Badge variant="secondary">{r}</Badge>;
   }
 }
@@ -182,7 +182,7 @@ function UsuariosPage() {
       nome: item.nome || '',
       email: item.email || '',
       cpf: item.cpf || '',
-      perfil: item.perfil || 'COMBATENTE',
+      perfil: item.perfil || 'ROLE_COMBATENTE',
       estadoOperacional: item.estadoOperacional || 'DISPONIVEL',
       centroComandoId: item.centroComandoId || '',
     });
@@ -242,10 +242,10 @@ function UsuariosPage() {
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">Todos os Roles</SelectItem>
-              <SelectItem value="ADMIN">Admin</SelectItem>
-              <SelectItem value="CENTRO_COMANDO_CENTRAL">CC Central</SelectItem>
-              <SelectItem value="CENTRO_COMANDO">CC Regional</SelectItem>
-              <SelectItem value="COMBATENTE">Combatente</SelectItem>
+              <SelectItem value="ROLE_ADMIN">Administrador</SelectItem>
+              <SelectItem value="ROLE_CENTRO_COMANDO_CENTRAL">Centro de Comando Central</SelectItem>
+              <SelectItem value="ROLE_CENTRO_COMANDO">Centro de Comando</SelectItem>
+              <SelectItem value="ROLE_COMBATENTE">Combatente</SelectItem>
             </SelectContent>
           </Select>
         </div>
@@ -358,10 +358,10 @@ function UsuariosPage() {
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="ADMIN">Admin</SelectItem>
-                    <SelectItem value="CENTRO_COMANDO_CENTRAL">CC Central</SelectItem>
-                    <SelectItem value="CENTRO_COMANDO">CC Regional</SelectItem>
-                    <SelectItem value="COMBATENTE">Combatente</SelectItem>
+                    <SelectItem value="ROLE_ADMIN">Administrador</SelectItem>
+                    <SelectItem value="ROLE_CENTRO_COMANDO_CENTRAL">Centro de Comando Central</SelectItem>
+                    <SelectItem value="ROLE_CENTRO_COMANDO">Centro de Comando</SelectItem>
+                    <SelectItem value="ROLE_COMBATENTE">Combatente</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
