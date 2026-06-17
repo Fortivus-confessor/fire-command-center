@@ -226,7 +226,7 @@ function EscalasPage() {
 
   const usuariosCentro = isFormComplete ? usuariosDB.filter((u: any) => {
     if (String(u.centroComandoId) !== String(form.centroComando)) return false;
-    if (u.estadoOperacional === 'AFASTADO' || u.estadoOperacional === 'FERIAS') return false;
+    if (u.estadoOperacional === 'AFASTADO_SAUDE' || u.estadoOperacional === 'LICENCA' || u.estadoOperacional === 'FERIAS') return false;
     if (isOverlapping(String(u.id))) return false;
     return true;
   }) : [];
