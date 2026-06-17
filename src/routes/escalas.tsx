@@ -39,6 +39,8 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { cn } from '@/lib/utils';
+import { useQuery } from '@tanstack/react-query';
+import { fetchWithAuth } from '@/lib/api';
 
 export const Route = createFileRoute('/escalas')({
   component: EscalasPage,
@@ -57,13 +59,6 @@ interface Escala {
 }
 
 // ── Mock Data ──────────────────────────────────────────
-const centrosDeComando = ['Base Norte', 'Base Sul', 'Centro Operacional'];
-const equipesMap: Record<string, string[]> = {
-  'Base Norte': ['Alfa-1', 'Charlie-3'],
-  'Base Sul': ['Bravo-2'],
-  'Centro Operacional': ['Foxtrot-6'],
-};
-const veiculosDisponiveis = ['VTR-01', 'VTR-02', 'VTR-05', 'Nenhum'];
 const usuariosDisponiveis = [
   'Cap. Silva', 'Maj. Santos', 'Sgt. Pereira', 'Sgt. Dias',
   'Ten. Costa', 'Cb. Mendes', 'Ten. Oliveira', 'Cb. Lima',
@@ -105,6 +100,21 @@ function getActiveVehicles(data: Escala[], ignoreEscalaId?: string) {
 
 // ── Page Component ─────────────────────────────────────
 function EscalasPage() {
+  const { data: centrosDeComandoDB = [] } = useQuery<any[]>({
+    queryKey: ['centros-comando'],
+    queryFn: () => fetchWithAuth('/admin/centros'),
+  });
+
+  const { data: equipesDB = [] } = useQuery<any[]>({
+    queryKey: ['equipes'],
+    queryFn: () => fetchWithAuth('/admin/equipes'),
+  });
+
+  const { data: veiculosDB = [] } = useQuery<any[]>({
+    queryKey: ['veiculos'],
+    queryFn: () => fetchWithAuth('/ativos/frota'),
+  });
+
   const [data, setData] = useState<Escala[]>(initialData);
   const [search, setSearch] = useState('');
 
@@ -124,10 +134,11 @@ function EscalasPage() {
   const activeVehicles = getActiveVehicles(data, editingItem?.id);
 
   const filtered = data.filter((item) => {
+    const centroNome = centrosDeComandoDB.find(c => c.id === item.centroComando)?.nome || item.centroComando;
     const matchSearch =
       !search ||
       item.equipe.toLowerCase().includes(search.toLowerCase()) ||
-      item.centroComando.toLowerCase().includes(search.toLowerCase()) ||
+      centroNome.toLowerCase().includes(search.toLowerCase()) ||
       item.comandante.toLowerCase().includes(search.toLowerCase());
     return matchSearch;
   });
@@ -270,7 +281,9 @@ function EscalasPage() {
                   <TableRow key={item.id} className="hover:bg-secondary/20 transition">
                     <TableCell>
                       <div className="font-bold">{item.equipe}</div>
-                      <div className="text-xs text-muted-foreground">{item.centroComando}</div>
+                      <div className="text-xs text-muted-foreground">
+                        {centrosDeComandoDB.find(c => c.id === item.centroComando)?.nome || item.centroComando}
+                      </div>
                     </TableCell>
                     <TableCell className="mono text-sm text-muted-foreground">
                       {formatDate(item.dataInicio)} — {formatDate(item.dataFim)}
@@ -322,8 +335,8 @@ function EscalasPage() {
                       <SelectValue placeholder="Selecione o centro" />
                     </SelectTrigger>
                     <SelectContent>
-                      {centrosDeComando.map((cc) => (
-                        <SelectItem key={cc} value={cc}>{cc}</SelectItem>
+                      {centrosDeComandoDB.map((cc: any) => (
+                        <SelectItem key={cc.id} value={cc.id}>{cc.nome}</SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
@@ -335,8 +348,8 @@ function EscalasPage() {
                       <SelectValue placeholder="Selecione a equipe" />
                     </SelectTrigger>
                     <SelectContent>
-                      {form.centroComando && equipesMap[form.centroComando]?.map((eq) => (
-                        <SelectItem key={eq} value={eq}>{eq}</SelectItem>
+                      {equipesDB.filter((eq: any) => eq.centroComandoId === form.centroComando).map((eq: any) => (
+                        <SelectItem key={eq.id} value={eq.nome}>{eq.nome}</SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
@@ -372,11 +385,15 @@ function EscalasPage() {
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      {veiculosDisponiveis.map(v => (
-                        <SelectItem key={v} value={v}>
-                          {v} {activeVehicles.has(v) && v !== 'Nenhum' ? '(Em uso)' : ''}
-                        </SelectItem>
-                      ))}
+                      <SelectItem value="Nenhum">Nenhum</SelectItem>
+                      {veiculosDB.map((v: any) => {
+                        const label = v.prefixo || v.identificador;
+                        return (
+                          <SelectItem key={v.id} value={label}>
+                            {label} {activeVehicles.has(label) && label !== 'Nenhum' ? '(Em uso)' : ''}
+                          </SelectItem>
+                        );
+                      })}
                     </SelectContent>
                   </Select>
                   {activeVehicles.has(form.veiculo) && form.veiculo !== 'Nenhum' && (
@@ -385,19 +402,6 @@ function EscalasPage() {
                       Este veículo possui escala ativa no período.
                     </p>
                   )}
-                </div>
-                <div className="space-y-2">
-                  <Label>Comandante da Escala</Label>
-                  <Select value={form.comandante} onValueChange={(v) => setForm({ ...form, comandante: v })}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Selecione o comandante" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {usuariosDisponiveis.map((u) => (
-                        <SelectItem key={u} value={u}>{u}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
                 </div>
               </div>
 
@@ -476,6 +480,25 @@ function EscalasPage() {
                   </div>
                 </div>
                 <p className="text-xs text-muted-foreground text-right">Dica: Clique duplo para mover rapidamente</p>
+              </div>
+
+              <div className="space-y-2">
+                <Label>Comandante da Escala</Label>
+                <Select disabled={form.usuariosEscalados.length === 0} value={form.comandante} onValueChange={(v) => setForm({ ...form, comandante: v })}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecione o comandante" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {form.usuariosEscalados.map((u) => (
+                      <SelectItem key={u} value={u}>{u}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                {form.usuariosEscalados.length === 0 && (
+                  <p className="text-xs text-muted-foreground mt-1 text-warning">
+                    Adicione usuários na lista acima para definir o comandante.
+                  </p>
+                )}
               </div>
             </div>
           </div>
