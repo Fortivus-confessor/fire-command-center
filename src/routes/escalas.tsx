@@ -327,6 +327,7 @@ function EscalasPage() {
               <TableRow>
                 <TableHead>Comando / Equipe</TableHead>
                 <TableHead>Período</TableHead>
+                <TableHead>Status</TableHead>
                 <TableHead>Veículo</TableHead>
                 <TableHead>Comandante</TableHead>
                 <TableHead>Efetivo</TableHead>
@@ -336,7 +337,7 @@ function EscalasPage() {
             <TableBody>
               {filtered.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
+                  <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
                     Nenhuma escala encontrada.
                   </TableCell>
                 </TableRow>
@@ -351,6 +352,13 @@ function EscalasPage() {
                     </TableCell>
                     <TableCell className="mono text-sm text-muted-foreground">
                       {formatDate(item.dataInicio)} — {formatDate(item.dataFim)}
+                    </TableCell>
+                    <TableCell>
+                      {item.ativa ? (
+                        <Badge className="bg-emerald-500/15 text-emerald-600 border-emerald-500/20">Ativa</Badge>
+                      ) : (
+                        <Badge variant="secondary" className="text-muted-foreground">Inativa</Badge>
+                      )}
                     </TableCell>
                     <TableCell>
                       <Badge variant="outline" className="border-command/30 font-mono">
