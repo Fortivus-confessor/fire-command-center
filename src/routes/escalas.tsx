@@ -155,13 +155,13 @@ function EscalasPage() {
   function openEdit(item: Escala) {
     setEditingItem(item);
     setForm({
-      centroComando: item.centroComando,
-      equipe: item.equipe,
-      dataInicio: item.dataInicio,
-      dataFim: item.dataFim,
-      veiculo: item.veiculo,
-      comandante: item.comandante,
-      usuariosEscalados: item.usuariosEscalados,
+      centroComando: item.centroComando ? String(item.centroComando) : '',
+      equipe: item.equipe ? String(item.equipe) : '',
+      dataInicio: item.dataInicio || '',
+      dataFim: item.dataFim || '',
+      veiculo: item.veiculo ? String(item.veiculo) : 'Nenhum',
+      comandante: item.comandante ? String(item.comandante) : '',
+      usuariosEscalados: item.usuariosEscalados || [],
     });
     setSelectedLeft([]);
     setSelectedRight([]);
@@ -329,26 +329,26 @@ function EscalasPage() {
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label>Centro de Comando</Label>
-                  <Select value={form.centroComando} onValueChange={(v) => setForm({ ...form, centroComando: v, equipe: '' })}>
+                  <Select value={form.centroComando || undefined} onValueChange={(v) => setForm({ ...form, centroComando: v, equipe: '' })}>
                     <SelectTrigger>
                       <SelectValue placeholder="Selecione o centro" />
                     </SelectTrigger>
                     <SelectContent>
                       {centrosDeComandoDB.map((cc: any) => (
-                        <SelectItem key={cc.id} value={cc.id}>{cc.nome}</SelectItem>
+                        <SelectItem key={cc.id} value={String(cc.id)}>{cc.nome}</SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
                 </div>
                 <div className="space-y-2">
                   <Label>Equipe</Label>
-                  <Select disabled={!form.centroComando} value={form.equipe} onValueChange={(v) => setForm({ ...form, equipe: v })}>
+                  <Select disabled={!form.centroComando} value={form.equipe || undefined} onValueChange={(v) => setForm({ ...form, equipe: v })}>
                     <SelectTrigger>
                       <SelectValue placeholder="Selecione a equipe" />
                     </SelectTrigger>
                     <SelectContent>
-                      {equipesDB.filter((eq: any) => eq.centroComandoId === form.centroComando).map((eq: any) => (
-                        <SelectItem key={eq.id} value={eq.nome}>{eq.nome}</SelectItem>
+                      {equipesDB.filter((eq: any) => String(eq.centroComandoId) === String(form.centroComando)).map((eq: any) => (
+                        <SelectItem key={eq.id} value={String(eq.nome)}>{eq.nome}</SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
@@ -379,7 +379,7 @@ function EscalasPage() {
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label>Veículo Associado</Label>
-                  <Select value={form.veiculo} onValueChange={(v) => setForm({ ...form, veiculo: v })}>
+                  <Select value={form.veiculo || 'Nenhum'} onValueChange={(v) => setForm({ ...form, veiculo: v })}>
                     <SelectTrigger className={activeVehicles.has(form.veiculo) ? 'border-warning text-warning' : ''}>
                       <SelectValue />
                     </SelectTrigger>
