@@ -440,7 +440,7 @@ function EscalasPage() {
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label className={errors.centroComando ? "text-destructive" : ""}>Centro de Comando</Label>
-                  <Select value={form.centroComando || ""} onValueChange={(v) => setForm({ ...form, centroComando: v, equipeId: '', integranteIds: [] })}>
+                  <Select value={form.centroComando || ""} onValueChange={(v) => setForm({ ...form, centroComando: v, equipeId: '', integranteIds: [], comandanteId: '' })}>
                     <SelectTrigger className={errors.centroComando ? "border-destructive" : ""}>
                       <SelectValue placeholder="Selecione o centro" />
                     </SelectTrigger>
