@@ -134,6 +134,11 @@ function OrdensServicoPage() {
     enabled: !!form.comando,
   });
 
+  const { data: todasEscalas = [] } = useQuery<any[]>({
+    queryKey: ['escalas'],
+    queryFn: () => fetchWithAuth('/operacional/escalas')
+  });
+
   const [citySearch, setCitySearch] = useState('');
   const [isDms, setIsDms] = useState(false);
   const [flyTo, setFlyTo] = useState<{lat: number, lng: number} | null>(null);
@@ -400,7 +405,7 @@ function OrdensServicoPage() {
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label>Comando (Centro)</Label>
-                <Select value={form.comando || undefined} onValueChange={(v) => setForm({ ...form, comando: v, equipe: '', responsavel: '' })}>
+                <Select value={form.comando || ''} onValueChange={(v) => setForm({ ...form, comando: v, equipe: '', responsavel: '' })}>
                   <SelectTrigger>
                     <SelectValue placeholder="Selecione o comando" />
                   </SelectTrigger>
@@ -411,14 +416,13 @@ function OrdensServicoPage() {
               </div>
               <div className="space-y-2">
                 <Label>Equipe</Label>
-                <Select disabled={!form.comando} value={form.equipe || undefined} onValueChange={(v) => setForm({ ...form, equipe: v, responsavel: '' })}>
+                <Select disabled={!form.comando} value={form.equipe || ''} onValueChange={(v) => setForm({ ...form, equipe: v, responsavel: '' })}>
                   <SelectTrigger>
                     <SelectValue placeholder="Selecione a escala/equipe" />
                   </SelectTrigger>
                   <SelectContent>
                     {escalasAtivas.map((eq: any) => {
-                      const cmt = usuariosDB.find((u: any) => String(u.id) === String(eq.comandanteId));
-                      return <SelectItem key={eq.id} value={String(eq.id)}>{eq.equipeNome} - {cmt?.nome || 'Sem Cmt'}</SelectItem>
+                      return <SelectItem key={eq.id} value={String(eq.id)}>{eq.equipeNome} - {eq.comandanteNome || 'Sem Cmt'}</SelectItem>
                     })}
                   </SelectContent>
                 </Select>
@@ -427,13 +431,13 @@ function OrdensServicoPage() {
 
             <div className="space-y-2">
               <Label>Usuário Responsável</Label>
-              <Select disabled={!form.equipe} value={form.responsavel || undefined} onValueChange={(v) => setForm({ ...form, responsavel: v })}>
+              <Select disabled={!form.equipe} value={form.responsavel || ''} onValueChange={(v) => setForm({ ...form, responsavel: v })}>
                 <SelectTrigger>
                   <SelectValue placeholder="Selecione o responsável" />
                 </SelectTrigger>
                 <SelectContent>
                   {usuariosDB.filter((u: any) => {
-                    const selectedScale = escalasAtivas.find((e: any) => String(e.id) === String(form.equipe));
+                    const selectedScale = todasEscalas.find((e: any) => String(e.id) === String(form.equipe));
                     if (!selectedScale) return false;
                     const ids = [...(selectedScale.integranteIds || []), selectedScale.comandanteId].map(String);
                     return ids.includes(String(u.id));
@@ -485,10 +489,36 @@ function OrdensServicoPage() {
               <div className="border border-border rounded-md overflow-hidden relative h-[300px] bg-secondary/20 mt-2">
                 <SituationMap
                   onClickMap={(lat, lng) => {
-                    setForm({ ...form, latLng: `${lat.toFixed(4)}, ${lng.toFixed(4)}` });
+                    const isDmsFormat = form.latLng.includes('°');
+                    if (isDmsFormat) {
+                      setForm({ ...form, latLng: `${ddToDms(lat, false)}, ${ddToDms(lng, true)}` });
+                    } else {
+                      setForm({ ...form, latLng: `${lat.toFixed(4)}, ${lng.toFixed(4)}` });
+                    }
                     setFlyTo({ lat, lng });
                   }}
-                  activePin={form.latLng ? { lat: parseFloat(form.latLng.split(',')[0]), lng: parseFloat(form.latLng.split(',')[1]) } : null}
+                  activePin={(() => {
+                    if (!form.latLng) return null;
+                    if (form.latLng.includes('°')) {
+                      const parse = (dms: string) => {
+                        const parts = dms.match(/(\d+)\s*°\s*(\d+)\s*'\s*([\d.]+)\s*"\s*([NSWE])/i);
+                        if (!parts) return NaN;
+                        let dd = parseFloat(parts[1]) + parseFloat(parts[2]) / 60 + parseFloat(parts[3]) / 3600;
+                        if (parts[4].toUpperCase() === 'S' || parts[4].toUpperCase() === 'W') dd = -dd;
+                        return dd;
+                      };
+                      const latStr = form.latLng.split(',')[0]?.trim();
+                      const lngStr = form.latLng.split(',')[1]?.trim();
+                      if (!latStr || !lngStr) return null;
+                      const lat = parse(latStr);
+                      const lng = parse(lngStr);
+                      return !isNaN(lat) && !isNaN(lng) ? { lat, lng } : null;
+                    } else {
+                      const lat = parseFloat(form.latLng.split(',')[0]);
+                      const lng = parseFloat(form.latLng.split(',')[1]);
+                      return !isNaN(lat) && !isNaN(lng) ? { lat, lng } : null;
+                    }
+                  })()}
                   hideEvents={true}
                   flyTo={flyTo}
                 />
