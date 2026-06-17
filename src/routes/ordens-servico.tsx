@@ -130,7 +130,7 @@ function OrdensServicoPage() {
 
   const { data: escalasAtivas = [] } = useQuery<any[]>({
     queryKey: ['escalas-ativas', form.comando],
-    queryFn: () => fetchWithAuth(`/api/v1/operacional/escalas/centro/${form.comando}/ativas`),
+    queryFn: () => fetchWithAuth(`/operacional/escalas/centro/${form.comando}/ativas`),
     enabled: !!form.comando,
   });
 

@@ -102,20 +102,21 @@ function EscalasPage() {
 
   const { data: escalasData = [] } = useQuery<any[]>({
     queryKey: ['escalas'],
-    queryFn: () => fetchWithAuth('/api/v1/operacional/escalas')
+    queryFn: () => fetchWithAuth('/operacional/escalas')
   });
 
   const data = escalasData;
 
   const [search, setSearch] = useState('');
   const [errorMsg, setErrorMsg] = useState('');
+  const [errors, setErrors] = useState<Record<string, string>>({});
 
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingItem, setEditingItem] = useState<any | null>(null);
   const [form, setForm] = useState(emptyForm);
 
   const mutationSave = useMutation({
-    mutationFn: (payload: any) => fetchWithAuth('/api/v1/operacional/escalas', {
+    mutationFn: (payload: any) => fetchWithAuth('/operacional/escalas', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload)
@@ -130,7 +131,7 @@ function EscalasPage() {
   });
 
   const mutationDelete = useMutation({
-    mutationFn: (id: string) => fetchWithAuth(`/api/v1/operacional/escalas/${id}`, { method: 'DELETE' }),
+    mutationFn: (id: string) => fetchWithAuth(`/operacional/escalas/${id}`, { method: 'DELETE' }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['escalas'] });
       setDeleteDialogOpen(false);
@@ -167,6 +168,7 @@ function EscalasPage() {
     setEditingItem(null);
     setForm({ ...emptyForm });
     setErrorMsg('');
+    setErrors({});
     setSelectedLeft([]);
     setSelectedRight([]);
     setSearchLeft('');
@@ -177,6 +179,7 @@ function EscalasPage() {
   function openEdit(item: any) {
     setEditingItem(item);
     setErrorMsg('');
+    setErrors({});
     const eq = equipesDB.find(e => e.id === item.equipeId);
     setForm({
       centroComando: eq?.centroComandoId || '',
@@ -196,8 +199,20 @@ function EscalasPage() {
 
   function handleSave() {
     setErrorMsg('');
-    if (!form.centroComando || !form.equipeId || !form.dataInicio || !form.dataFim || !form.comandanteId || form.integranteIds.length === 0) {
-      setErrorMsg('Preencha todos os campos obrigatórios e adicione usuários.');
+    setErrors({});
+    const newErrors: Record<string, string> = {};
+
+    if (!form.centroComando) newErrors.centroComando = "Selecione o centro de comando.";
+    if (!form.equipeId) newErrors.equipeId = "Selecione a equipe.";
+    if (!form.dataInicio) newErrors.dataInicio = "Informe a data de início.";
+    if (!form.dataFim) newErrors.dataFim = "Informe a data de fim.";
+    if (!form.veiculoId) newErrors.veiculoId = "Selecione um veículo.";
+    if (!form.comandanteId) newErrors.comandanteId = "Selecione o comandante.";
+    if (form.integranteIds.length === 0) newErrors.integranteIds = "A equipe deve ter ao menos um integrante.";
+
+    if (Object.keys(newErrors).length > 0) {
+      setErrors(newErrors);
+      setErrorMsg('Por favor, corrija os erros destacados abaixo.');
       return;
     }
 
@@ -380,9 +395,9 @@ function EscalasPage() {
             <div className="grid gap-5 py-4">
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label>Centro de Comando</Label>
-                  <Select value={form.centroComando || undefined} onValueChange={(v) => setForm({ ...form, centroComando: v, equipeId: '' })}>
-                    <SelectTrigger>
+                  <Label className={errors.centroComando ? "text-destructive" : ""}>Centro de Comando</Label>
+                  <Select value={form.centroComando ? String(form.centroComando) : undefined} onValueChange={(v) => setForm({ ...form, centroComando: v, equipeId: '' })}>
+                    <SelectTrigger className={errors.centroComando ? "border-destructive" : ""}>
                       <SelectValue placeholder="Selecione o centro" />
                     </SelectTrigger>
                     <SelectContent>
@@ -391,11 +406,12 @@ function EscalasPage() {
                       ))}
                     </SelectContent>
                   </Select>
+                  {errors.centroComando && <p className="text-xs text-destructive">{errors.centroComando}</p>}
                 </div>
                 <div className="space-y-2">
-                  <Label>Equipe</Label>
-                  <Select disabled={!form.centroComando} value={form.equipeId || undefined} onValueChange={(v) => setForm({ ...form, equipeId: v })}>
-                    <SelectTrigger>
+                  <Label className={errors.equipeId ? "text-destructive" : ""}>Equipe</Label>
+                  <Select disabled={!form.centroComando} value={form.equipeId ? String(form.equipeId) : undefined} onValueChange={(v) => setForm({ ...form, equipeId: v })}>
+                    <SelectTrigger className={errors.equipeId ? "border-destructive" : ""}>
                       <SelectValue placeholder="Selecione a equipe" />
                     </SelectTrigger>
                     <SelectContent>
@@ -404,36 +420,44 @@ function EscalasPage() {
                       ))}
                     </SelectContent>
                   </Select>
+                  {errors.equipeId && <p className="text-xs text-destructive">{errors.equipeId}</p>}
                 </div>
               </div>
 
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="dataInicio">Data Início</Label>
+                  <Label htmlFor="dataInicio" className={errors.dataInicio ? "text-destructive" : ""}>Data Início</Label>
                   <Input
                     id="dataInicio"
                     type="date"
                     value={form.dataInicio}
                     onChange={(e) => setForm({ ...form, dataInicio: e.target.value })}
+                    className={errors.dataInicio ? "border-destructive" : ""}
                   />
+                  {errors.dataInicio && <p className="text-xs text-destructive">{errors.dataInicio}</p>}
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="dataFim">Data Fim</Label>
+                  <Label htmlFor="dataFim" className={errors.dataFim ? "text-destructive" : ""}>Data Fim</Label>
                   <Input
                     id="dataFim"
                     type="date"
                     value={form.dataFim}
                     onChange={(e) => setForm({ ...form, dataFim: e.target.value })}
+                    className={errors.dataFim ? "border-destructive" : ""}
                   />
+                  {errors.dataFim && <p className="text-xs text-destructive">{errors.dataFim}</p>}
                 </div>
               </div>
 
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label>Veículo Associado</Label>
-                  <Select value={form.veiculoId || 'Nenhum'} onValueChange={(v) => setForm({ ...form, veiculoId: v })}>
-                    <SelectTrigger className={activeVehicles.has(form.veiculoId) ? 'border-warning text-warning' : ''}>
-                      <SelectValue />
+                  <Label className={errors.veiculoId ? "text-destructive" : ""}>Veículo Associado</Label>
+                  <Select value={form.veiculoId ? String(form.veiculoId) : undefined} onValueChange={(v) => setForm({ ...form, veiculoId: v })}>
+                    <SelectTrigger className={cn(
+                      activeVehicles.has(form.veiculoId) ? 'border-warning text-warning' : '',
+                      errors.veiculoId ? "border-destructive" : ""
+                    )}>
+                      <SelectValue placeholder="Selecione o veículo" />
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="Nenhum">Nenhum</SelectItem>
@@ -447,6 +471,7 @@ function EscalasPage() {
                       })}
                     </SelectContent>
                   </Select>
+                  {errors.veiculoId && <p className="text-xs text-destructive">{errors.veiculoId}</p>}
                   {activeVehicles.has(form.veiculoId) && form.veiculoId !== 'Nenhum' && (
                     <p className="text-[10px] text-warning flex items-center gap-1 mt-1">
                       <AlertTriangle className="h-3 w-3" />
@@ -457,8 +482,8 @@ function EscalasPage() {
               </div>
 
               <div className="space-y-2">
-                <Label>Usuários Escalados</Label>
-                <div className="grid grid-cols-[1fr_auto_1fr] gap-4 h-48">
+                <Label className={errors.integranteIds ? "text-destructive" : ""}>Usuários Escalados</Label>
+                <div className={cn("grid grid-cols-[1fr_auto_1fr] gap-4 h-48", errors.integranteIds ? "border border-destructive rounded-md p-1" : "")}>
                   <div className="border border-border rounded-md overflow-hidden bg-secondary/10 flex flex-col">
                     <div className="bg-secondary/40 px-3 py-1.5 text-xs font-semibold border-b border-border text-muted-foreground flex items-center justify-between">
                       <span>Disponíveis ({disponiveis.length})</span>
@@ -530,13 +555,14 @@ function EscalasPage() {
                     </div>
                   </div>
                 </div>
-                <p className="text-xs text-muted-foreground text-right">Dica: Clique duplo para mover rapidamente</p>
+                <p className="text-xs text-muted-foreground text-right mt-1">Dica: Clique duplo para mover rapidamente</p>
+                {errors.integranteIds && <p className="text-xs text-destructive">{errors.integranteIds}</p>}
               </div>
 
               <div className="space-y-2">
-                <Label>Comandante da Escala</Label>
-                <Select disabled={form.integranteIds.length === 0} value={form.comandanteId || undefined} onValueChange={(v) => setForm({ ...form, comandanteId: v })}>
-                  <SelectTrigger>
+                <Label className={errors.comandanteId ? "text-destructive" : ""}>Comandante da Escala</Label>
+                <Select disabled={form.integranteIds.length === 0} value={form.comandanteId ? String(form.comandanteId) : undefined} onValueChange={(v) => setForm({ ...form, comandanteId: v })}>
+                  <SelectTrigger className={errors.comandanteId ? "border-destructive" : ""}>
                     <SelectValue placeholder="Selecione o comandante" />
                   </SelectTrigger>
                   <SelectContent>
@@ -545,6 +571,7 @@ function EscalasPage() {
                     ))}
                   </SelectContent>
                 </Select>
+                {errors.comandanteId && <p className="text-xs text-destructive">{errors.comandanteId}</p>}
                 {form.integranteIds.length === 0 && (
                   <p className="text-xs text-muted-foreground mt-1 text-warning">
                     Adicione usuários na lista acima para definir o comandante.
