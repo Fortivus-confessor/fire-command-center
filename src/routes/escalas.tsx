@@ -197,6 +197,31 @@ function EscalasPage() {
     setDialogOpen(true);
   }
 
+  function isOverlapping(userId: string) {
+    if (!form.dataInicio || !form.dataFim) return false;
+    const formInicio = new Date(form.dataInicio).getTime();
+    const formFim = new Date(form.dataFim).getTime();
+
+    for (const escala of (escalasDB || [])) {
+      if (!escala.ativa) continue;
+      if (escala.id === editingItem?.id) continue;
+      
+      const isComandante = String(escala.comandanteId) === userId;
+      const isIntegrante = (escala.integranteIds || []).includes(userId);
+      
+      if (isComandante || isIntegrante) {
+        if (!escala.dataInicio || !escala.dataFim) continue;
+        const escInicio = new Date(escala.dataInicio).getTime();
+        const escFim = new Date(escala.dataFim).getTime();
+        
+        if (formInicio <= escFim && formFim >= escInicio) {
+          return true; // overlapping
+        }
+      }
+    }
+    return false;
+  }
+
   function handleSave() {
     setErrorMsg('');
     setErrors({});
@@ -209,6 +234,11 @@ function EscalasPage() {
     if (!form.veiculoId) newErrors.veiculoId = "Selecione um veículo.";
     if (!form.comandanteId) newErrors.comandanteId = "Selecione o comandante.";
     if (form.integranteIds.length === 0) newErrors.integranteIds = "A equipe deve ter ao menos um integrante.";
+
+    const hasOverlap = form.integranteIds.some(id => isOverlapping(id));
+    if (hasOverlap) {
+      newErrors.integranteIds = "Um ou mais usuários selecionados já estão escalados no período.";
+    }
 
     if (Object.keys(newErrors).length > 0) {
       setErrors(newErrors);
@@ -259,10 +289,12 @@ function EscalasPage() {
     setSelectedRight([]);
   }
 
-  const usuariosCentro = usuariosDB.filter((u: any) => 
-    String(u.centroComandoId) === String(form.centroComando) &&
-    (u.estadoOperacional === 'DISPONIVEL' || (editingItem?.integranteIds || []).includes(String(u.id)))
-  );
+  const usuariosCentro = usuariosDB.filter((u: any) => {
+    if (String(u.centroComandoId) !== String(form.centroComando)) return false;
+    if (u.estadoOperacional === 'AFASTADO' || u.estadoOperacional === 'FERIAS') return false;
+    if (isOverlapping(String(u.id))) return false;
+    return true;
+  });
 
   function moveAllRight() {
     const disponiveisId = usuariosCentro
@@ -406,7 +438,7 @@ function EscalasPage() {
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label className={errors.centroComando ? "text-destructive" : ""}>Centro de Comando</Label>
-                  <Select value={form.centroComando || ""} onValueChange={(v) => setForm({ ...form, centroComando: v, equipeId: '' })}>
+                  <Select value={form.centroComando || ""} onValueChange={(v) => setForm({ ...form, centroComando: v, equipeId: '', integranteIds: [] })}>
                     <SelectTrigger className={errors.centroComando ? "border-destructive" : ""}>
                       <SelectValue placeholder="Selecione o centro" />
                     </SelectTrigger>
