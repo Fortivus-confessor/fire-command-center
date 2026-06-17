@@ -39,7 +39,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { cn } from '@/lib/utils';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { fetchWithAuth } from '@/lib/api';
 
 export const Route = createFileRoute('/escalas')({
@@ -47,44 +47,29 @@ export const Route = createFileRoute('/escalas')({
 });
 
 // ── Types ──────────────────────────────────────────────
-interface Escala {
-  id: string;
-  centroComando: string;
-  equipe: string;
-  dataInicio: string;
-  dataFim: string;
-  veiculo: string;
-  comandante: string;
-  usuariosEscalados: string[];
-}
-
-// ── Mock Data ──────────────────────────────────────────
-
-const initialData: Escala[] = [];
-
-const emptyForm: Omit<Escala, 'id'> = {
+const emptyForm = {
   centroComando: '',
-  equipe: '',
+  equipeId: '',
   dataInicio: '',
   dataFim: '',
-  veiculo: 'Nenhum',
-  comandante: '',
-  usuariosEscalados: [],
+  veiculoId: 'Nenhum',
+  comandanteId: '',
+  integranteIds: [] as string[],
 };
 
 // ── Helpers ────────────────────────────────────────────
 function formatDate(dateStr: string) {
   if (!dateStr) return '—';
-  const [y, m, d] = dateStr.split('-');
-  return `${d}/${m}/${y}`;
+  const date = new Date(dateStr);
+  return `${String(date.getDate()).padStart(2, '0')}/${String(date.getMonth() + 1).padStart(2, '0')}/${date.getFullYear()}`;
 }
 
 // Retorna as escalas ativas (apenas mock de lógica visual)
-function getActiveVehicles(data: Escala[], ignoreEscalaId?: string) {
+function getActiveVehicles(data: any[], ignoreEscalaId?: string) {
   const active = new Set<string>();
   data.forEach(e => {
-    if (e.id !== ignoreEscalaId && e.veiculo && e.veiculo !== 'Nenhum') {
-      active.add(e.veiculo);
+    if (e.id !== ignoreEscalaId && e.veiculoId && e.veiculoId !== 'Nenhum') {
+      active.add(e.veiculoId);
     }
   });
   return active;
@@ -92,6 +77,7 @@ function getActiveVehicles(data: Escala[], ignoreEscalaId?: string) {
 
 // ── Page Component ─────────────────────────────────────
 function EscalasPage() {
+  const queryClient = useQueryClient();
   const { data: centrosDeComandoDB = [] } = useQuery<any[]>({
     queryKey: ['centros-comando'],
     queryFn: () => fetchWithAuth('/admin/centros'),
@@ -114,12 +100,43 @@ function EscalasPage() {
 
   const usuariosDisponiveis: string[] = usuariosDB.map((u: any) => u.nome).filter(Boolean);
 
-  const [data, setData] = useState<Escala[]>(initialData);
+  const { data: escalasData = [] } = useQuery<any[]>({
+    queryKey: ['escalas'],
+    queryFn: () => fetchWithAuth('/api/v1/operacional/escalas')
+  });
+
+  const data = escalasData;
+
   const [search, setSearch] = useState('');
+  const [errorMsg, setErrorMsg] = useState('');
 
   const [dialogOpen, setDialogOpen] = useState(false);
-  const [editingItem, setEditingItem] = useState<Escala | null>(null);
+  const [editingItem, setEditingItem] = useState<any | null>(null);
   const [form, setForm] = useState(emptyForm);
+
+  const mutationSave = useMutation({
+    mutationFn: (payload: any) => fetchWithAuth('/api/v1/operacional/escalas', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['escalas'] });
+      setDialogOpen(false);
+    },
+    onError: () => {
+      setErrorMsg('Erro ao salvar escala. Verifique os dados.');
+    }
+  });
+
+  const mutationDelete = useMutation({
+    mutationFn: (id: string) => fetchWithAuth(`/api/v1/operacional/escalas/${id}`, { method: 'DELETE' }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['escalas'] });
+      setDeleteDialogOpen(false);
+      setDeletingId(null);
+    }
+  });
 
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
@@ -133,18 +150,23 @@ function EscalasPage() {
   const activeVehicles = getActiveVehicles(data, editingItem?.id);
 
   const filtered = data.filter((item) => {
-    const centroNome = centrosDeComandoDB.find(c => c.id === item.centroComando)?.nome || item.centroComando;
+    const eq = equipesDB.find(e => e.id === item.equipeId);
+    const centroNome = centrosDeComandoDB.find(c => c.id === eq?.centroComandoId)?.nome || '';
+    const eqNome = eq?.nome || '';
+    const cmdNome = usuariosDB.find(u => u.id === item.comandanteId)?.nome || '';
+
     const matchSearch =
       !search ||
-      item.equipe.toLowerCase().includes(search.toLowerCase()) ||
+      eqNome.toLowerCase().includes(search.toLowerCase()) ||
       centroNome.toLowerCase().includes(search.toLowerCase()) ||
-      item.comandante.toLowerCase().includes(search.toLowerCase());
+      cmdNome.toLowerCase().includes(search.toLowerCase());
     return matchSearch;
   });
 
   function openNew() {
     setEditingItem(null);
     setForm({ ...emptyForm });
+    setErrorMsg('');
     setSelectedLeft([]);
     setSelectedRight([]);
     setSearchLeft('');
@@ -152,16 +174,18 @@ function EscalasPage() {
     setDialogOpen(true);
   }
 
-  function openEdit(item: Escala) {
+  function openEdit(item: any) {
     setEditingItem(item);
+    setErrorMsg('');
+    const eq = equipesDB.find(e => e.id === item.equipeId);
     setForm({
-      centroComando: item.centroComando ? String(item.centroComando) : '',
-      equipe: item.equipe ? String(item.equipe) : '',
-      dataInicio: item.dataInicio || '',
-      dataFim: item.dataFim || '',
-      veiculo: item.veiculo ? String(item.veiculo) : 'Nenhum',
-      comandante: item.comandante ? String(item.comandante) : '',
-      usuariosEscalados: item.usuariosEscalados || [],
+      centroComando: eq?.centroComandoId || '',
+      equipeId: item.equipeId || '',
+      dataInicio: item.dataInicio ? item.dataInicio.substring(0, 10) : '',
+      dataFim: item.dataFim ? item.dataFim.substring(0, 10) : '',
+      veiculoId: item.veiculoId || 'Nenhum',
+      comandanteId: item.comandanteId || '',
+      integranteIds: item.integranteIds || [],
     });
     setSelectedLeft([]);
     setSelectedRight([]);
@@ -171,12 +195,24 @@ function EscalasPage() {
   }
 
   function handleSave() {
-    if (editingItem) {
-      setData((prev) => prev.map((d) => (d.id === editingItem.id ? { ...d, ...form } : d)));
-    } else {
-      setData((prev) => [...prev, { id: crypto.randomUUID(), ...form }]);
+    setErrorMsg('');
+    if (!form.centroComando || !form.equipeId || !form.dataInicio || !form.dataFim || !form.comandanteId || form.integranteIds.length === 0) {
+      setErrorMsg('Preencha todos os campos obrigatórios e adicione usuários.');
+      return;
     }
-    setDialogOpen(false);
+
+    const payload = {
+      id: editingItem?.id || undefined,
+      equipeId: form.equipeId,
+      veiculoId: form.veiculoId === 'Nenhum' ? null : form.veiculoId,
+      comandanteId: form.comandanteId,
+      dataInicio: form.dataInicio ? new Date(form.dataInicio).toISOString() : null,
+      dataFim: form.dataFim ? new Date(form.dataFim).toISOString() : null,
+      integranteIds: form.integranteIds,
+      ativa: true
+    };
+
+    mutationSave.mutate(payload);
   }
 
   function confirmDelete(id: string) {
@@ -185,9 +221,9 @@ function EscalasPage() {
   }
 
   function handleDelete() {
-    if (deletingId) setData((prev) => prev.filter((d) => d.id !== deletingId));
-    setDeleteDialogOpen(false);
-    setDeletingId(null);
+    if (deletingId) {
+      mutationDelete.mutate(deletingId);
+    }
   }
 
   function toggleSelection(u: string, side: 'left' | 'right') {
@@ -199,28 +235,39 @@ function EscalasPage() {
   }
 
   function moveRight() {
-    setForm(prev => ({ ...prev, usuariosEscalados: [...prev.usuariosEscalados, ...selectedLeft] }));
+    setForm(prev => ({ ...prev, integranteIds: [...prev.integranteIds, ...selectedLeft] }));
     setSelectedLeft([]);
   }
 
   function moveLeft() {
-    setForm(prev => ({ ...prev, usuariosEscalados: prev.usuariosEscalados.filter(x => !selectedRight.includes(x)) }));
+    setForm(prev => ({ ...prev, integranteIds: prev.integranteIds.filter(x => !selectedRight.includes(x)) }));
     setSelectedRight([]);
   }
 
   function moveAllRight() {
-    const disponiveis = usuariosDisponiveis.filter(u => !form.usuariosEscalados.includes(u));
-    setForm(prev => ({ ...prev, usuariosEscalados: [...prev.usuariosEscalados, ...disponiveis] }));
+    const disponiveis = usuariosDB
+      .filter((u: any) => String(u.centroComandoId) === String(form.centroComando))
+      .map((u: any) => String(u.id))
+      .filter((id: string) => !form.integranteIds.includes(id));
+    setForm(prev => ({ ...prev, integranteIds: [...prev.integranteIds, ...disponiveis] }));
     setSelectedLeft([]);
   }
 
   function moveAllLeft() {
-    setForm(prev => ({ ...prev, usuariosEscalados: [] }));
+    setForm(prev => ({ ...prev, integranteIds: [] }));
     setSelectedRight([]);
   }
 
-  const disponiveis = usuariosDisponiveis.filter(u => !form.usuariosEscalados.includes(u)).filter(u => u.toLowerCase().includes(searchLeft.toLowerCase()));
-  const escalados = form.usuariosEscalados.filter(u => u.toLowerCase().includes(searchRight.toLowerCase()));
+  const usuariosCentro = usuariosDB.filter((u: any) => String(u.centroComandoId) === String(form.centroComando));
+
+  const disponiveis = usuariosCentro
+    .filter((u: any) => !form.integranteIds.includes(String(u.id)))
+    .filter((u: any) => u.nome?.toLowerCase().includes(searchLeft.toLowerCase()));
+
+  const escalados = form.integranteIds
+    .map(id => usuariosCentro.find(u => String(u.id) === String(id)))
+    .filter(Boolean)
+    .filter((u: any) => u.nome?.toLowerCase().includes(searchRight.toLowerCase()));
 
   return (
     <div className="p-4 sm:p-6 space-y-6">
@@ -279,9 +326,9 @@ function EscalasPage() {
                 filtered.map((item) => (
                   <TableRow key={item.id} className="hover:bg-secondary/20 transition">
                     <TableCell>
-                      <div className="font-bold">{item.equipe}</div>
+                      <div className="font-bold">{equipesDB.find(e => e.id === item.equipeId)?.nome || '—'}</div>
                       <div className="text-xs text-muted-foreground">
-                        {centrosDeComandoDB.find(c => c.id === item.centroComando)?.nome || item.centroComando}
+                        {centrosDeComandoDB.find(c => c.id === equipesDB.find(e => e.id === item.equipeId)?.centroComandoId)?.nome || '—'}
                       </div>
                     </TableCell>
                     <TableCell className="mono text-sm text-muted-foreground">
@@ -289,11 +336,11 @@ function EscalasPage() {
                     </TableCell>
                     <TableCell>
                       <Badge variant="outline" className="border-command/30 font-mono">
-                        {item.veiculo}
+                        {veiculosDB.find(v => v.id === item.veiculoId)?.identificador || 'Nenhum'}
                       </Badge>
                     </TableCell>
-                    <TableCell>{item.comandante || '—'}</TableCell>
-                    <TableCell className="mono">{item.usuariosEscalados.length} usuário(s)</TableCell>
+                    <TableCell>{usuariosDB.find(u => u.id === item.comandanteId)?.nome || '—'}</TableCell>
+                    <TableCell className="mono">{item.integranteIds?.length || 0} usuário(s)</TableCell>
                     <TableCell className="text-right">
                       <div className="flex justify-end gap-1">
                         <Button variant="ghost" size="icon" onClick={() => openEdit(item)} className="h-8 w-8 hover:text-command">
@@ -325,11 +372,16 @@ function EscalasPage() {
             </DialogDescription>
           </DialogHeader>
           <div className="flex-1 overflow-y-auto px-1 -mx-1 pr-4">
+            {errorMsg && (
+              <div className="bg-destructive/20 text-destructive text-sm px-3 py-2 rounded-md mb-4 border border-destructive/30">
+                {errorMsg}
+              </div>
+            )}
             <div className="grid gap-5 py-4">
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label>Centro de Comando</Label>
-                  <Select value={form.centroComando || undefined} onValueChange={(v) => setForm({ ...form, centroComando: v, equipe: '' })}>
+                  <Select value={form.centroComando || undefined} onValueChange={(v) => setForm({ ...form, centroComando: v, equipeId: '' })}>
                     <SelectTrigger>
                       <SelectValue placeholder="Selecione o centro" />
                     </SelectTrigger>
@@ -342,13 +394,13 @@ function EscalasPage() {
                 </div>
                 <div className="space-y-2">
                   <Label>Equipe</Label>
-                  <Select disabled={!form.centroComando} value={form.equipe || undefined} onValueChange={(v) => setForm({ ...form, equipe: v })}>
+                  <Select disabled={!form.centroComando} value={form.equipeId || undefined} onValueChange={(v) => setForm({ ...form, equipeId: v })}>
                     <SelectTrigger>
                       <SelectValue placeholder="Selecione a equipe" />
                     </SelectTrigger>
                     <SelectContent>
                       {equipesDB.filter((eq: any) => String(eq.centroComandoId) === String(form.centroComando)).map((eq: any) => (
-                        <SelectItem key={eq.id} value={String(eq.nome)}>{eq.nome}</SelectItem>
+                        <SelectItem key={eq.id} value={String(eq.id)}>{eq.nome}</SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
@@ -379,23 +431,23 @@ function EscalasPage() {
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label>Veículo Associado</Label>
-                  <Select value={form.veiculo || 'Nenhum'} onValueChange={(v) => setForm({ ...form, veiculo: v })}>
-                    <SelectTrigger className={activeVehicles.has(form.veiculo) ? 'border-warning text-warning' : ''}>
+                  <Select value={form.veiculoId || 'Nenhum'} onValueChange={(v) => setForm({ ...form, veiculoId: v })}>
+                    <SelectTrigger className={activeVehicles.has(form.veiculoId) ? 'border-warning text-warning' : ''}>
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="Nenhum">Nenhum</SelectItem>
                       {veiculosDB.map((v: any) => {
-                        const label = `${v.modelo} - ${v.identificador}`;
+                        const isUsed = activeVehicles.has(String(v.id));
                         return (
-                          <SelectItem key={v.id} value={label}>
-                            {label} {activeVehicles.has(label) && label !== 'Nenhum' ? '(Em uso)' : ''}
+                          <SelectItem key={v.id} value={String(v.id)}>
+                            {v.modelo} - {v.identificador} {isUsed ? '(Em uso)' : ''}
                           </SelectItem>
                         );
                       })}
                     </SelectContent>
                   </Select>
-                  {activeVehicles.has(form.veiculo) && form.veiculo !== 'Nenhum' && (
+                  {activeVehicles.has(form.veiculoId) && form.veiculoId !== 'Nenhum' && (
                     <p className="text-[10px] text-warning flex items-center gap-1 mt-1">
                       <AlertTriangle className="h-3 w-3" />
                       Este veículo possui escala ativa no período.
@@ -423,17 +475,17 @@ function EscalasPage() {
                       </div>
                     </div>
                     <div className="p-1.5 flex-1 overflow-y-auto space-y-0.5">
-                      {disponiveis.map(u => (
+                      {disponiveis.map((u: any) => (
                         <div 
-                          key={u} 
-                          className={cn("px-2 py-1.5 text-sm rounded cursor-pointer select-none transition-colors", selectedLeft.includes(u) ? "bg-primary text-primary-foreground" : "hover:bg-secondary/30")}
-                          onClick={() => toggleSelection(u, 'left')}
+                          key={u.id} 
+                          className={cn("px-2 py-1.5 text-sm rounded cursor-pointer select-none transition-colors", selectedLeft.includes(String(u.id)) ? "bg-primary text-primary-foreground" : "hover:bg-secondary/30")}
+                          onClick={() => toggleSelection(String(u.id), 'left')}
                           onDoubleClick={() => {
-                            setForm(prev => ({ ...prev, usuariosEscalados: [...prev.usuariosEscalados, u] }));
-                            setSelectedLeft(prev => prev.filter(x => x !== u));
+                            setForm(prev => ({ ...prev, integranteIds: [...prev.integranteIds, String(u.id)] }));
+                            setSelectedLeft(prev => prev.filter(x => x !== String(u.id)));
                           }}
                         >
-                          {u}
+                          {u.nome}
                         </div>
                       ))}
                     </div>
@@ -462,17 +514,17 @@ function EscalasPage() {
                       </div>
                     </div>
                     <div className="p-1.5 flex-1 overflow-y-auto space-y-0.5">
-                      {escalados.map(u => (
+                      {escalados.map((u: any) => (
                         <div 
-                          key={u} 
-                          className={cn("px-2 py-1.5 text-sm rounded cursor-pointer select-none transition-colors", selectedRight.includes(u) ? "bg-primary text-primary-foreground" : "hover:bg-secondary/30")}
-                          onClick={() => toggleSelection(u, 'right')}
+                          key={u.id} 
+                          className={cn("px-2 py-1.5 text-sm rounded cursor-pointer select-none transition-colors", selectedRight.includes(String(u.id)) ? "bg-primary text-primary-foreground" : "hover:bg-secondary/30")}
+                          onClick={() => toggleSelection(String(u.id), 'right')}
                           onDoubleClick={() => {
-                            setForm(prev => ({ ...prev, usuariosEscalados: prev.usuariosEscalados.filter(x => x !== u) }));
-                            setSelectedRight(prev => prev.filter(x => x !== u));
+                            setForm(prev => ({ ...prev, integranteIds: prev.integranteIds.filter(x => x !== String(u.id)) }));
+                            setSelectedRight(prev => prev.filter(x => x !== String(u.id)));
                           }}
                         >
-                          {u}
+                          {u.nome}
                         </div>
                       ))}
                     </div>
@@ -483,17 +535,17 @@ function EscalasPage() {
 
               <div className="space-y-2">
                 <Label>Comandante da Escala</Label>
-                <Select disabled={form.usuariosEscalados.length === 0} value={form.comandante} onValueChange={(v) => setForm({ ...form, comandante: v })}>
+                <Select disabled={form.integranteIds.length === 0} value={form.comandanteId || undefined} onValueChange={(v) => setForm({ ...form, comandanteId: v })}>
                   <SelectTrigger>
                     <SelectValue placeholder="Selecione o comandante" />
                   </SelectTrigger>
                   <SelectContent>
-                    {form.usuariosEscalados.map((u) => (
-                      <SelectItem key={u} value={u}>{u}</SelectItem>
+                    {escalados.map((u: any) => (
+                      <SelectItem key={u.id} value={String(u.id)}>{u.nome}</SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
-                {form.usuariosEscalados.length === 0 && (
+                {form.integranteIds.length === 0 && (
                   <p className="text-xs text-muted-foreground mt-1 text-warning">
                     Adicione usuários na lista acima para definir o comandante.
                   </p>
