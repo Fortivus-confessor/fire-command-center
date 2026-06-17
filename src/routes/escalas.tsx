@@ -108,6 +108,11 @@ function EscalasPage() {
   const data = escalasData;
 
   const [search, setSearch] = useState('');
+  const [filterCentro, setFilterCentro] = useState('all');
+  const [filterEquipe, setFilterEquipe] = useState('all');
+  const [filterDataInicio, setFilterDataInicio] = useState('');
+  const [filterDataFim, setFilterDataFim] = useState('');
+  const [filterIntegrante, setFilterIntegrante] = useState('');
   const [errorMsg, setErrorMsg] = useState('');
   const [errors, setErrors] = useState<Record<string, string>>({});
 
@@ -155,6 +160,25 @@ function EscalasPage() {
     const centroNome = centrosDeComandoDB.find(c => c.id === eq?.centroComandoId)?.nome || '';
     const eqNome = eq?.nome || '';
     const cmdNome = usuariosDB.find(u => u.id === item.comandanteId)?.nome || '';
+
+    if (filterCentro !== 'all' && String(eq?.centroComandoId) !== filterCentro) return false;
+    if (filterEquipe !== 'all' && String(item.equipeId) !== filterEquipe) return false;
+
+    if (filterDataInicio && item.dataInicio) {
+       if (new Date(item.dataInicio) < new Date(filterDataInicio)) return false;
+    }
+    if (filterDataFim && item.dataFim) {
+       if (new Date(item.dataFim) > new Date(filterDataFim + 'T23:59:59')) return false;
+    }
+
+    if (filterIntegrante) {
+       const lowerFilter = filterIntegrante.toLowerCase();
+       const hasIntegrante = item.integranteIds?.some((id: string) => {
+          const user = usuariosDB.find(u => String(u.id) === String(id));
+          return user?.nome?.toLowerCase().includes(lowerFilter);
+       });
+       if (!hasIntegrante && !cmdNome.toLowerCase().includes(lowerFilter)) return false;
+    }
 
     const matchSearch =
       !search ||
@@ -340,11 +364,61 @@ function EscalasPage() {
       </div>
 
       {/* Filters */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-6 gap-3">
+        <Select value={filterCentro} onValueChange={(v) => { setFilterCentro(v); setFilterEquipe('all'); }}>
+          <SelectTrigger className="md:col-span-1">
+            <SelectValue placeholder="Comando (Todos)" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Todos os Comandos</SelectItem>
+            {centrosDeComandoDB.map((cc: any) => (
+              <SelectItem key={cc.id} value={String(cc.id)}>{cc.nome}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+
+        <Select disabled={filterCentro === 'all'} value={filterEquipe} onValueChange={setFilterEquipe}>
+          <SelectTrigger className="md:col-span-1">
+            <SelectValue placeholder="Equipe (Todas)" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Todas as Equipes</SelectItem>
+            {equipesDB.filter((eq: any) => filterCentro === 'all' || String(eq.centroComandoId) === filterCentro).map((eq: any) => (
+              <SelectItem key={eq.id} value={String(eq.id)}>{eq.nome}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+
+        <div className="flex gap-2 md:col-span-2">
+            <Input
+              type="date"
+              value={filterDataInicio}
+              onChange={(e) => setFilterDataInicio(e.target.value)}
+              className="flex-1"
+              title="Data Início"
+            />
+            <Input
+              type="date"
+              value={filterDataFim}
+              onChange={(e) => setFilterDataFim(e.target.value)}
+              className="flex-1"
+              title="Data Fim"
+            />
+        </div>
+
+        <Input
+          placeholder="Nome de integrante..."
+          value={filterIntegrante}
+          onChange={(e) => setFilterIntegrante(e.target.value)}
+          className="md:col-span-2"
+        />
+      </div>
+
       <div className="flex flex-col sm:flex-row gap-3">
         <div className="relative max-w-sm flex-1">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
-            placeholder="Buscar por equipe, comando ou comandante..."
+            placeholder="Buscar termo genérico..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             className="pl-9"
