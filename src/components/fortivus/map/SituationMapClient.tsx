@@ -164,14 +164,27 @@ interface Props {
   onSelect?: (id: string) => void;
   onClickMap?: (lat: number, lng: number) => void;
   activePin?: { lat: number; lng: number } | null;
+  hideEvents?: boolean;
+  flyTo?: { lat: number; lng: number } | null;
 }
 
-export default function SituationMapClient({ selectedId, onSelect, onClickMap, activePin }: Props) {
+function FlyToHelper({ center }: { center: { lat: number, lng: number } | null }) {
+  const map = useMapEvents({});
+  useEffect(() => {
+    if (center) {
+      map.flyTo([center.lat, center.lng], 13);
+    }
+  }, [center, map]);
+  return null;
+}
+
+export default function SituationMapClient({ selectedId, onSelect, onClickMap, activePin, hideEvents, flyTo }: Props) {
   const [coords, setCoords] = useState({ lat: MAP_CENTER[0] as number, lng: MAP_CENTER[1] as number, zoom: MAP_ZOOM });
   const [geoData, setGeoData] = useState<any>(null);
   const { data: focos = [] } = useQuery({
     queryKey: ['focos'],
-    queryFn: () => fetchWithAuth('/focos/ativos')
+    queryFn: () => fetchWithAuth('/focos/ativos'),
+    enabled: !hideEvents
   });
 
   const handleCoordsChange = useCallback((lat: number, lng: number, zoom: number) => {
@@ -243,13 +256,15 @@ export default function SituationMapClient({ selectedId, onSelect, onClickMap, a
           </LayersControl.Overlay>
 
           {/* ── NASA FIRMS Fire Events (Martin GIS) ── */}
-          <LayersControl.Overlay checked name="🔥 Focos de Calor (Tempo Real)">
-            <VectorTileLayer url="http://localhost:3001/fire_event/{z}/{x}/{y}.pbf" layerName="fire_event" />
-          </LayersControl.Overlay>
+          {!hideEvents && (
+            <LayersControl.Overlay checked name="🔥 Focos de Calor (Tempo Real)">
+              <VectorTileLayer url="http://localhost:3001/fire_event/{z}/{x}/{y}.pbf" layerName="fire_event" />
+            </LayersControl.Overlay>
+          )}
         </LayersControl>
 
         {/* ── Fire markers ───────────────────────────── */}
-        {focos.map((f: any) => {
+        {!hideEvents && focos.map((f: any) => {
           // Map backend FocoIncendioDTO to local FireData structure for the FireMarker component
           const fire = {
             id: f.id,
@@ -276,6 +291,7 @@ export default function SituationMapClient({ selectedId, onSelect, onClickMap, a
 
         {/* ── Map Interactions ─────────────────────── */}
         <MapInteractions onChange={handleCoordsChange} onClick={onClickMap} />
+        <FlyToHelper center={flyTo || null} />
 
         {activePin && (
           <Marker position={[activePin.lat, activePin.lng]} icon={pinIcon} />
@@ -294,17 +310,19 @@ export default function SituationMapClient({ selectedId, onSelect, onClickMap, a
       </div>
 
       {/* ── HUD: Legend (bottom-left) ────────────────── */}
-      <div className="absolute bottom-3 left-3 z-[1000] glass rounded-lg px-2.5 py-2 text-[10px] mono space-y-1 pointer-events-none">
-        {legendItems.map((item) => (
-          <div key={item.label} className="flex items-center gap-2">
-            <span
-              className="h-2 w-2 rounded-full flex-shrink-0"
-              style={{ background: item.color, boxShadow: `0 0 6px ${item.color}88` }}
-            />
-            <span className="text-muted-foreground">{item.label}</span>
-          </div>
-        ))}
-      </div>
+      {!hideEvents && (
+        <div className="absolute bottom-3 left-3 z-[1000] glass rounded-lg px-2.5 py-2 text-[10px] mono space-y-1 pointer-events-none">
+          {legendItems.map((item) => (
+            <div key={item.label} className="flex items-center gap-2">
+              <span
+                className="h-2 w-2 rounded-full flex-shrink-0"
+                style={{ background: item.color, boxShadow: `0 0 6px ${item.color}88` }}
+              />
+              <span className="text-muted-foreground">{item.label}</span>
+            </div>
+          ))}
+        </div>
+      )}
 
       {/* ── HUD: Source attribution (bottom-right) ────── */}
       <div className="absolute bottom-3 right-3 z-[1000] glass rounded-lg px-2.5 py-1.5 text-[10px] mono text-muted-foreground pointer-events-none">

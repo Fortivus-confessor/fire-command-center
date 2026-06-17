@@ -4,6 +4,8 @@ import { Plus, Search, Pencil, Trash2, FileText, Filter, MapPin } from 'lucide-r
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
+import { useQuery } from '@tanstack/react-query';
+import { fetchWithAuth } from '@/lib/api';
 import { SituationMap } from '../components/fortivus/map/SituationMap';
 import {
   Table,
@@ -60,28 +62,7 @@ interface OrdemServico {
   criadaHa: string;
 }
 
-// ── Mock Data ──────────────────────────────────────────
-const initialData: OrdemServico[] = [
-  { id: '1', codigo: 'OS-2025-001', comando: 'Base Norte', equipe: 'Alfa-1', tipoDespacho: 'Combate Incêndio Terrestre', prioridade: 'P1', status: 'Em andamento', responsavel: 'Cap. Silva', descricao: 'Fogo em vegetação rasteira próximo à rodovia', latLng: '-15.601, -56.097', criadaHa: '2h' },
-  { id: '2', codigo: 'OS-2025-002', comando: 'Base Sul', equipe: 'Bravo-2', tipoDespacho: 'Combate Incêndio Aéreo', prioridade: 'P1', status: 'Aprovada', responsavel: 'Maj. Santos', descricao: 'Apoio aéreo para resfriamento de bordas', latLng: '-11.859, -55.505', criadaHa: '4h' },
-];
-
-const centrosDeComando = ['Base Norte', 'Base Sul', 'Base Leste', 'Base Oeste', 'Centro Operacional'];
-const equipesMap: Record<string, string[]> = {
-  'Base Norte': ['Alfa-1', 'Charlie-3'],
-  'Base Sul': ['Bravo-2'],
-  'Base Leste': ['Delta-4'],
-  'Base Oeste': ['Echo-5'],
-  'Centro Operacional': ['Foxtrot-6'],
-};
-const usuariosMap: Record<string, string[]> = {
-  'Alfa-1': ['Cap. Silva', 'Sgt. Pereira'],
-  'Bravo-2': ['Maj. Santos', 'Ten. Costa'],
-  'Charlie-3': ['Sgt. Dias', 'Cb. Mendes'],
-  'Delta-4': ['Ten. Oliveira', 'Cb. Lima'],
-  'Echo-5': ['Cap. Ferreira', 'Sd. Rocha'],
-  'Foxtrot-6': ['Cel. Souza'],
-};
+const initialData: OrdemServico[] = [];
 
 const emptyForm: Omit<OrdemServico, 'id'> = {
   codigo: '',
@@ -137,6 +118,72 @@ function OrdensServicoPage() {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
 
+  const { data: centrosDeComandoDB = [] } = useQuery<any[]>({
+    queryKey: ['centros-comando'],
+    queryFn: () => fetchWithAuth('/admin/centros'),
+  });
+
+  const { data: usuariosDB = [] } = useQuery<any[]>({
+    queryKey: ['usuarios'],
+    queryFn: () => fetchWithAuth('/admin/usuarios'),
+  });
+
+  const { data: escalasAtivas = [] } = useQuery<any[]>({
+    queryKey: ['escalas-ativas', form.comando],
+    queryFn: () => fetchWithAuth(`/api/v1/operacional/escalas/centro/${form.comando}/ativas`),
+    enabled: !!form.comando,
+  });
+
+  const [citySearch, setCitySearch] = useState('');
+  const [isDms, setIsDms] = useState(false);
+  const [flyTo, setFlyTo] = useState<{lat: number, lng: number} | null>(null);
+
+  function ddToDms(dd: number, isLng: boolean) {
+    const dir = dd < 0 ? (isLng ? 'W' : 'S') : (isLng ? 'E' : 'N');
+    const absDd = Math.abs(dd);
+    const deg = Math.floor(absDd);
+    const min = Math.floor((absDd - deg) * 60);
+    const sec = ((absDd - deg - min / 60) * 3600).toFixed(1);
+    return `${deg}° ${min}' ${sec}" ${dir}`;
+  }
+
+  function getDisplayLatLng(latLngStr: string) {
+    if (!latLngStr) return '';
+    if (!isDms) return latLngStr;
+    const [lat, lng] = latLngStr.split(',').map(n => parseFloat(n.trim()));
+    if (isNaN(lat) || isNaN(lng)) return latLngStr;
+    return `${ddToDms(lat, false)}, ${ddToDms(lng, true)}`;
+  }
+
+  async function searchCity() {
+    if (!citySearch) return;
+    try {
+      const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(citySearch + ', Brasil')}`);
+      const data = await res.json();
+      if (data && data.length > 0) {
+        const lat = parseFloat(data[0].lat);
+        const lng = parseFloat(data[0].lon);
+        const coords = `${lat.toFixed(4)}, ${lng.toFixed(4)}`;
+        setForm(prev => ({ ...prev, latLng: coords }));
+        setFlyTo({ lat, lng });
+      }
+    } catch (e) {
+      console.error(e);
+    }
+  }
+
+  function handleLatLngInputChange(val: string) {
+    setForm(prev => ({ ...prev, latLng: val }));
+    const parts = val.split(',');
+    if (parts.length === 2) {
+      const lat = parseFloat(parts[0].trim());
+      const lng = parseFloat(parts[1].trim());
+      if (!isNaN(lat) && !isNaN(lng)) {
+        setFlyTo({ lat, lng });
+      }
+    }
+  }
+
   // ── Filtered data ──
   const filtered = data.filter((item) => {
     const matchSearch =
@@ -161,8 +208,8 @@ function OrdensServicoPage() {
     setEditingItem(item);
     setForm({
       codigo: item.codigo,
-      comando: item.comando,
-      equipe: item.equipe,
+      comando: String(item.comando || ''),
+      equipe: String(item.equipe || ''),
       tipoDespacho: item.tipoDespacho,
       prioridade: item.prioridade,
       status: item.status,
@@ -353,23 +400,23 @@ function OrdensServicoPage() {
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label>Comando (Centro)</Label>
-                <Select value={form.comando} onValueChange={(v) => setForm({ ...form, comando: v, equipe: '', responsavel: '' })}>
+                <Select value={form.comando || undefined} onValueChange={(v) => setForm({ ...form, comando: v, equipe: '', responsavel: '' })}>
                   <SelectTrigger>
                     <SelectValue placeholder="Selecione o comando" />
                   </SelectTrigger>
                   <SelectContent>
-                    {centrosDeComando.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
+                    {centrosDeComandoDB.map((cc: any) => <SelectItem key={cc.id} value={String(cc.id)}>{cc.nome}</SelectItem>)}
                   </SelectContent>
                 </Select>
               </div>
               <div className="space-y-2">
                 <Label>Equipe</Label>
-                <Select disabled={!form.comando} value={form.equipe} onValueChange={(v) => setForm({ ...form, equipe: v, responsavel: '' })}>
+                <Select disabled={!form.comando} value={form.equipe || undefined} onValueChange={(v) => setForm({ ...form, equipe: v, responsavel: '' })}>
                   <SelectTrigger>
-                    <SelectValue placeholder="Selecione a equipe" />
+                    <SelectValue placeholder="Selecione a escala/equipe" />
                   </SelectTrigger>
                   <SelectContent>
-                    {form.comando && equipesMap[form.comando]?.map(eq => <SelectItem key={eq} value={eq}>{eq}</SelectItem>)}
+                    {escalasAtivas.map((eq: any) => <SelectItem key={eq.id} value={String(eq.id)}>{eq.equipeNome}</SelectItem>)}
                   </SelectContent>
                 </Select>
               </div>
@@ -377,12 +424,12 @@ function OrdensServicoPage() {
 
             <div className="space-y-2">
               <Label>Usuário Responsável</Label>
-              <Select disabled={!form.equipe} value={form.responsavel} onValueChange={(v) => setForm({ ...form, responsavel: v })}>
+              <Select disabled={!form.equipe && !form.comando} value={form.responsavel || undefined} onValueChange={(v) => setForm({ ...form, responsavel: v })}>
                 <SelectTrigger>
                   <SelectValue placeholder="Selecione o responsável" />
                 </SelectTrigger>
                 <SelectContent>
-                  {form.equipe && usuariosMap[form.equipe]?.map(u => <SelectItem key={u} value={u}>{u}</SelectItem>)}
+                  {usuariosDB.filter((u: any) => String(u.centroComandoId) === String(form.comando)).map((u: any) => <SelectItem key={u.id} value={u.nome}>{u.nome}</SelectItem>)}
                 </SelectContent>
               </Select>
             </div>
@@ -400,18 +447,48 @@ function OrdensServicoPage() {
 
             <div className="space-y-2">
               <Label>Localização (Mapa)</Label>
-              <div className="border border-border rounded-md overflow-hidden relative h-[300px] bg-secondary/20">
-                <SituationMap
-                  onClickMap={(lat, lng) => setForm({ ...form, latLng: `${lat.toFixed(4)}, ${lng.toFixed(4)}` })}
-                  activePin={form.latLng ? { lat: parseFloat(form.latLng.split(',')[0]), lng: parseFloat(form.latLng.split(',')[1]) } : null}
+              <div className="flex gap-2">
+                <Input
+                  placeholder="Pesquisar cidade (Ex: Cuiabá)..."
+                  value={citySearch}
+                  onChange={(e) => setCitySearch(e.target.value)}
+                  onKeyDown={(e) => e.key === 'Enter' && searchCity()}
                 />
-                {form.latLng && (
-                  <div className="absolute top-3 left-3 z-[1000] glass rounded-lg px-2.5 py-1.5 text-xs text-command font-mono border border-command/30 pointer-events-none shadow-xl">
-                    Selecionado: {form.latLng}
-                  </div>
-                )}
+                <Button variant="outline" onClick={searchCity} type="button">Buscar</Button>
               </div>
-              <span className="text-xs text-muted-foreground mt-1 block">Clique no mapa para registrar as coordenadas do despacho.</span>
+              <div className="border border-border rounded-md overflow-hidden relative h-[300px] bg-secondary/20 mt-2">
+                <SituationMap
+                  onClickMap={(lat, lng) => {
+                    setForm({ ...form, latLng: `${lat.toFixed(4)}, ${lng.toFixed(4)}` });
+                    setFlyTo({ lat, lng });
+                  }}
+                  activePin={form.latLng ? { lat: parseFloat(form.latLng.split(',')[0]), lng: parseFloat(form.latLng.split(',')[1]) } : null}
+                  hideEvents={true}
+                  flyTo={flyTo}
+                />
+              </div>
+              <span className="text-xs text-muted-foreground mt-1 block">Clique no mapa para registrar as coordenadas ou digite abaixo.</span>
+              <div className="flex items-center gap-2 mt-2">
+                <Input
+                  placeholder="Latitude, Longitude (Ex: -15.6010, -56.0970)"
+                  value={form.latLng}
+                  onChange={(e) => handleLatLngInputChange(e.target.value)}
+                  className="font-mono flex-1"
+                />
+                <Button 
+                  variant={isDms ? "default" : "outline"}
+                  onClick={() => setIsDms(!isDms)}
+                  className={isDms ? "bg-command hover:bg-command/90 text-white" : ""}
+                  type="button"
+                >
+                  {isDms ? "DMS Ativo" : "Converter p/ DMS"}
+                </Button>
+              </div>
+              {form.latLng && (
+                <div className="text-xs text-command font-mono mt-1">
+                  Exibição: {getDisplayLatLng(form.latLng)}
+                </div>
+              )}
             </div>
 
             <div className="grid grid-cols-2 gap-4">

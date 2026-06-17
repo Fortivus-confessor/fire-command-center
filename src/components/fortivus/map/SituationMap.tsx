@@ -8,6 +8,8 @@ interface Props {
   onSelect?: (id: string) => void;
   onClickMap?: (lat: number, lng: number) => void;
   activePin?: { lat: number; lng: number } | null;
+  hideEvents?: boolean;
+  flyTo?: { lat: number; lng: number } | null;
 }
 
 export function SituationMap(props: Props) {
