@@ -259,12 +259,16 @@ function EscalasPage() {
     setSelectedRight([]);
   }
 
+  const usuariosCentro = usuariosDB.filter((u: any) => 
+    String(u.centroComandoId) === String(form.centroComando) &&
+    (u.estadoOperacional === 'DISPONIVEL' || (editingItem?.integranteIds || []).includes(String(u.id)))
+  );
+
   function moveAllRight() {
-    const disponiveis = usuariosDB
-      .filter((u: any) => String(u.centroComandoId) === String(form.centroComando))
+    const disponiveisId = usuariosCentro
       .map((u: any) => String(u.id))
       .filter((id: string) => !form.integranteIds.includes(id));
-    setForm(prev => ({ ...prev, integranteIds: [...prev.integranteIds, ...disponiveis] }));
+    setForm(prev => ({ ...prev, integranteIds: [...prev.integranteIds, ...disponiveisId] }));
     setSelectedLeft([]);
   }
 
@@ -272,11 +276,6 @@ function EscalasPage() {
     setForm(prev => ({ ...prev, integranteIds: [] }));
     setSelectedRight([]);
   }
-
-  const usuariosCentro = usuariosDB.filter((u: any) => 
-    String(u.centroComandoId) === String(form.centroComando) &&
-    u.estadoOperacional === 'DISPONIVEL'
-  );
 
   const disponiveis = usuariosCentro
     .filter((u: any) => !form.integranteIds.includes(String(u.id)))
