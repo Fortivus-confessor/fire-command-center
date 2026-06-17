@@ -35,7 +35,15 @@ export async function fetchWithAuth(endpoint: string, options: RequestInit = {})
     if (response.status === 401 && kc) {
       kc.login();
     }
-    throw new Error(`API Error: ${response.status} ${response.statusText}`);
+    
+    let errorMsg = `API Error: ${response.status} ${response.statusText}`;
+    try {
+      const errData = await response.json();
+      errorMsg = errData.message || errData.error || errData.detail || errorMsg;
+    } catch (e) {
+      // Ignora erro de parsing
+    }
+    throw new Error(errorMsg);
   }
 
   if (response.status === 204 || response.headers.get('content-length') === '0') {

@@ -125,8 +125,8 @@ function EscalasPage() {
       queryClient.invalidateQueries({ queryKey: ['escalas'] });
       setDialogOpen(false);
     },
-    onError: () => {
-      setErrorMsg('Erro ao salvar escala. Verifique os dados.');
+    onError: (err: any) => {
+      setErrorMsg(err.message || 'Erro ao salvar escala. Verifique os dados.');
     }
   });
 
@@ -273,7 +273,10 @@ function EscalasPage() {
     setSelectedRight([]);
   }
 
-  const usuariosCentro = usuariosDB.filter((u: any) => String(u.centroComandoId) === String(form.centroComando));
+  const usuariosCentro = usuariosDB.filter((u: any) => 
+    String(u.centroComandoId) === String(form.centroComando) &&
+    u.estadoOperacional === 'DISPONIVEL'
+  );
 
   const disponiveis = usuariosCentro
     .filter((u: any) => !form.integranteIds.includes(String(u.id)))
