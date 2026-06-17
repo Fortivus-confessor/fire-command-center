@@ -87,6 +87,16 @@ function prioridadeBadge(p: string) {
   }
 }
 
+function getStatusColor(status: string) {
+  switch (status) {
+    case 'ABERTA': return 'bg-blue-500/10 text-blue-500';
+    case 'EM_EXECUCAO': return 'bg-amber-500/10 text-amber-500';
+    case 'CONCLUIDA': return 'bg-emerald-500/10 text-emerald-500';
+    case 'CANCELADA': return 'bg-red-500/10 text-red-500';
+    default: return 'bg-secondary text-secondary-foreground';
+  }
+}
+
 function statusBadge(s: string) {
   switch (s) {
     case 'Rascunho': return <Badge variant="secondary">{s}</Badge>;
@@ -139,6 +149,16 @@ function OrdensServicoPage() {
     queryFn: () => fetchWithAuth('/operacional/escalas')
   });
 
+  const { data: focosDB = [] } = useQuery<any[]>({
+    queryKey: ['focos'],
+    queryFn: () => fetchWithAuth('/focos'),
+  });
+
+  const { data: ordensServicoDB = [], refetch } = useQuery<any[]>({
+    queryKey: ['ordens-servico'],
+    queryFn: () => fetchWithAuth('/operacional/os'),
+  });
+
   const [citySearch, setCitySearch] = useState('');
   const [isDms, setIsDms] = useState(false);
   const [flyTo, setFlyTo] = useState<{lat: number, lng: number} | null>(null);
@@ -166,7 +186,7 @@ function OrdensServicoPage() {
   useEffect(() => {
     const timer = setTimeout(() => {
       if (citySearch.length > 2) {
-        fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(citySearch + ', Brasil')}`)
+        fetch(`https://nominatim.openstreetmap.org/search?format=json&countrycodes=br&q=${encodeURIComponent(citySearch)}`)
           .then(res => res.json())
           .then(data => setCityResults(data || []))
           .catch(console.error);
@@ -190,7 +210,22 @@ function OrdensServicoPage() {
   }
 
   // ── Filtered data ──
-  const filtered = data.filter((item) => {
+  const mappedData = ordensServicoDB.map((dbOs: any) => ({
+    id: dbOs.id,
+    codigo: String(dbOs.id),
+    comando: dbOs.comandoId ? String(dbOs.comandoId) : '',
+    equipe: dbOs.escalaId ? String(dbOs.escalaId) : '',
+    tipoDespacho: dbOs.tipoDespacho || '',
+    prioridade: 'P2',
+    status: dbOs.status || 'ABERTA',
+    responsavel: dbOs.relatorId ? String(dbOs.relatorId) : '',
+    descricao: dbOs.descricaoTarefa || '',
+    focoIncendioId: dbOs.focoIncendioId || '',
+    latLng: (dbOs.latitude && dbOs.longitude) ? `${dbOs.latitude}, ${dbOs.longitude}` : '',
+    criadaHa: dbOs.dataCriacao || ''
+  }));
+
+  const filtered = mappedData.filter((item: any) => {
     const matchSearch =
       !search ||
       item.codigo.toLowerCase().includes(search.toLowerCase()) ||
@@ -204,37 +239,79 @@ function OrdensServicoPage() {
   // ── Handlers ──
   function openNew() {
     setEditingItem(null);
-    const nextNum = data.length + 1;
-    setForm({ ...emptyForm, codigo: `OS-2025-${String(nextNum).padStart(3, '0')}` });
+    setForm(emptyForm);
     setDialogOpen(true);
   }
 
-  function openEdit(item: OrdemServico) {
+  function openEdit(item: any) {
     setEditingItem(item);
     setForm({
       codigo: item.codigo,
-      comando: String(item.comando || ''),
-      equipe: String(item.equipe || ''),
+      comando: item.comando,
+      equipe: item.equipe,
       tipoDespacho: item.tipoDespacho,
       prioridade: item.prioridade,
       status: item.status,
       responsavel: item.responsavel,
       descricao: item.descricao,
+      focoIncendioId: item.focoIncendioId,
       latLng: item.latLng,
       criadaHa: item.criadaHa,
     });
     setDialogOpen(true);
   }
 
-  function handleSave() {
-    if (editingItem) {
-      setData((prev) =>
-        prev.map((d) => (d.id === editingItem.id ? { ...d, ...form } : d))
-      );
-    } else {
-      setData((prev) => [...prev, { id: crypto.randomUUID(), ...form }]);
+  async function save() {
+    try {
+      const latLngStr = form.latLng;
+      let lat = NaN;
+      let lng = NaN;
+      
+      if (latLngStr.includes('°')) {
+        const parse = (dms: string) => {
+          const parts = dms.match(/(\d+)\s*°\s*(\d+)\s*'\s*([\d.]+)\s*"\s*([NSWE])/i);
+          if (!parts) return NaN;
+          let dd = parseFloat(parts[1]) + parseFloat(parts[2]) / 60 + parseFloat(parts[3]) / 3600;
+          if (parts[4].toUpperCase() === 'S' || parts[4].toUpperCase() === 'W') dd = -dd;
+          return dd;
+        };
+        lat = parse(latLngStr.split(',')[0] || '');
+        lng = parse(latLngStr.split(',')[1] || '');
+      } else {
+        lat = parseFloat(latLngStr.split(',')[0]);
+        lng = parseFloat(latLngStr.split(',')[1]);
+      }
+
+      const payload = {
+        descricaoTarefa: form.descricao,
+        focoIncendioId: form.focoIncendioId || null,
+        status: form.status,
+        prioridade: form.prioridade,
+        escalaId: form.equipe,
+        responsavelId: form.responsavel,
+        tipoDespacho: form.tipoDespacho,
+        latitude: isNaN(lat) ? null : lat,
+        longitude: isNaN(lng) ? null : lng,
+      };
+
+      if (editingItem) {
+        await fetchWithAuth(`/operacional/os/${editingItem.id}`, {
+          method: 'PUT',
+          body: JSON.stringify(payload),
+        });
+      } else {
+        await fetchWithAuth('/operacional/os', {
+          method: 'POST',
+          body: JSON.stringify(payload),
+        });
+      }
+      refetch();
+      setDialogOpen(false);
+      setForm(emptyForm);
+      setEditingItem(null);
+    } catch (e) {
+      console.error(e);
     }
-    setDialogOpen(false);
   }
 
   function confirmDelete(id: string) {
@@ -389,106 +466,104 @@ function OrdensServicoPage() {
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label>Tipo de Despacho</Label>
-                <Select value={form.tipoDespacho} onValueChange={(v) => setForm({ ...form, tipoDespacho: v as OrdemServico['tipoDespacho'] })}>
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="Combate Incêndio Terrestre">Combate Incêndio Terrestre</SelectItem>
-                    <SelectItem value="Combate Incêndio Aéreo">Combate Incêndio Aéreo</SelectItem>
-                    <SelectItem value="Combate Incêndio Maquinário">Combate Incêndio Maquinário</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label>Comando (Centro)</Label>
-                <Select value={form.comando || ''} onValueChange={(v) => setForm({ ...form, comando: v, equipe: '', responsavel: '' })}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Selecione o comando" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {centrosDeComandoDB.map((cc: any) => <SelectItem key={cc.id} value={String(cc.id)}>{cc.nome}</SelectItem>)}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-2">
-                <Label>Equipe</Label>
-                <Select disabled={!form.comando} value={form.equipe || ''} onValueChange={(v) => setForm({ ...form, equipe: v, responsavel: '' })}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Selecione a escala/equipe" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {escalasAtivas.map((eq: any) => {
-                      return <SelectItem key={eq.id} value={String(eq.id)}>{eq.equipeNome} - {eq.comandanteNome || 'Sem Cmt'}</SelectItem>
-                    })}
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-
-            <div className="space-y-2">
-              <Label>Usuário Responsável</Label>
-              <Select disabled={!form.equipe} value={form.responsavel || ''} onValueChange={(v) => setForm({ ...form, responsavel: v })}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Selecione o responsável" />
-                </SelectTrigger>
-                <SelectContent>
-                  {usuariosDB.filter((u: any) => {
-                    const selectedScale = todasEscalas.find((e: any) => String(e.id) === String(form.equipe));
-                    if (!selectedScale) return false;
-                    const ids = [...(selectedScale.integranteIds || []), selectedScale.comandanteId].map(String);
-                    return ids.includes(String(u.id));
-                  }).map((u: any) => <SelectItem key={u.id} value={u.nome}>{u.nome}</SelectItem>)}
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="descricao">Descrição / Instruções</Label>
-              <Textarea
-                id="descricao"
-                value={form.descricao}
-                onChange={(e) => setForm({ ...form, descricao: e.target.value })}
-                placeholder="Detalhes da ocorrência e instruções de combate..."
-                rows={3}
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label>Localização (Mapa)</Label>
-              <div className="relative">
-                <Input
-                  placeholder="Pesquisar cidade (Ex: Cuiabá)..."
-                  value={citySearch}
-                  onChange={(e) => setCitySearch(e.target.value)}
-                />
-                {cityResults.length > 0 && (
-                  <div className="absolute top-full left-0 right-0 z-50 bg-background border border-border mt-1 max-h-48 overflow-y-auto rounded-md shadow-lg">
-                    {cityResults.map((res: any, idx) => (
-                      <div
-                        key={idx}
-                        className="px-3 py-2 hover:bg-secondary/50 cursor-pointer text-sm"
-                        onClick={() => {
-                          const lat = parseFloat(res.lat);
-                          const lng = parseFloat(res.lon);
-                          setForm({ ...form, latLng: `${lat.toFixed(4)}, ${lng.toFixed(4)}` });
-                          setFlyTo({ lat, lng });
-                          setCityResults([]);
-                          setCitySearch(res.display_name.split(',')[0]);
-                        }}
-                      >
-                        {res.display_name}
-                      </div>
-                    ))}
+            {!editingItem && (
+              <>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label>Comando (Centro)</Label>
+                    <Select value={form.comando || ''} onValueChange={(v) => setForm({ ...form, comando: v, equipe: '', responsavel: '' })}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Selecione o comando" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {centrosDeComandoDB.map((cc: any) => <SelectItem key={cc.id} value={String(cc.id)}>{cc.nome}</SelectItem>)}
+                      </SelectContent>
+                    </Select>
                   </div>
-                )}
-              </div>
-              <div className="border border-border rounded-md overflow-hidden relative h-[300px] bg-secondary/20 mt-2">
+                  <div className="space-y-2">
+                    <Label>Equipe</Label>
+                    <Select disabled={!form.comando} value={form.equipe || ''} onValueChange={(v) => setForm({ ...form, equipe: v, responsavel: '' })}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Selecione a escala/equipe" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {escalasAtivas.map((eq: any) => {
+                          return <SelectItem key={eq.id} value={String(eq.id)}>{eq.equipeNome} - {eq.comandanteNome || 'Sem Cmt'}</SelectItem>
+                        })}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <Label>Usuário Responsável</Label>
+                  <Select disabled={!form.equipe} value={form.responsavel || ''} onValueChange={(v) => setForm({ ...form, responsavel: v })}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Selecione o responsável" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {usuariosDB.filter((u: any) => {
+                        const selectedScale = todasEscalas.find((e: any) => String(e.id) === String(form.equipe));
+                        if (!selectedScale) return false;
+                        const ids = [...(selectedScale.integranteIds || []), selectedScale.comandanteId].map(String);
+                        return ids.includes(String(u.id));
+                      }).map((u: any) => <SelectItem key={u.id} value={String(u.id)}>{u.nome}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                  <div className="space-y-2">
+                    <Label>Prioridade</Label>
+                    <Select value={form.prioridade} onValueChange={(v: any) => setForm({ ...form, prioridade: v })}>
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="P1">P1 - Imediata</SelectItem>
+                        <SelectItem value="P2">P2 - Alta</SelectItem>
+                        <SelectItem value="P3">P3 - Normal</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+              </>
+            )}
+
+            <div className="space-y-2">
+              <Label>Localização (Mapa) {editingItem && "- Apenas Visualização"}</Label>
+              {!editingItem && (
+                <div className="relative mb-2">
+                  <Input
+                    placeholder="Pesquisar cidade (Ex: Cuiabá)..."
+                    value={citySearch}
+                    onChange={(e) => setCitySearch(e.target.value)}
+                  />
+                  {cityResults.length > 0 && (
+                    <div className="absolute top-full left-0 right-0 z-[100] bg-background border border-border mt-1 max-h-48 overflow-y-auto rounded-md shadow-lg">
+                      {cityResults.map((res: any, idx) => (
+                        <div
+                          key={idx}
+                          className="px-3 py-2 hover:bg-secondary/50 cursor-pointer text-sm"
+                          onClick={() => {
+                            const lat = parseFloat(res.lat);
+                            const lng = parseFloat(res.lon);
+                            setForm({ ...form, latLng: `${lat.toFixed(4)}, ${lng.toFixed(4)}` });
+                            setFlyTo({ lat, lng });
+                            setCityResults([]);
+                            setCitySearch(res.display_name.split(',')[0]);
+                          }}
+                        >
+                          {res.display_name}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+              <div className={`border border-border rounded-md overflow-hidden relative h-[300px] bg-secondary/20 ${editingItem ? 'opacity-80 pointer-events-none' : ''}`}>
                 <SituationMap
                   onClickMap={(lat, lng) => {
+                    if (editingItem) return;
                     const isDmsFormat = form.latLng.includes('°');
                     if (isDmsFormat) {
                       setForm({ ...form, latLng: `${ddToDms(lat, false)}, ${ddToDms(lng, true)}` });
@@ -523,77 +598,88 @@ function OrdensServicoPage() {
                   flyTo={flyTo}
                 />
               </div>
-              <span className="text-xs text-muted-foreground mt-1 block">Clique no mapa para registrar as coordenadas ou digite abaixo.</span>
-              <div className="flex items-center gap-2 mt-2">
-                <Input
-                  placeholder="Latitude (Ex: -15.6010)"
-                  value={form.latLng.split(',')[0]?.trim() || ''}
-                  onChange={(e) => {
-                    const currentLng = form.latLng.includes(',') ? form.latLng.split(',')[1]?.trim() : '';
-                    setForm({ ...form, latLng: `${e.target.value}, ${currentLng}` });
-                  }}
-                  className="font-mono flex-1"
-                />
-                <Input
-                  placeholder="Longitude (Ex: -56.0970)"
-                  value={form.latLng.includes(',') ? form.latLng.split(',')[1]?.trim() : ''}
-                  onChange={(e) => {
-                    const currentLat = form.latLng.split(',')[0]?.trim() || '';
-                    setForm({ ...form, latLng: `${currentLat}, ${e.target.value}` });
-                  }}
-                  className="font-mono flex-1"
-                />
-                <Button 
-                  variant="outline"
-                  onClick={() => {
-                    const lat = parseFloat(form.latLng.split(',')[0]?.trim() || '');
-                    const lng = parseFloat(form.latLng.includes(',') ? form.latLng.split(',')[1]?.trim() : '');
-                    if (!isNaN(lat) && !isNaN(lng)) {
-                      setForm({ ...form, latLng: `${ddToDms(lat, false)}, ${ddToDms(lng, true)}` });
-                    }
-                  }}
-                  type="button"
-                >
-                  Converter p/ DMS
-                </Button>
-              </div>
+              {!editingItem && (
+                <>
+                  <span className="text-xs text-muted-foreground mt-1 block">Clique no mapa para registrar as coordenadas ou digite abaixo.</span>
+                  <div className="flex items-center gap-2 mt-2">
+                    <Input
+                      placeholder="Latitude (Ex: -15.6010)"
+                      value={form.latLng.split(',')[0]?.trim() || ''}
+                      onChange={(e) => {
+                        const currentLng = form.latLng.includes(',') ? form.latLng.split(',')[1]?.trim() : '';
+                        setForm({ ...form, latLng: `${e.target.value}, ${currentLng}` });
+                      }}
+                      className="font-mono flex-1"
+                    />
+                    <Input
+                      placeholder="Longitude (Ex: -56.0970)"
+                      value={form.latLng.includes(',') ? form.latLng.split(',')[1]?.trim() : ''}
+                      onChange={(e) => {
+                        const currentLat = form.latLng.split(',')[0]?.trim() || '';
+                        setForm({ ...form, latLng: `${currentLat}, ${e.target.value}` });
+                      }}
+                      className="font-mono flex-1"
+                    />
+                    <Button 
+                      variant="outline"
+                      onClick={() => {
+                        const lat = parseFloat(form.latLng.split(',')[0]?.trim() || '');
+                        const lng = parseFloat(form.latLng.includes(',') ? form.latLng.split(',')[1]?.trim() : '');
+                        if (!isNaN(lat) && !isNaN(lng)) {
+                          setForm({ ...form, latLng: `${ddToDms(lat, false)}, ${ddToDms(lng, true)}` });
+                        }
+                      }}
+                      type="button"
+                    >
+                      Converter p/ DMS
+                    </Button>
+                  </div>
+                </>
+              )}
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label>Foco de Incêndio (Opcional)</Label>
+              <Select value={form.focoIncendioId || ''} onValueChange={(v) => setForm({ ...form, focoIncendioId: v })}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Selecione o evento de fogo associado" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="">Nenhum</SelectItem>
+                  {focosDB.map((foco: any) => <SelectItem key={foco.id} value={String(foco.id)}>{foco.municipio} - {foco.bioma} ({foco.codigoInpe || String(foco.id).substring(0,8)})</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <Label>Descrição da OS</Label>
+              <Textarea 
+                placeholder="Descreva as orientações e diretrizes da OS..." 
+                value={form.descricao}
+                onChange={(e) => setForm({ ...form, descricao: e.target.value })}
+                rows={4}
+              />
+            </div>
+            {editingItem && (
               <div className="space-y-2">
-                <Label>Prioridade</Label>
-                <Select value={form.prioridade} onValueChange={(v) => setForm({ ...form, prioridade: v as OrdemServico['prioridade'] })}>
+                <Label>Status</Label>
+                <Select value={form.status} onValueChange={(v) => setForm({ ...form, status: v as OrdemServico['status'] })}>
                   <SelectTrigger>
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="P1">P1 – Crítica</SelectItem>
-                    <SelectItem value="P2">P2 – Alta</SelectItem>
-                    <SelectItem value="P3">P3 – Normal</SelectItem>
+                    <SelectItem value="ABERTA">Aberta</SelectItem>
+                    <SelectItem value="EM_EXECUCAO">Em Execução</SelectItem>
+                    <SelectItem value="CONCLUIDA">Concluída</SelectItem>
+                    <SelectItem value="CANCELADA">Cancelada</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
-              {editingItem && (
-                <div className="space-y-2">
-                  <Label>Status</Label>
-                  <Select value={form.status} onValueChange={(v) => setForm({ ...form, status: v as OrdemServico['status'] })}>
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="Rascunho">Rascunho</SelectItem>
-                      <SelectItem value="Aprovada">Aprovada</SelectItem>
-                      <SelectItem value="Em andamento">Em andamento</SelectItem>
-                      <SelectItem value="Concluída">Concluída</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              )}
-            </div>
+            )}
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setDialogOpen(false)}>Cancelar</Button>
-            <Button onClick={handleSave} className="bg-fire hover:bg-fire/90 text-white">
+            <Button variant="outline" onClick={() => setDialogOpen(false)} type="button">Cancelar</Button>
+            <Button onClick={save} className="bg-fire hover:bg-fire/90 text-white" type="button">
               {editingItem ? 'Salvar Alterações' : 'Criar OS e Despacho'}
             </Button>
           </DialogFooter>
