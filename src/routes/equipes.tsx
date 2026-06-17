@@ -60,16 +60,16 @@ interface EquipeDTO {
 const emptyForm: EquipeDTO = {
   nome: '',
   centroComandoId: '',
-  categoria: 'Terrestre',
+  categoria: 'TERRESTRE',
 };
 
 // ── Helpers ────────────────────────────────────────────
 function tipoBadge(t: string) {
   switch (t) {
-    case 'Terrestre': return <Badge className="bg-success/20 text-success border-success/30">{t}</Badge>;
-    case 'Aéreo': return <Badge className="bg-command/20 text-command border-command/30">{t}</Badge>;
-    case 'Maquinário': return <Badge className="bg-warning/20 text-warning border-warning/30">{t}</Badge>;
-    case 'Aquático': return <Badge className="bg-info/20 text-info border-info/30 text-blue-400">{t}</Badge>;
+    case 'TERRESTRE': return <Badge className="bg-success/20 text-success border-success/30">Terrestre</Badge>;
+    case 'AEREO': return <Badge className="bg-command/20 text-command border-command/30">Aéreo</Badge>;
+    case 'MAQUINARIO': return <Badge className="bg-warning/20 text-warning border-warning/30">Maquinário</Badge>;
+    case 'AQUATICO': return <Badge className="bg-info/20 text-info border-info/30 text-blue-400">Aquático</Badge>;
     default: return <Badge variant="secondary">{t}</Badge>;
   }
 }
@@ -145,7 +145,7 @@ function EquipesPage() {
       id: item.id,
       nome: item.nome,
       centroComandoId: item.centroComandoId || '',
-      categoria: item.categoria || 'Terrestre',
+      categoria: item.categoria || 'TERRESTRE',
     });
     setDialogOpen(true);
   }
@@ -203,10 +203,10 @@ function EquipesPage() {
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">Todos os Tipos</SelectItem>
-              <SelectItem value="Terrestre">Terrestre</SelectItem>
-              <SelectItem value="Aéreo">Aéreo</SelectItem>
-              <SelectItem value="Maquinário">Maquinário</SelectItem>
-              <SelectItem value="Aquático">Aquático</SelectItem>
+              <SelectItem value="TERRESTRE">Terrestre</SelectItem>
+              <SelectItem value="AEREO">Aéreo</SelectItem>
+              <SelectItem value="MAQUINARIO">Maquinário</SelectItem>
+              <SelectItem value="AQUATICO">Aquático</SelectItem>
             </SelectContent>
           </Select>
         </div>
@@ -291,10 +291,10 @@ function EquipesPage() {
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="Terrestre">Terrestre</SelectItem>
-                    <SelectItem value="Aéreo">Aéreo</SelectItem>
-                    <SelectItem value="Maquinário">Maquinário</SelectItem>
-                    <SelectItem value="Aquático">Aquático</SelectItem>
+                    <SelectItem value="TERRESTRE">Terrestre</SelectItem>
+                    <SelectItem value="AEREO">Aéreo</SelectItem>
+                    <SelectItem value="MAQUINARIO">Maquinário</SelectItem>
+                    <SelectItem value="AQUATICO">Aquático</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
