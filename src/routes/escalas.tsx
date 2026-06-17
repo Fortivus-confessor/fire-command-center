@@ -59,16 +59,8 @@ interface Escala {
 }
 
 // ── Mock Data ──────────────────────────────────────────
-const usuariosDisponiveis = [
-  'Cap. Silva', 'Maj. Santos', 'Sgt. Pereira', 'Sgt. Dias',
-  'Ten. Costa', 'Cb. Mendes', 'Ten. Oliveira', 'Cb. Lima',
-  'Cap. Ferreira', 'Sd. Rocha', 'Cel. Souza'
-];
 
-const initialData: Escala[] = [
-  { id: '1', centroComando: 'Base Norte', equipe: 'Alfa-1', dataInicio: '2025-06-12', dataFim: '2025-06-13', veiculo: 'VTR-01', comandante: 'Cap. Silva', usuariosEscalados: ['Cap. Silva', 'Sgt. Pereira'] },
-  { id: '2', centroComando: 'Base Sul', equipe: 'Bravo-2', dataInicio: '2025-06-12', dataFim: '2025-06-12', veiculo: 'VTR-02', comandante: 'Maj. Santos', usuariosEscalados: ['Maj. Santos', 'Ten. Costa'] },
-];
+const initialData: Escala[] = [];
 
 const emptyForm: Omit<Escala, 'id'> = {
   centroComando: '',
@@ -114,6 +106,13 @@ function EscalasPage() {
     queryKey: ['veiculos'],
     queryFn: () => fetchWithAuth('/ativos/frota'),
   });
+
+  const { data: usuariosDB = [] } = useQuery<any[]>({
+    queryKey: ['usuarios'],
+    queryFn: () => fetchWithAuth('/admin/usuarios'),
+  });
+
+  const usuariosDisponiveis: string[] = usuariosDB.map((u: any) => u.nome).filter(Boolean);
 
   const [data, setData] = useState<Escala[]>(initialData);
   const [search, setSearch] = useState('');
@@ -387,7 +386,7 @@ function EscalasPage() {
                     <SelectContent>
                       <SelectItem value="Nenhum">Nenhum</SelectItem>
                       {veiculosDB.map((v: any) => {
-                        const label = v.prefixo || v.identificador;
+                        const label = `${v.modelo} - ${v.identificador}`;
                         return (
                           <SelectItem key={v.id} value={label}>
                             {label} {activeVehicles.has(label) && label !== 'Nenhum' ? '(Em uso)' : ''}
