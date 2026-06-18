@@ -466,6 +466,18 @@ function OrdensServicoPage() {
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label>Tipo de Despacho</Label>
+                <Select value={form.tipoDespacho} onValueChange={(v) => setForm({ ...form, tipoDespacho: v as any })}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecione o tipo" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Combate Incêndio Terrestre">Combate Incêndio Terrestre</SelectItem>
+                    <SelectItem value="Combate Incêndio Aéreo">Combate Incêndio Aéreo</SelectItem>
+                    <SelectItem value="Combate Incêndio Maquinário">Combate Incêndio Maquinário</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
             {!editingItem && (
               <>
                 <div className="grid grid-cols-2 gap-4">
@@ -525,7 +537,6 @@ function OrdensServicoPage() {
                       </SelectContent>
                     </Select>
                   </div>
-                </div>
               </>
             )}
 

@@ -15,10 +15,14 @@ interface Props {
 }
 
 export function EventsColumn({ selectedId, onSelect }: Props) {
-  const { data: focos = [], isLoading } = useQuery({
+  const { data: rawData, isLoading } = useQuery({
     queryKey: ['focos'],
-    queryFn: () => fetch('/api/v1/fire-events/latest').then(res => res.json())
+    queryFn: () => fetch('/api/v1/fire-events/latest').then(res => {
+      if (!res.ok) return [];
+      return res.json();
+    })
   });
+  const focos = Array.isArray(rawData) ? rawData : [];
 
   return (
     <section className="glass rounded-xl flex flex-col h-full min-h-0">

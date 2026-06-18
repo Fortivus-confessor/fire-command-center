@@ -16,7 +16,7 @@ export default defineConfig({
     server: {
       proxy: {
         '/combate': {
-          target: 'http://localhost:8080',
+          target: 'http://backend:8080',
           changeOrigin: true,
           secure: false,
         }
