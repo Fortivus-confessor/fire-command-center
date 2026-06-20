@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { RelatorioTerrestreForm } from '@/components/fortivus/forms/RelatorioTerrestreForm';
 import { useState, useRef } from 'react';
 import { uploadFilesToSeaweed } from '@/lib/upload';
-import { useToast } from '@/hooks/use-toast';
+import { toast } from 'sonner';
 
 export const Route = createFileRoute('/responder-terrestre/$id')({
   component: ResponderTerrestrePage,
@@ -13,7 +13,6 @@ export const Route = createFileRoute('/responder-terrestre/$id')({
 function ResponderTerrestrePage() {
   const { id } = Route.useParams();
   const navigate = useNavigate();
-  const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
 

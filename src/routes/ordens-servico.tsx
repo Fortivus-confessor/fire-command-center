@@ -45,6 +45,12 @@ import {
 
 export const Route = createFileRoute('/ordens-servico')({
   component: OrdensServicoPage,
+  validateSearch: (search: Record<string, unknown>) => {
+    return {
+      highlightId: search.highlightId as string | undefined,
+      novoParaEvento: search.novoParaEvento as string | undefined,
+    }
+  }
 });
 
 // ── Types ──────────────────────────────────────────────
@@ -64,7 +70,7 @@ interface OrdemServico {
 
 const initialData: OrdemServico[] = [];
 
-const emptyForm: Omit<OrdemServico, 'id'> = {
+const emptyForm = {
   codigo: '',
   comando: '',
   equipe: '',
@@ -75,6 +81,7 @@ const emptyForm: Omit<OrdemServico, 'id'> = {
   descricao: '',
   latLng: '',
   criadaHa: 'agora',
+  eventoFogoId: '',
 };
 
 // ── Helpers ────────────────────────────────────────────
@@ -220,7 +227,7 @@ function OrdensServicoPage() {
     status: dbOs.status || 'ABERTA',
     responsavel: dbOs.relatorId ? String(dbOs.relatorId) : '',
     descricao: dbOs.descricaoTarefa || '',
-    focoIncendioId: dbOs.focoIncendioId || '',
+    eventoFogoId: dbOs.eventoFogoId || '',
     latLng: (dbOs.latitude && dbOs.longitude) ? `${dbOs.latitude}, ${dbOs.longitude}` : '',
     criadaHa: dbOs.dataCriacao || ''
   }));
@@ -254,12 +261,40 @@ function OrdensServicoPage() {
       status: item.status,
       responsavel: item.responsavel,
       descricao: item.descricao,
-      focoIncendioId: item.focoIncendioId,
+      eventoFogoId: item.eventoFogoId,
       latLng: item.latLng,
       criadaHa: item.criadaHa,
     });
     setDialogOpen(true);
   }
+
+  // ── Handling Search Params (Highlight / NovoParaEvento)
+  const searchParams = Route.useSearch();
+  useEffect(() => {
+    if (searchParams.highlightId && ordensServicoDB.length > 0) {
+      const dbOs = ordensServicoDB.find((os: any) => os.id === Number(searchParams.highlightId));
+      if (dbOs) {
+        const item = {
+          id: dbOs.id,
+          codigo: String(dbOs.id),
+          comando: dbOs.comandoId ? String(dbOs.comandoId) : '',
+          equipe: dbOs.escalaId ? String(dbOs.escalaId) : '',
+          tipoDespacho: dbOs.tipoDespacho || '',
+          prioridade: 'P2',
+          status: dbOs.status || 'ABERTA',
+          responsavel: dbOs.relatorId ? String(dbOs.relatorId) : '',
+          descricao: dbOs.descricaoTarefa || '',
+          eventoFogoId: dbOs.eventoFogoId || '',
+          latLng: (dbOs.latitude && dbOs.longitude) ? `${dbOs.latitude}, ${dbOs.longitude}` : '',
+          criadaHa: dbOs.dataCriacao || ''
+        };
+        openEdit(item);
+      }
+    } else if (searchParams.novoParaEvento) {
+      openNew();
+      setForm(prev => ({ ...prev, eventoFogoId: searchParams.novoParaEvento }));
+    }
+  }, [searchParams.highlightId, searchParams.novoParaEvento, ordensServicoDB]);
 
   async function save() {
     try {
@@ -284,7 +319,7 @@ function OrdensServicoPage() {
 
       const payload = {
         descricaoTarefa: form.descricao,
-        focoIncendioId: form.focoIncendioId || null,
+        eventoFogoId: form.eventoFogoId || null,
         status: form.status,
         prioridade: form.prioridade,
         escalaId: form.equipe,
@@ -339,10 +374,10 @@ function OrdensServicoPage() {
         <div>
           <h1 className="text-2xl font-bold text-foreground flex items-center gap-2">
             <FileText className="h-6 w-6 text-fire" />
-            Ordens de Serviço e Despachos
+            Ordens de Serviço
           </h1>
           <p className="text-sm text-muted-foreground mt-1">
-            Crie Ordens de Serviço integradas aos Despachos de Combate
+            Crie Ordens de Serviço
           </p>
         </div>
         <Button onClick={openNew} className="bg-fire hover:bg-fire/90 text-white">
@@ -650,16 +685,12 @@ function OrdensServicoPage() {
             </div>
 
             <div className="space-y-2">
-              <Label>Foco de Incêndio (Opcional)</Label>
-              <Select value={form.focoIncendioId || ''} onValueChange={(v) => setForm({ ...form, focoIncendioId: v })}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Selecione o evento de fogo associado" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="">Nenhum</SelectItem>
-                  {focosDB.map((foco: any) => <SelectItem key={foco.id} value={String(foco.id)}>{foco.municipio} - {foco.bioma} ({foco.codigoInpe || String(foco.id).substring(0,8)})</SelectItem>)}
-                </SelectContent>
-              </Select>
+              <Label>Evento de Fogo (ID)</Label>
+              <Input 
+                placeholder="ID do Evento de Fogo (opcional)" 
+                value={form.eventoFogoId || ''} 
+                onChange={(e) => setForm({ ...form, eventoFogoId: e.target.value })}
+              />
             </div>
 
             <div className="space-y-2">

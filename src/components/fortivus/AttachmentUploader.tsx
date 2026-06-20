@@ -2,7 +2,7 @@ import React, { useState, useRef } from 'react';
 import { Upload, X, File, Image as ImageIcon, CheckCircle, AlertCircle, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { fetchWithAuth } from '@/lib/api';
-import { useToast } from '@/hooks/use-toast';
+import { toast } from 'sonner';
 
 interface AttachmentUploaderProps {
   entityId: string;
