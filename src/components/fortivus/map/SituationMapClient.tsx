@@ -7,9 +7,28 @@ import { useNavigate } from '@tanstack/react-router';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { fetchWithAuth } from '../../../lib/api';
-import { AlertTriangle, ExternalLink } from 'lucide-react';
+import { AlertTriangle, ExternalLink, Layers } from 'lucide-react';
 
 const MAP_CENTER = { longitude: -51.925, latitude: -14.235, zoom: 4 };
+
+const MAP_STYLES: Record<string, any> = {
+  carto_dark: "https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json",
+  google_sat: {
+    version: 8,
+    sources: { 'raster-tiles': { type: 'raster', tiles: ['https://mt1.google.com/vt/lyrs=s&x={x}&y={y}&z={z}'], tileSize: 256 } },
+    layers: [{ id: 'simple-tiles', type: 'raster', source: 'raster-tiles', minzoom: 0, maxzoom: 22 }]
+  },
+  google_streets: {
+    version: 8,
+    sources: { 'raster-tiles': { type: 'raster', tiles: ['https://mt1.google.com/vt/lyrs=m&x={x}&y={y}&z={z}'], tileSize: 256 } },
+    layers: [{ id: 'simple-tiles', type: 'raster', source: 'raster-tiles', minzoom: 0, maxzoom: 22 }]
+  },
+  osm: {
+    version: 8,
+    sources: { 'raster-tiles': { type: 'raster', tiles: ['https://a.tile.openstreetmap.org/{z}/{x}/{y}.png'], tileSize: 256 } },
+    layers: [{ id: 'simple-tiles', type: 'raster', source: 'raster-tiles', minzoom: 0, maxzoom: 22 }]
+  }
+};
 
 const legendItems = [
   { label: 'Extremo · FRP > 300', color: '#f97316' },
@@ -44,6 +63,8 @@ interface Props {
 export default function SituationMapClient({ selectedId, onSelect, onClickMap, activePin, hideEvents, flyTo }: Props) {
   const [coords, setCoords] = useState({ lat: MAP_CENTER.latitude, lng: MAP_CENTER.longitude, zoom: MAP_CENTER.zoom });
   const [showFocos, setShowFocos] = useState(false);
+  const [mapStyleKey, setMapStyleKey] = useState<string>('carto_dark');
+  const [showLayerControl, setShowLayerControl] = useState(false);
   const [geoData, setGeoData] = useState<any>(null);
   const [popupInfo, setPopupInfo] = useState<any>(null);
   const navigate = useNavigate();
@@ -125,7 +146,7 @@ export default function SituationMapClient({ selectedId, onSelect, onClickMap, a
     <div className="relative h-full w-full overflow-hidden rounded-xl border border-border">
       <Map
         initialViewState={MAP_CENTER}
-        mapStyle="https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json"
+        mapStyle={MAP_STYLES[mapStyleKey]}
         onMove={handleMove}
         onClick={handleClick}
         interactiveLayerIds={['fire-events-core', 'fire-events-glow']}
@@ -304,7 +325,30 @@ export default function SituationMapClient({ selectedId, onSelect, onClickMap, a
         )}
 
         {!hideEvents && (
-          <div style={{ position: 'absolute', top: 20, left: 20, zIndex: 10 }}>
+          <div style={{ position: 'absolute', top: 12, left: 12, zIndex: 10 }} className="flex flex-col gap-2">
+            
+            <div className="relative">
+              <button 
+                onClick={() => setShowLayerControl(!showLayerControl)}
+                style={{
+                  background: '#1e293b', color: '#fff', padding: '8px 12px',
+                  borderRadius: '8px', border: '1px solid #334155', cursor: 'pointer',
+                  fontWeight: 600, fontSize: '12px', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
+                  display: 'flex', alignItems: 'center', gap: '8px'
+                }}
+              >
+                <Layers size={16} /> Base Map
+              </button>
+              {showLayerControl && (
+                <div className="absolute top-full left-0 mt-2 bg-[#0f172a] border border-slate-800 rounded-lg shadow-xl p-2 flex flex-col gap-1 w-48">
+                  <button onClick={() => { setMapStyleKey('carto_dark'); setShowLayerControl(false); }} className={`text-left px-2 py-1.5 text-xs rounded ${mapStyleKey === 'carto_dark' ? 'bg-command text-white' : 'text-slate-300 hover:bg-slate-800'}`}>🌑 CartoDB Dark</button>
+                  <button onClick={() => { setMapStyleKey('google_sat'); setShowLayerControl(false); }} className={`text-left px-2 py-1.5 text-xs rounded ${mapStyleKey === 'google_sat' ? 'bg-command text-white' : 'text-slate-300 hover:bg-slate-800'}`}>🛰️ Google Satellite</button>
+                  <button onClick={() => { setMapStyleKey('google_streets'); setShowLayerControl(false); }} className={`text-left px-2 py-1.5 text-xs rounded ${mapStyleKey === 'google_streets' ? 'bg-command text-white' : 'text-slate-300 hover:bg-slate-800'}`}>🗺️ Google Streets</button>
+                  <button onClick={() => { setMapStyleKey('osm'); setShowLayerControl(false); }} className={`text-left px-2 py-1.5 text-xs rounded ${mapStyleKey === 'osm' ? 'bg-command text-white' : 'text-slate-300 hover:bg-slate-800'}`}>🌍 OpenStreetMap</button>
+                </div>
+              )}
+            </div>
+
             <button
               onClick={() => setShowFocos(!showFocos)}
               style={{
