@@ -326,7 +326,7 @@ function OrdensServicoPage() {
 
   function openEdit(item: any) {
     setEditingItem(item);
-    setEventoFogoSearch(item.eventoFogoId || '');
+    setEventoFogoSearch(item.eventoFogoCodigo ? formatCodigoEvento(item.eventoFogoCodigo) : (item.eventoFogoId || ''));
     setForm({
       codigo: item.codigo,
       comando: item.comando,
@@ -424,6 +424,15 @@ function OrdensServicoPage() {
   }
 
   const [deleteWarning, setDeleteWarning] = useState<any[]>([]);
+
+  const formatCodigoEvento = (codigo: string) => {
+    if (!codigo) return '';
+    const clean = codigo.replace(/\D/g, '');
+    if (clean.length === 12) {
+      return `${clean.substring(0,4)}-${clean.substring(4)}`;
+    }
+    return codigo;
+  };
 
   function confirmDelete(id: string) {
     const despachosDaOs = despachosDB.filter((d: any) => String(d.ordemServicoId) === String(id));
@@ -604,11 +613,11 @@ function OrdensServicoPage() {
                           className="px-3 py-2 hover:bg-secondary/50 cursor-pointer text-sm flex justify-between"
                           onClick={() => {
                             setForm({ ...form, eventoFogoId: res.id });
-                            setEventoFogoSearch(res.id);
+                            setEventoFogoSearch(res.codigo ? formatCodigoEvento(res.codigo) : res.id);
                             setEventoFogoResults([]);
                           }}
                         >
-                          <span className="font-medium truncate max-w-[200px]" title={res.id}>{res.id}</span>
+                          <span className="font-medium truncate max-w-[200px]" title={res.id}>{res.codigo ? formatCodigoEvento(res.codigo) : res.id}</span>
                           <span className="text-muted-foreground text-xs">{res.status}</span>
                         </div>
                       ))}
@@ -616,7 +625,7 @@ function OrdensServicoPage() {
                   )}
                   {form.eventoFogoId && (
                      <div className="text-xs text-muted-foreground mt-1 break-all">
-                       Vinculado: {form.eventoFogoId}
+                       Vinculado: {form.eventoFogoId} (ID)
                        <span className="text-destructive ml-2 cursor-pointer font-medium hover:underline" onClick={() => { setForm({...form, eventoFogoId: ''}); setEventoFogoSearch(''); }}>Desvincular</span>
                      </div>
                   )}
