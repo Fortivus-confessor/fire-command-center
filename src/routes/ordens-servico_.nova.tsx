@@ -1,6 +1,6 @@
 import { createFileRoute, useNavigate } from '@tanstack/react-router';
 import { useState } from 'react';
-import { Plus, ArrowLeft, FileText, MapPin } from 'lucide-react';
+import { Plus, ArrowLeft, FileText, MapPin, ArrowRightLeft } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -36,6 +36,11 @@ function NovaOrdemServicoPage() {
   const navigate = useNavigate();
   const eventoFogoId = searchParams.eventoFogoId;
   const [form, setForm] = useState({ ...emptyForm, eventoFogoId: eventoFogoId || '' });
+
+  const [isDms, setIsDms] = useState(false);
+  const [latInput, setLatInput] = useState('');
+  const [lngInput, setLngInput] = useState('');
+  const [flyTo, setFlyTo] = useState<{lat: number, lng: number} | null>(null);
 
   const { data: centrosDeComandoDB = [] } = useQuery<any[]>({
     queryKey: ['centros-comando'],
@@ -90,8 +95,67 @@ function NovaOrdemServicoPage() {
     }
   }
 
+  function parseCoordinateToDD(coordStr: string): number {
+    if (!coordStr) return NaN;
+    if (coordStr.includes('°') || coordStr.includes('\'') || coordStr.includes('"')) {
+      const parts = coordStr.match(/(-?\d+)\s*°?\s*(\d+)?\s*'?\s*([\d.]+)?\s*"?\s*([NSWE])?/i);
+      if (!parts) return NaN;
+      let dd = parseFloat(parts[1] || '0') + parseFloat(parts[2] || '0') / 60 + parseFloat(parts[3] || '0') / 3600;
+      if (parts[4]) {
+        const dir = parts[4].toUpperCase();
+        if (dir === 'S' || dir === 'W') dd = -dd;
+      } else if (coordStr.trim().startsWith('-')) {
+         dd = -Math.abs(dd);
+      }
+      return dd;
+    } else {
+      return parseFloat(coordStr);
+    }
+  }
+
+  function ddToDms(dd: number, isLng: boolean) {
+    if (isNaN(dd)) return '';
+    const dir = dd < 0 ? (isLng ? 'W' : 'S') : (isLng ? 'E' : 'N');
+    const absDd = Math.abs(dd);
+    const deg = Math.floor(absDd);
+    const min = Math.floor((absDd - deg) * 60);
+    const sec = ((absDd - deg - min / 60) * 3600).toFixed(1);
+    return `${deg}° ${min}' ${sec}" ${dir}`;
+  }
+
   function handleMapClick(lat: number, lng: number) {
+    if (isDms) {
+      setLatInput(ddToDms(lat, false));
+      setLngInput(ddToDms(lng, true));
+    } else {
+      setLatInput(lat.toFixed(6));
+      setLngInput(lng.toFixed(6));
+    }
     setForm({ ...form, latLng: `${lat.toFixed(6)}, ${lng.toFixed(6)}` });
+  }
+
+  function toggleFormat() {
+    const latDD = parseCoordinateToDD(latInput);
+    const lngDD = parseCoordinateToDD(lngInput);
+    
+    if (isDms) {
+      setLatInput(isNaN(latDD) ? latInput : latDD.toFixed(6));
+      setLngInput(isNaN(lngDD) ? lngInput : lngDD.toFixed(6));
+      setIsDms(false);
+    } else {
+      setLatInput(isNaN(latDD) ? latInput : ddToDms(latDD, false));
+      setLngInput(isNaN(lngDD) ? lngInput : ddToDms(lngDD, true));
+      setIsDms(true);
+    }
+  }
+
+  function applyManualCoordinates() {
+    const latDD = parseCoordinateToDD(latInput);
+    const lngDD = parseCoordinateToDD(lngInput);
+    if (!isNaN(latDD) && !isNaN(lngDD)) {
+      setForm(prev => ({ ...prev, latLng: `${latDD.toFixed(6)}, ${lngDD.toFixed(6)}` }));
+      setFlyTo({ lat: latDD, lng: lngDD });
+    }
   }
 
   return (
@@ -208,16 +272,39 @@ function NovaOrdemServicoPage() {
               </Select>
             </div>
 
-            <div className="space-y-2">
-              <Label>Ponto de Encontro / Local (Clique no mapa)</Label>
-              <div className="relative">
-                <MapPin className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                <Input
-                  className="pl-9"
-                  placeholder="-15.000, -50.000"
-                  value={form.latLng}
-                  onChange={(e) => setForm({ ...form, latLng: e.target.value })}
-                />
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <Label>Ponto de Encontro / Local (Clique no mapa ou digite)</Label>
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  className="h-7 text-xs px-2"
+                  onClick={toggleFormat}
+                >
+                  <ArrowRightLeft className="w-3 h-3 mr-1" />
+                  {isDms ? 'Alternar para Decimal' : 'Alternar para Graus (DMS)'}
+                </Button>
+              </div>
+              <div className="flex gap-2">
+                <div className="relative flex-1">
+                  <MapPin className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    className="pl-9 text-xs"
+                    placeholder={isDms ? "Lat (ex: 15° 30' 0\" S)" : "Latitude (ex: -15.500)"}
+                    value={latInput}
+                    onChange={(e) => setLatInput(e.target.value)}
+                    onBlur={applyManualCoordinates}
+                  />
+                </div>
+                <div className="relative flex-1">
+                  <Input
+                    className="text-xs"
+                    placeholder={isDms ? "Lng (ex: 50° 0' 0\" W)" : "Longitude (ex: -50.000)"}
+                    value={lngInput}
+                    onChange={(e) => setLngInput(e.target.value)}
+                    onBlur={applyManualCoordinates}
+                  />
+                </div>
               </div>
             </div>
 

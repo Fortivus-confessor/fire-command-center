@@ -103,11 +103,13 @@ export default function SituationMapClient({ selectedId, onSelect, onClickMap, a
     const feature = evt.features && evt.features[0];
     if (feature && (feature.layer.id === 'fire-events-core' || feature.layer.id === 'fire-events-glow')) {
       onSelect?.(feature.properties.id);
-      setPopupInfo({
-        longitude: evt.lngLat.lng,
-        latitude: evt.lngLat.lat,
-        properties: feature.properties
-      });
+      if (!isolatedEventId) {
+        setPopupInfo({
+          longitude: evt.lngLat.lng,
+          latitude: evt.lngLat.lat,
+          properties: feature.properties
+        });
+      }
     } else {
       setPopupInfo(null);
       onClickMap?.(evt.lngLat.lat, evt.lngLat.lng);
