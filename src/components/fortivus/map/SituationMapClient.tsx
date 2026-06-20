@@ -1,156 +1,12 @@
-import 'leaflet/dist/leaflet.css';
+import 'maplibre-gl/dist/maplibre-gl.css';
 
 import { useCallback, useEffect, useState } from 'react';
-import {
-  MapContainer,
-  TileLayer,
-  GeoJSON,
-  LayersControl,
-  useMapEvents,
-  Marker
-} from 'react-leaflet';
-import L from 'leaflet';
-
+import Map, { Source, Layer, NavigationControl, Marker } from 'react-map-gl/maplibre';
 import { FireMarker, type FireData } from './FireMarker';
-import { VectorTileLayer } from './VectorTileLayer';
-
-const pinIcon = new L.Icon({
-  iconUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
-  iconRetinaUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png',
-  shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
-  iconSize: [25, 41],
-  iconAnchor: [12, 41],
-  popupAnchor: [1, -34],
-  shadowSize: [41, 41]
-});
-
-/* ── Inject marker styles ──────────────────────────────────────── */
-const MARKER_STYLES = `
-  .fire-marker-icon {
-    background: none !important;
-    border: none !important;
-  }
-  @keyframes fireMarkerPulse {
-    0%   { transform: scale(1);   opacity: 0.7; }
-    50%  { transform: scale(1.8); opacity: 0; }
-    100% { transform: scale(1);   opacity: 0; }
-  }
-
-  /* Override Leaflet popup styles for dark theme */
-  .leaflet-popup-content-wrapper {
-    background: transparent !important;
-    box-shadow: none !important;
-    border-radius: 8px !important;
-    padding: 0 !important;
-  }
-  .leaflet-popup-content {
-    margin: 0 !important;
-  }
-  .leaflet-popup-tip {
-    background: #1a1a2e !important;
-    box-shadow: none !important;
-  }
-  .leaflet-popup-close-button {
-    color: #64748b !important;
-    font-size: 18px !important;
-    top: 4px !important;
-    right: 6px !important;
-  }
-  .leaflet-popup-close-button:hover {
-    color: #e2e8f0 !important;
-  }
-
-  /* Dark-themed Leaflet controls */
-  .leaflet-control-layers {
-    background: color-mix(in oklab, oklch(0.21 0.014 260) 85%, transparent) !important;
-    backdrop-filter: blur(12px) saturate(140%) !important;
-    border: 1px solid oklch(0.30 0.018 260 / 60%) !important;
-    border-radius: 8px !important;
-    color: #e2e8f0 !important;
-    font-family: ui-monospace, "JetBrains Mono", monospace !important;
-    font-size: 11px !important;
-    padding: 6px 10px !important;
-  }
-  .leaflet-control-layers-toggle {
-    width: 32px !important;
-    height: 32px !important;
-    background-size: 18px 18px !important;
-    background-color: color-mix(in oklab, oklch(0.21 0.014 260) 85%, transparent) !important;
-    backdrop-filter: blur(12px) !important;
-    border: 1px solid oklch(0.30 0.018 260 / 60%) !important;
-    border-radius: 8px !important;
-  }
-  .leaflet-control-layers-separator {
-    border-color: oklch(0.30 0.018 260 / 40%) !important;
-  }
-  .leaflet-control-layers label {
-    color: #cbd5e1 !important;
-  }
-  .leaflet-control-layers label span {
-    color: #cbd5e1 !important;
-  }
-
-  /* Zoom controls */
-  .leaflet-control-zoom a {
-    background: color-mix(in oklab, oklch(0.21 0.014 260) 85%, transparent) !important;
-    backdrop-filter: blur(12px) !important;
-    border: 1px solid oklch(0.30 0.018 260 / 60%) !important;
-    color: #e2e8f0 !important;
-    width: 32px !important;
-    height: 32px !important;
-    line-height: 30px !important;
-    font-size: 16px !important;
-  }
-  .leaflet-control-zoom a:hover {
-    background: color-mix(in oklab, oklch(0.26 0.018 260) 90%, transparent) !important;
-  }
-  .leaflet-control-zoom {
-    border: none !important;
-    border-radius: 8px !important;
-    overflow: hidden;
-  }
-
-  /* Attribution */
-  .leaflet-control-attribution {
-    display: none !important;
-  }
-`;
-
 import { useQuery } from '@tanstack/react-query';
-import { fetchWithAuth } from '../../../lib/api';
 
-/* ── Map center & defaults ─────────────────────────────────────── */
-const MAP_CENTER: [number, number] = [-14.235, -51.925];
-const MAP_ZOOM = 4;
+const MAP_CENTER = { longitude: -51.925, latitude: -14.235, zoom: 4 };
 
-/* ── Cursor coordinate tracker & Click ───────────────── */
-function MapInteractions({ onChange, onClick }: { onChange: (lat: number, lng: number, zoom: number) => void, onClick?: (lat: number, lng: number) => void }) {
-  useMapEvents({
-    mousemove(e) {
-      onChange(e.latlng.lat, e.latlng.lng, e.target.getZoom());
-    },
-    zoom(e) {
-      const center = e.target.getCenter();
-      onChange(center.lat, center.lng, e.target.getZoom());
-    },
-    click(e) {
-      onClick?.(e.latlng.lat, e.latlng.lng);
-    }
-  });
-  return null;
-}
-
-/* ── GeoJSON style ─────────────────────────────────────────────── */
-const brazilStyle = {
-  color: '#f97316',
-  weight: 2,
-  opacity: 0.7,
-  fillColor: '#f97316',
-  fillOpacity: 0.05,
-  dashArray: '6 3',
-};
-
-/* ── Legend items ───────────────────────────────────────────────── */
 const legendItems = [
   { label: 'Extremo · FRP > 300', color: '#f97316' },
   { label: 'Alto · FRP 100–300',  color: '#eab308' },
@@ -158,7 +14,6 @@ const legendItems = [
   { label: 'Baixo',               color: '#22c55e' },
 ];
 
-/* ── Main Component ────────────────────────────────────────────── */
 interface Props {
   selectedId?: string;
   onSelect?: (id: string) => void;
@@ -168,31 +23,17 @@ interface Props {
   flyTo?: { lat: number; lng: number } | null;
 }
 
-function FlyToHelper({ center }: { center: { lat: number, lng: number } | null }) {
-  const map = useMapEvents({});
-  useEffect(() => {
-    if (center) {
-      map.flyTo([center.lat, center.lng], 13);
-    }
-  }, [center, map]);
-  return null;
-}
-
 export default function SituationMapClient({ selectedId, onSelect, onClickMap, activePin, hideEvents, flyTo }: Props) {
-  const [coords, setCoords] = useState({ lat: MAP_CENTER[0] as number, lng: MAP_CENTER[1] as number, zoom: MAP_ZOOM });
-  const [geoData, setGeoData] = useState<any>(null);
+  const [coords, setCoords] = useState({ lat: MAP_CENTER.latitude, lng: MAP_CENTER.longitude, zoom: MAP_CENTER.zoom });
   const [showFocos, setShowFocos] = useState(false);
+  const [geoData, setGeoData] = useState<any>(null);
+
   const { data: focos = [] } = useQuery({
     queryKey: ['focos-ativos'],
     queryFn: () => fetch('/api/v1/fire-events/active').then(res => res.json()),
     enabled: !hideEvents
   });
 
-  const handleCoordsChange = useCallback((lat: number, lng: number, zoom: number) => {
-    setCoords({ lat, lng, zoom });
-  }, []);
-
-  // Fetch Brazil High-Res GeoJSON
   useEffect(() => {
     fetch('/brazil-states.json')
       .then(res => res.json())
@@ -200,66 +41,76 @@ export default function SituationMapClient({ selectedId, onSelect, onClickMap, a
       .catch(console.error);
   }, []);
 
-  // Inject styles once
-  useEffect(() => {
-    const id = 'fire-marker-styles';
-    if (!document.getElementById(id)) {
-      const style = document.createElement('style');
-      style.id = id;
-      style.textContent = MARKER_STYLES;
-      document.head.appendChild(style);
-    }
+  const handleMove = useCallback((evt: any) => {
+    setCoords({
+      lat: evt.viewState.latitude,
+      lng: evt.viewState.longitude,
+      zoom: evt.viewState.zoom
+    });
   }, []);
+
+  const handleClick = useCallback((evt: any) => {
+    onClickMap?.(evt.lngLat.lat, evt.lngLat.lng);
+  }, [onClickMap]);
 
   return (
     <div className="relative h-full w-full overflow-hidden rounded-xl border border-border">
-      <MapContainer
-        center={MAP_CENTER}
-        zoom={MAP_ZOOM}
-        minZoom={3}
-        maxZoom={18}
-        zoomControl={true}
-        preferCanvas={true}
-        style={{ height: '100%', width: '100%', background: '#0d1117' }}
+      <Map
+        initialViewState={MAP_CENTER}
+        mapStyle="https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json"
+        onMove={handleMove}
+        onClick={handleClick}
       >
-        {/* ── Tile layers ────────────────────────────── */}
-        <LayersControl position="topright">
-          <LayersControl.BaseLayer checked name="🛰️ Google Satellite">
-            <TileLayer
-              url="https://mt1.google.com/vt/lyrs=s&x={x}&y={y}&z={z}"
-              maxZoom={20}
-            />
-          </LayersControl.BaseLayer>
+        <NavigationControl position="top-right" />
 
-          <LayersControl.BaseLayer name="🗺️ Google Streets">
-            <TileLayer
-              url="https://mt1.google.com/vt/lyrs=m&x={x}&y={y}&z={z}"
-              maxZoom={20}
+        {/* ── Brazil overlay ──────────────────────── */}
+        {geoData && (
+          <Source id="brazil" type="geojson" data={geoData}>
+            <Layer
+              id="brazil-line"
+              type="line"
+              paint={{
+                'line-color': '#f97316',
+                'line-width': 2,
+                'line-dasharray': [6, 3],
+                'line-opacity': 0.7
+              }}
             />
-          </LayersControl.BaseLayer>
-
-          <LayersControl.BaseLayer name="🌍 OpenStreetMap">
-            <TileLayer
-              url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-              maxZoom={19}
+            <Layer
+              id="brazil-fill"
+              type="fill"
+              paint={{
+                'fill-color': '#f97316',
+                'fill-opacity': 0.05
+              }}
             />
-          </LayersControl.BaseLayer>
+          </Source>
+        )}
 
-          <LayersControl.BaseLayer name="🌑 CartoDB Dark">
-            <TileLayer
-              url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
-              maxZoom={20}
+        {/* ── Martin GIS MVT Layer para Focos Individuais ────────── */}
+        {!hideEvents && showFocos && (
+          <Source 
+            id="martin-focos" 
+            type="vector" 
+            url="http://localhost:3001/public.tb_focos_calor.json"
+          >
+            <Layer
+              id="focos-calor"
+              type="circle"
+              source-layer="public.tb_focos_calor"
+              paint={{
+                'circle-radius': 3,
+                'circle-color': '#ef4444',
+                'circle-opacity': 0.8,
+                'circle-stroke-width': 1,
+                'circle-stroke-color': '#b91c1c'
+              }}
             />
-          </LayersControl.BaseLayer>
-
-          {/* ── Brazil overlay ──────────────────────── */}
-          <LayersControl.Overlay checked name="🇧🇷 Contorno Brasil">
-            {geoData && <GeoJSON key="brazil" data={geoData} style={brazilStyle} />}
-          </LayersControl.Overlay>
-        </LayersControl>
+          </Source>
+        )}
 
         {!hideEvents && (
-          <div style={{ position: 'absolute', top: 20, left: 60, zIndex: 1000 }}>
+          <div style={{ position: 'absolute', top: 20, left: 20, zIndex: 10 }}>
             <button
               onClick={() => setShowFocos(!showFocos)}
               style={{
@@ -279,7 +130,7 @@ export default function SituationMapClient({ selectedId, onSelect, onClickMap, a
           </div>
         )}
 
-        {/* ── Fire markers ───────────────────────────── */}
+        {/* ── Fire markers (Eventos) ───────────────────────────── */}
         {!hideEvents && focos.map((e: any) => {
           let riscoLocal = 'medio';
           if (e.status === 'ATIVO_SEVERO' || e.frpTotal > 300) riscoLocal = 'extremo';
@@ -293,41 +144,30 @@ export default function SituationMapClient({ selectedId, onSelect, onClickMap, a
             uf: 'BR',
             risco: riscoLocal,
             frp: e.frpTotal || 0,
-            lat: e.latitude,
-            lng: e.longitude,
-            hectares: e.totalFocos * 5, // mock estimation
+            latitude: e.latitude,
+            longitude: e.longitude,
+            hectares: e.totalFocos * 5,
             bioma: 'N/A',
-            totalFocos: e.totalFocos,
-            focos: e.focos
+            totalFocos: e.totalFocos
           };
           
           return (
             <FireMarker 
               key={e.id} 
-              fire={fire} 
-              showFocos={showFocos}
-              selected={false} 
-              onSelect={(id) => {
-                const f = focos.find((x: any) => x.id === id);
-                if (f) {
-                  setFlyTo({ lat: f.latitude, lng: f.longitude });
-                }
-              }}
+              fire={fire as any} 
+              selected={selectedId === e.id} 
+              onSelect={onSelect}
             />
           );
         })}
 
-        {/* ── Map Interactions ─────────────────────── */}
-        <MapInteractions onChange={handleCoordsChange} onClick={onClickMap} />
-        <FlyToHelper center={flyTo || null} />
-
         {activePin && (
-          <Marker position={[activePin.lat, activePin.lng]} icon={pinIcon} />
+          <Marker longitude={activePin.lng} latitude={activePin.lat} color="red" />
         )}
-      </MapContainer>
+      </Map>
 
-      {/* ── HUD: Coordinates (top-left) ──────────────── */}
-      <div className="absolute top-3 left-3 z-[1000] glass rounded-lg px-2.5 py-1.5 text-[10px] mono text-muted-foreground flex items-center gap-2 pointer-events-none">
+      {/* ── HUD ──────────────── */}
+      <div className="absolute top-3 right-12 z-[10] glass rounded-lg px-2.5 py-1.5 text-[10px] mono text-muted-foreground flex items-center gap-2 pointer-events-none">
         <svg className="h-3.5 w-3.5 text-command" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
           <circle cx="12" cy="12" r="10" />
           <path d="M16.24 7.76l-2.12 6.36-6.36 2.12 2.12-6.36 6.36-2.12z" />
@@ -337,9 +177,8 @@ export default function SituationMapClient({ selectedId, onSelect, onClickMap, a
         <span>ZOOM {coords.zoom.toFixed(1)}</span>
       </div>
 
-      {/* ── HUD: Legend (bottom-left) ────────────────── */}
       {!hideEvents && (
-        <div className="absolute bottom-3 left-3 z-[1000] glass rounded-lg px-2.5 py-2 text-[10px] mono space-y-1 pointer-events-none">
+        <div className="absolute bottom-3 left-3 z-[10] glass rounded-lg px-2.5 py-2 text-[10px] mono space-y-1 pointer-events-none">
           {legendItems.map((item) => (
             <div key={item.label} className="flex items-center gap-2">
               <span
@@ -352,9 +191,8 @@ export default function SituationMapClient({ selectedId, onSelect, onClickMap, a
         </div>
       )}
 
-      {/* ── HUD: Source attribution (bottom-right) ────── */}
-      <div className="absolute bottom-3 right-3 z-[1000] glass rounded-lg px-2.5 py-1.5 text-[10px] mono text-muted-foreground pointer-events-none">
-        Fonte: BDQueimadas / INPE · t-00:02:14
+      <div className="absolute bottom-3 right-3 z-[10] glass rounded-lg px-2.5 py-1.5 text-[10px] mono text-muted-foreground pointer-events-none">
+        Fonte: MapLibre / INPE · t-00:02:14
       </div>
     </div>
   );
