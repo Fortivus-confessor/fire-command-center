@@ -69,17 +69,23 @@ function NovaOrdemServicoPage() {
          toast.error("Preencha todos os campos obrigatórios");
          return;
       }
+      
+      const latDD = parseCoordinateToDD(latInput);
+      const lngDD = parseCoordinateToDD(lngInput);
+      
       const p = {
-        escalaId: form.equipe,
-        tipoDespacho: form.tipoDespacho,
         descricaoTarefa: form.descricao,
-        relatorId: form.responsavel,
-        localizacao: form.latLng ? `POINT(${form.latLng.split(',')[1].trim()} ${form.latLng.split(',')[0].trim()})` : null,
-        localizacaoTexto: form.latLng,
         eventoFogoId: form.eventoFogoId || null,
+        status: 'EM_EXECUCAO',
+        prioridade: form.prioridade,
+        escalaId: form.equipe,
+        responsavelId: form.responsavel,
+        tipoDespacho: form.tipoDespacho,
+        latitude: !isNaN(latDD) ? latDD : null,
+        longitude: !isNaN(lngDD) ? lngDD : null
       };
 
-      const res = await fetchWithAuth('/operacional/despachos', {
+      const res = await fetchWithAuth('/operacional/os', {
         method: 'POST',
         body: JSON.stringify(p),
       });
@@ -207,9 +213,9 @@ function NovaOrdemServicoPage() {
                     <SelectValue placeholder="Selecione o tipo" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="Combate Incêndio Terrestre">Combate Incêndio Terrestre</SelectItem>
-                    <SelectItem value="Combate Incêndio Aéreo">Combate Incêndio Aéreo</SelectItem>
-                    <SelectItem value="Combate Incêndio Maquinário">Combate Incêndio Maquinário</SelectItem>
+                    <SelectItem value="TERRESTRE">Combate Incêndio Terrestre</SelectItem>
+                    <SelectItem value="AEREO">Combate Incêndio Aéreo</SelectItem>
+                    <SelectItem value="MAQUINARIO">Combate Incêndio Maquinário</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
