@@ -16,12 +16,12 @@ export default defineConfig({
     server: {
       proxy: {
         '/combate': {
-          target: 'http://localhost:8000',
+          target: 'http://traefik:80',
           changeOrigin: true,
           secure: false,
         },
         '/api/v1/fire-events': {
-          target: 'http://localhost:8000',
+          target: 'http://traefik:80',
           changeOrigin: true,
           secure: false,
         }
