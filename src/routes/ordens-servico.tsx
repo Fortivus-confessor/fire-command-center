@@ -188,6 +188,11 @@ function OrdensServicoPage() {
     queryFn: () => fetchWithAuth('/operacional/escalas')
   });
 
+  const { data: todasEquipes = [] } = useQuery<any[]>({
+    queryKey: ['equipes'],
+    queryFn: () => fetchWithAuth('/admin/equipes')
+  });
+
   const { data: focosDB = [] } = useQuery<any[]>({
     queryKey: ['focos'],
     queryFn: () => fetchWithAuth('/focos'),
@@ -196,6 +201,11 @@ function OrdensServicoPage() {
   const { data: ordensServicoDB = [], refetch } = useQuery<any[]>({
     queryKey: ['ordens-servico'],
     queryFn: () => fetchWithAuth('/operacional/os'),
+  });
+
+  const { data: despachosDB = [] } = useQuery<any[]>({
+    queryKey: ['despachos'],
+    queryFn: () => fetchWithAuth('/operacional/despachos'),
   });
 
   const [citySearch, setCitySearch] = useState('');
@@ -220,6 +230,25 @@ function OrdensServicoPage() {
   }
 
   const [cityResults, setCityResults] = useState<any[]>([]);
+
+  const [eventoFogoSearch, setEventoFogoSearch] = useState('');
+  const [eventoFogoResults, setEventoFogoResults] = useState<any[]>([]);
+  const [isSearchingEvento, setIsSearchingEvento] = useState(false);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (eventoFogoSearch.length > 2) {
+        setIsSearchingEvento(true);
+        fetchWithAuth(`/eventos-fogo/buscar?q=${encodeURIComponent(eventoFogoSearch)}`)
+          .then(data => setEventoFogoResults(data || []))
+          .catch(console.error)
+          .finally(() => setIsSearchingEvento(false));
+      } else {
+        setEventoFogoResults([]);
+      }
+    }, 400);
+    return () => clearTimeout(timer);
+  }, [eventoFogoSearch]);
 
   // Live search effect
   useEffect(() => {
@@ -251,8 +280,9 @@ function OrdensServicoPage() {
   // ── Filtered data ──
   const mappedData = ordensServicoDB.map((dbOs: any) => {
     const escala = todasEscalas.find((e: any) => e.id === dbOs.escalaId);
-    const equipeName = escala?.equipe ? escala.equipe.nome : (escala?.nome || 'Equipe Desconhecida');
-    const centroId = escala?.equipe?.centroComando?.id || dbOs.comandoId || escala?.centroComandoId;
+    const equipe = todasEquipes.find((e: any) => e.id === escala?.equipeId);
+    const equipeName = equipe?.nome || 'Equipe Desconhecida';
+    const centroId = escala?.centroComandoId || dbOs.comandoId || equipe?.centroComandoId;
     const centro = centrosDeComandoDB.find((c: any) => c.id === centroId);
     const comandoName = centro?.nome || 'Centro Desconhecido';
     
@@ -296,6 +326,7 @@ function OrdensServicoPage() {
 
   function openEdit(item: any) {
     setEditingItem(item);
+    setEventoFogoSearch(item.eventoFogoId || '');
     setForm({
       codigo: item.codigo,
       comando: item.comando,
@@ -392,14 +423,23 @@ function OrdensServicoPage() {
     }
   }
 
+  const [deleteWarning, setDeleteWarning] = useState<any[]>([]);
+
   function confirmDelete(id: string) {
+    const despachosDaOs = despachosDB.filter((d: any) => String(d.ordemServicoId) === String(id));
     setDeletingId(id);
+    setDeleteWarning(despachosDaOs);
     setDeleteDialogOpen(true);
   }
 
-  function handleDelete() {
-    if (deletingId) {
-      setData((prev) => prev.filter((d) => d.id !== deletingId));
+  async function handleDelete() {
+    if (deletingId && deleteWarning.length === 0) {
+      try {
+        await fetchWithAuth(`/operacional/os/${deletingId}`, { method: 'DELETE' });
+        refetch();
+      } catch (e) {
+        console.error(e);
+      }
     }
     setDeleteDialogOpen(false);
     setDeletingId(null);
@@ -543,19 +583,43 @@ function OrdensServicoPage() {
                   <Label htmlFor="codigo">Código OS</Label>
                   <Input id="codigo" value={form.codigo} readOnly className="mono bg-secondary/30 text-muted-foreground" />
                 </div>
-                <div className="space-y-2">
+                <div className="space-y-2 relative">
                   <Label>ID do Evento de Fogo</Label>
-                  <Select value={form.eventoFogoId} onValueChange={(v) => setForm({...form, eventoFogoId: v === 'none' ? '' : v})}>
-                    <SelectTrigger>
-                       <SelectValue placeholder="Selecione..." />
-                    </SelectTrigger>
-                    <SelectContent>
-                       <SelectItem value="none">Nenhum evento</SelectItem>
-                       {focosDB.map((f: any) => (
-                          <SelectItem key={f.id} value={String(f.id)}>Foco #{f.id}</SelectItem>
-                       ))}
-                    </SelectContent>
-                  </Select>
+                  <Input 
+                    placeholder="Buscar código (ex: EV-)..." 
+                    value={eventoFogoSearch}
+                    onChange={(e) => {
+                       setEventoFogoSearch(e.target.value);
+                       if(e.target.value === '') setForm({...form, eventoFogoId: ''});
+                    }}
+                    onFocus={() => {
+                       if (form.eventoFogoId && !eventoFogoSearch) setEventoFogoSearch(form.eventoFogoId);
+                    }}
+                  />
+                  {eventoFogoResults.length > 0 && (
+                    <div className="absolute top-full left-0 right-0 z-[100] bg-background border border-border mt-1 max-h-48 overflow-y-auto rounded-md shadow-lg">
+                      {eventoFogoResults.map((res: any) => (
+                        <div
+                          key={res.id}
+                          className="px-3 py-2 hover:bg-secondary/50 cursor-pointer text-sm flex justify-between"
+                          onClick={() => {
+                            setForm({ ...form, eventoFogoId: res.id });
+                            setEventoFogoSearch(res.codigo);
+                            setEventoFogoResults([]);
+                          }}
+                        >
+                          <span className="font-medium">{res.codigo}</span>
+                          <span className="text-muted-foreground text-xs">{res.status}</span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                  {form.eventoFogoId && (
+                     <div className="text-xs text-muted-foreground mt-1 break-all">
+                       Vinculado: {form.eventoFogoId}
+                       <span className="text-destructive ml-2 cursor-pointer" onClick={() => { setForm({...form, eventoFogoId: ''}); setEventoFogoSearch(''); }}>Desvincular</span>
+                     </div>
+                  )}
                 </div>
               </div>
             )}
@@ -581,18 +645,33 @@ function OrdensServicoPage() {
 
       {/* Delete Confirmation */}
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
-        <AlertDialogContent className="glass-strong">
+        <AlertDialogContent className="glass-strong max-w-md">
           <AlertDialogHeader>
-            <AlertDialogTitle>Confirmar Exclusão</AlertDialogTitle>
+            <AlertDialogTitle>
+              {deleteWarning.length > 0 ? "Aviso: OS possui despachos" : "Confirmar Exclusão"}
+            </AlertDialogTitle>
             <AlertDialogDescription>
-              Tem certeza que deseja excluir esta ordem de serviço? Esta ação não pode ser desfeita.
+              {deleteWarning.length > 0 ? (
+                <div className="space-y-2 mt-2">
+                  <p className="text-warning font-medium">Esta OS possui {deleteWarning.length} despacho(s) atrelado(s) e não pode ser excluída.</p>
+                  <ul className="list-disc pl-4 text-sm text-muted-foreground max-h-32 overflow-y-auto">
+                    {deleteWarning.map((d: any) => (
+                      <li key={d.id}>Despacho #{d.id} - {d.status}</li>
+                    ))}
+                  </ul>
+                </div>
+              ) : (
+                "Tem certeza que deseja excluir esta ordem de serviço? Esta ação não pode ser desfeita."
+              )}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancelar</AlertDialogCancel>
-            <AlertDialogAction onClick={handleDelete} className="bg-destructive hover:bg-destructive/90">
-              Excluir
-            </AlertDialogAction>
+            {deleteWarning.length === 0 && (
+              <AlertDialogAction onClick={handleDelete} className="bg-destructive hover:bg-destructive/90">
+                Excluir
+              </AlertDialogAction>
+            )}
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
