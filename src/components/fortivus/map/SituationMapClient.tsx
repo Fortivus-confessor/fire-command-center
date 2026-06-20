@@ -181,9 +181,10 @@ function FlyToHelper({ center }: { center: { lat: number, lng: number } | null }
 export default function SituationMapClient({ selectedId, onSelect, onClickMap, activePin, hideEvents, flyTo }: Props) {
   const [coords, setCoords] = useState({ lat: MAP_CENTER[0] as number, lng: MAP_CENTER[1] as number, zoom: MAP_ZOOM });
   const [geoData, setGeoData] = useState<any>(null);
+  const [showFocos, setShowFocos] = useState(false);
   const { data: focos = [] } = useQuery({
-    queryKey: ['focos'],
-    queryFn: () => fetchWithAuth('/focos/ativos'),
+    queryKey: ['focos-ativos'],
+    queryFn: () => fetch('/api/v1/fire-events/active').then(res => res.json()),
     enabled: !hideEvents
   });
 
@@ -218,6 +219,7 @@ export default function SituationMapClient({ selectedId, onSelect, onClickMap, a
         minZoom={3}
         maxZoom={18}
         zoomControl={true}
+        preferCanvas={true}
         style={{ height: '100%', width: '100%', background: '#0d1117' }}
       >
         {/* ── Tile layers ────────────────────────────── */}
@@ -254,37 +256,63 @@ export default function SituationMapClient({ selectedId, onSelect, onClickMap, a
           <LayersControl.Overlay checked name="🇧🇷 Contorno Brasil">
             {geoData && <GeoJSON key="brazil" data={geoData} style={brazilStyle} />}
           </LayersControl.Overlay>
-
-          {/* ── NASA FIRMS Fire Events (Martin GIS) ── */}
-          {!hideEvents && (
-            <LayersControl.Overlay checked name="🔥 Focos de Calor (Tempo Real)">
-              <VectorTileLayer url="http://localhost:3001/fire_event/{z}/{x}/{y}.pbf" layerName="fire_event" />
-            </LayersControl.Overlay>
-          )}
         </LayersControl>
 
+        {!hideEvents && (
+          <div style={{ position: 'absolute', top: 20, left: 60, zIndex: 1000 }}>
+            <button
+              onClick={() => setShowFocos(!showFocos)}
+              style={{
+                background: showFocos ? '#ef4444' : '#1e293b',
+                color: '#fff',
+                padding: '8px 12px',
+                borderRadius: '8px',
+                border: '1px solid #334155',
+                cursor: 'pointer',
+                fontWeight: 600,
+                fontSize: '12px',
+                boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
+              }}
+            >
+              {showFocos ? '🔥 Ocultar Focos Individuais' : '🔥 Mostrar Focos Individuais'}
+            </button>
+          </div>
+        )}
+
         {/* ── Fire markers ───────────────────────────── */}
-        {!hideEvents && focos.map((f: any) => {
-          // Map backend FocoIncendioDTO to local FireData structure for the FireMarker component
+        {!hideEvents && focos.map((e: any) => {
+          let riscoLocal = 'medio';
+          if (e.status === 'ATIVO_SEVERO' || e.frpTotal > 300) riscoLocal = 'extremo';
+          else if (e.frpTotal > 100) riscoLocal = 'alto';
+          else if (e.frpTotal < 20) riscoLocal = 'baixo';
+
           const fire = {
-            id: f.id,
-            codigo: f.codigoInpe || f.id.substring(0,8),
-            municipio: f.municipio || 'Desconhecido',
-            uf: f.estado || 'BR',
-            risco: f.riscoFogo === 'CRITICO' ? 'extremo' : (f.riscoFogo === 'ALTO' ? 'alto' : 'medio'),
-            frp: f.frp || 0,
-            lat: f.latitude,
-            lng: f.longitude,
-            hectares: f.areaEstimadaHectares || 0,
-            bioma: f.bioma || 'Bioma N/A'
+            id: e.id,
+            codigo: e.id.substring(0,8).toUpperCase(),
+            municipio: 'Brasil',
+            uf: 'BR',
+            risco: riscoLocal,
+            frp: e.frpTotal || 0,
+            lat: e.latitude,
+            lng: e.longitude,
+            hectares: e.totalFocos * 5, // mock estimation
+            bioma: 'N/A',
+            totalFocos: e.totalFocos,
+            focos: e.focos
           };
           
           return (
-            <FireMarker
-              key={fire.id}
-              fire={fire as any}
-              selected={fire.id === selectedId}
-              onSelect={onSelect}
+            <FireMarker 
+              key={e.id} 
+              fire={fire} 
+              showFocos={showFocos}
+              selected={false} 
+              onSelect={(id) => {
+                const f = focos.find((x: any) => x.id === id);
+                if (f) {
+                  setFlyTo({ lat: f.latitude, lng: f.longitude });
+                }
+              }}
             />
           );
         })}

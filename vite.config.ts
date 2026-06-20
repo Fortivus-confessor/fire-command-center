@@ -16,7 +16,12 @@ export default defineConfig({
     server: {
       proxy: {
         '/combate': {
-          target: 'http://backend:8080',
+          target: 'http://localhost:8000',
+          changeOrigin: true,
+          secure: false,
+        },
+        '/api/v1/fire-events': {
+          target: 'http://localhost:8000',
           changeOrigin: true,
           secure: false,
         }

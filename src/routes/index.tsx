@@ -33,21 +33,9 @@ function MissionControl() {
       <main className="flex-1 px-3 sm:px-5 py-3 sm:py-4 space-y-3 sm:space-y-4 pb-24 lg:pb-4">
         <KpiStrip />
 
-        {/* Map + Timeline */}
-        <section className="grid grid-cols-1 xl:grid-cols-[1fr_360px] gap-3 sm:gap-4">
-          <div className="h-[42vh] sm:h-[48vh] xl:h-[52vh] min-h-[280px]">
-            <SituationMap selectedId={selectedFire} onSelect={setSelectedFire} />
-          </div>
-          <div className="xl:h-[52vh] xl:overflow-y-auto">
-            <Timeline />
-          </div>
-        </section>
-
-        {/* 3-column workflow */}
-        <section className="grid grid-cols-1 lg:grid-cols-3 gap-3 sm:gap-4 lg:h-[calc(100vh-560px)] lg:min-h-[420px]">
-          <EventsColumn selectedId={selectedFire} onSelect={setSelectedFire} />
-          <OrdersColumn selectedFireId={selectedFire} />
-          <DispatchColumn />
+        {/* Map */}
+        <section className="h-[calc(100vh-160px)] min-h-[500px]">
+          <SituationMap selectedId={selectedFire} onSelect={setSelectedFire} />
         </section>
       </main>
 

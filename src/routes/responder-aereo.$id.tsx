@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { RelatorioAereoForm } from '@/components/fortivus/forms/RelatorioAereoForm';
 import { useState, useRef } from 'react';
 import { uploadFilesToSeaweed } from '@/lib/upload';
-import { useToast } from '@/hooks/use-toast';
+import { toast } from 'sonner';
 
 export const Route = createFileRoute('/responder-aereo/$id')({
   component: ResponderAereoPage,
@@ -13,7 +13,6 @@ export const Route = createFileRoute('/responder-aereo/$id')({
 function ResponderAereoPage() {
   const { id } = Route.useParams();
   const navigate = useNavigate();
-  const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
 
