@@ -11,7 +11,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from 'sonner';
 
-export const Route = createFileRoute('/ordens-servico/nova')({
+export const Route = createFileRoute('/ordens-servico_/nova')({
   component: NovaOrdemServicoPage,
   validateSearch: (search: Record<string, unknown>) => {
     return {
@@ -104,7 +104,7 @@ function NovaOrdemServicoPage() {
         <div>
           <h1 className="text-2xl font-bold text-foreground flex items-center gap-2">
             <FileText className="h-6 w-6 text-fire" />
-            Cadastrar OS para evento de fogo {eventoFogoId ? `#${eventoFogoId.substring(0,8)}` : ''}
+            Cadastrar OS para evento de fogo
           </h1>
           <p className="text-sm text-muted-foreground mt-1">
             Selecione a equipe, defina as diretrizes e despache a Ordem de Serviço.
@@ -117,6 +117,7 @@ function NovaOrdemServicoPage() {
         <div className="rounded-xl overflow-hidden glass border border-border flex flex-col relative h-[500px] lg:h-auto">
           <SituationMapClient 
              selectedId={eventoFogoId} 
+             isolatedEventId={eventoFogoId}
              onClickMap={handleMapClick}
              activePin={form.latLng ? { lat: parseFloat(form.latLng.split(',')[0]), lng: parseFloat(form.latLng.split(',')[1]) } : null}
           />

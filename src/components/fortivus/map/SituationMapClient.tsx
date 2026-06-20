@@ -58,9 +58,10 @@ interface Props {
   activePin?: { lat: number; lng: number } | null;
   hideEvents?: boolean;
   flyTo?: { lat: number; lng: number } | null;
+  isolatedEventId?: string;
 }
 
-export default function SituationMapClient({ selectedId, onSelect, onClickMap, activePin, hideEvents, flyTo }: Props) {
+export default function SituationMapClient({ selectedId, onSelect, onClickMap, activePin, hideEvents, flyTo, isolatedEventId }: Props) {
   const [coords, setCoords] = useState({ lat: MAP_CENTER.latitude, lng: MAP_CENTER.longitude, zoom: MAP_CENTER.zoom });
   const [showFocos, setShowFocos] = useState(false);
   const [mapStyleKey, setMapStyleKey] = useState<string>('carto_dark');
@@ -125,6 +126,7 @@ export default function SituationMapClient({ selectedId, onSelect, onClickMap, a
     return {
       type: 'FeatureCollection',
       features: focos
+        .filter((e: any) => isolatedEventId ? String(e.id) === isolatedEventId : true)
         .map((e: any) => {
           let risco = 'baixo';
           if (e.status === 'ATIVO_SEVERO' || e.frpTotal >= 300) risco = 'extremo';
@@ -161,7 +163,7 @@ export default function SituationMapClient({ selectedId, onSelect, onClickMap, a
         <NavigationControl position="top-right" />
 
         {/* ── Brazil overlay ──────────────────────── */}
-        {geoData && (
+        {!isolatedEventId && geoData && (
           <Source id="brazil" type="geojson" data={geoData}>
             <Layer
               id="brazil-line"
@@ -185,7 +187,7 @@ export default function SituationMapClient({ selectedId, onSelect, onClickMap, a
         )}
 
         {/* ── Martin GIS MVT Layer para Focos Individuais ────────── */}
-        {!hideEvents && showFocos && (
+        {!isolatedEventId && !hideEvents && showFocos && (
           <Source 
             id="martin-focos" 
             type="vector" 
@@ -329,10 +331,9 @@ export default function SituationMapClient({ selectedId, onSelect, onClickMap, a
           <Marker longitude={activePin.lng} latitude={activePin.lat} color="red" />
         )}
 
-        {!hideEvents && (
-          <div style={{ position: 'absolute', top: 12, left: 12, zIndex: 10 }} className="flex flex-col gap-2">
-            
-            <div className="relative">
+        {/* Controles de camadas / Base Map */}
+        <div style={{ position: 'absolute', top: 12, left: 12, zIndex: 10 }} className="flex flex-col gap-2">
+          <div className="relative">
               <button 
                 onClick={() => setShowLayerControl(!showLayerControl)}
                 style={{
@@ -354,6 +355,7 @@ export default function SituationMapClient({ selectedId, onSelect, onClickMap, a
               )}
             </div>
 
+          {!isolatedEventId && !hideEvents && (
             <button
               onClick={() => setShowFocos(!showFocos)}
               style={{
@@ -370,8 +372,8 @@ export default function SituationMapClient({ selectedId, onSelect, onClickMap, a
             >
               {showFocos ? '🔥 Ocultar Focos Individuais' : '🔥 Mostrar Focos Individuais'}
             </button>
-          </div>
-        )}
+          )}
+        </div>
       </Map>
 
       {/* ── HUD ──────────────── */}
@@ -385,7 +387,7 @@ export default function SituationMapClient({ selectedId, onSelect, onClickMap, a
         <span>ZOOM {coords.zoom.toFixed(1)}</span>
       </div>
 
-      {!hideEvents && (
+      {!isolatedEventId && !hideEvents && (
         <div className="absolute bottom-3 left-3 z-[10] glass rounded-lg px-2.5 py-2 text-[10px] mono space-y-1">
           {legendItems.map((item) => {
             const isActive = activeRisks[item.id];
