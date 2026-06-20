@@ -493,11 +493,28 @@ function OrdensServicoPage() {
           </DialogHeader>
           <div className="grid gap-4 py-4">
             {editingItem && (
-              <div className="space-y-2">
-                <Label htmlFor="codigo">Código OS</Label>
-                <Input id="codigo" value={form.codigo} readOnly className="mono bg-secondary/30" />
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="codigo">Código OS</Label>
+                  <Input id="codigo" value={form.codigo} readOnly className="mono bg-secondary/30" />
+                </div>
+                <div className="space-y-2">
+                  <Label>Status da OS</Label>
+                  <Select value={form.status} onValueChange={(v: any) => setForm({ ...form, status: v })}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Status" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="ABERTA">Aberta</SelectItem>
+                      <SelectItem value="EM_EXECUCAO">Em Execução</SelectItem>
+                      <SelectItem value="CONCLUIDA">Concluída</SelectItem>
+                      <SelectItem value="CANCELADA">Cancelada</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
             )}
+            
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label>Tipo de Despacho</Label>
@@ -512,7 +529,17 @@ function OrdensServicoPage() {
                   </SelectContent>
                 </Select>
               </div>
+              <div className="space-y-2">
+                <Label>ID do Evento de Fogo (Opcional)</Label>
+                <Input 
+                  placeholder="UUID do evento..." 
+                  value={form.eventoFogoId || ''} 
+                  onChange={(e) => setForm({ ...form, eventoFogoId: e.target.value })} 
+                  className="mono text-xs"
+                />
+              </div>
             </div>
+
             {!editingItem && (
               <>
                 <div className="grid grid-cols-2 gap-4">
