@@ -1,9 +1,13 @@
 import 'maplibre-gl/dist/maplibre-gl.css';
 
-import { useCallback, useEffect, useState } from 'react';
-import Map, { Source, Layer, NavigationControl, Marker } from 'react-map-gl/maplibre';
-import { FireMarker, type FireData } from './FireMarker';
+import { useCallback, useEffect, useState, useMemo } from 'react';
+import Map, { Source, Layer, NavigationControl, Marker, Popup } from 'react-map-gl/maplibre';
 import { useQuery } from '@tanstack/react-query';
+import { useNavigate } from '@tanstack/react-router';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { fetchWithAuth } from '../../../lib/api';
+import { AlertTriangle, ExternalLink } from 'lucide-react';
 
 const MAP_CENTER = { longitude: -51.925, latitude: -14.235, zoom: 4 };
 
@@ -13,6 +17,20 @@ const legendItems = [
   { label: 'Médio',               color: '#3b82f6' },
   { label: 'Baixo',               color: '#22c55e' },
 ];
+
+const RISK_LABELS: Record<string, string> = {
+  extremo: 'EXTREMO',
+  alto:    'ALTO',
+  medio:   'MÉDIO',
+  baixo:   'BAIXO',
+};
+
+const RISK_COLORS: Record<string, string> = {
+  extremo: '#f97316',
+  alto:    '#eab308',
+  medio:   '#3b82f6',
+  baixo:   '#22c55e',
+};
 
 interface Props {
   selectedId?: string;
@@ -27,11 +45,18 @@ export default function SituationMapClient({ selectedId, onSelect, onClickMap, a
   const [coords, setCoords] = useState({ lat: MAP_CENTER.latitude, lng: MAP_CENTER.longitude, zoom: MAP_CENTER.zoom });
   const [showFocos, setShowFocos] = useState(false);
   const [geoData, setGeoData] = useState<any>(null);
+  const [popupInfo, setPopupInfo] = useState<any>(null);
+  const navigate = useNavigate();
 
   const { data: focos = [] } = useQuery({
     queryKey: ['focos-ativos'],
     queryFn: () => fetch('/api/v1/fire-events/active').then(res => res.json()),
     enabled: !hideEvents
+  });
+
+  const { data: ordensServico = [] } = useQuery({
+    queryKey: ['ordens-servico'],
+    queryFn: () => fetchWithAuth('/operacional/os')
   });
 
   useEffect(() => {
@@ -50,8 +75,51 @@ export default function SituationMapClient({ selectedId, onSelect, onClickMap, a
   }, []);
 
   const handleClick = useCallback((evt: any) => {
-    onClickMap?.(evt.lngLat.lat, evt.lngLat.lng);
-  }, [onClickMap]);
+    const feature = evt.features && evt.features[0];
+    if (feature && (feature.layer.id === 'fire-events-core' || feature.layer.id === 'fire-events-glow')) {
+      onSelect?.(feature.properties.id);
+      setPopupInfo({
+        longitude: evt.lngLat.lng,
+        latitude: evt.lngLat.lat,
+        properties: feature.properties
+      });
+    } else {
+      setPopupInfo(null);
+      onClickMap?.(evt.lngLat.lat, evt.lngLat.lng);
+    }
+  }, [onClickMap, onSelect]);
+
+  const onMouseEnter = useCallback(() => {
+    document.body.style.cursor = 'pointer';
+  }, []);
+
+  const onMouseLeave = useCallback(() => {
+    document.body.style.cursor = '';
+  }, []);
+
+  const fireGeojson = useMemo(() => {
+    return {
+      type: 'FeatureCollection',
+      features: focos.map((e: any) => {
+        let risco = 'medio';
+        if (e.status === 'ATIVO_SEVERO' || e.frpTotal > 300) risco = 'extremo';
+        else if (e.frpTotal > 100) risco = 'alto';
+        else if (e.frpTotal < 20) risco = 'baixo';
+
+        return {
+          type: 'Feature',
+          geometry: { type: 'Point', coordinates: [e.longitude, e.latitude] },
+          properties: {
+            id: e.id,
+            codigo: e.id.substring(0,8).toUpperCase(),
+            risco,
+            frp: e.frpTotal || 0,
+            totalFocos: e.totalFocos
+          }
+        };
+      })
+    };
+  }, [focos]);
 
   return (
     <div className="relative h-full w-full overflow-hidden rounded-xl border border-border">
@@ -60,6 +128,9 @@ export default function SituationMapClient({ selectedId, onSelect, onClickMap, a
         mapStyle="https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json"
         onMove={handleMove}
         onClick={handleClick}
+        interactiveLayerIds={['fire-events-core', 'fire-events-glow']}
+        onMouseEnter={onMouseEnter}
+        onMouseLeave={onMouseLeave}
       >
         <NavigationControl position="top-right" />
 
@@ -109,6 +180,129 @@ export default function SituationMapClient({ selectedId, onSelect, onClickMap, a
           </Source>
         )}
 
+        {/* ── Eventos de Fogo via WebGL Layers ─────────────────── */}
+        {!hideEvents && (
+          <Source id="fire-events" type="geojson" data={fireGeojson as any}>
+            <Layer
+              id="fire-events-glow"
+              type="circle"
+              paint={{
+                'circle-radius': [
+                  'match', ['get', 'risco'],
+                  'extremo', 24,
+                  'alto', 20,
+                  'medio', 16,
+                  'baixo', 16,
+                  16
+                ],
+                'circle-color': [
+                  'match', ['get', 'risco'],
+                  'extremo', '#f97316',
+                  'alto', '#eab308',
+                  'medio', '#3b82f6',
+                  'baixo', '#22c55e',
+                  '#3b82f6'
+                ],
+                'circle-opacity': 0.3,
+                'circle-blur': 0.5
+              }}
+            />
+            <Layer
+              id="fire-events-core"
+              type="circle"
+              paint={{
+                'circle-radius': [
+                  'match', ['get', 'risco'],
+                  'extremo', 10,
+                  'alto', 8,
+                  'medio', 6,
+                  'baixo', 6,
+                  6
+                ],
+                'circle-color': [
+                  'match', ['get', 'risco'],
+                  'extremo', '#f97316',
+                  'alto', '#eab308',
+                  'medio', '#3b82f6',
+                  'baixo', '#22c55e',
+                  '#3b82f6'
+                ],
+                'circle-stroke-width': 2,
+                'circle-stroke-color': '#000000'
+              }}
+            />
+          </Source>
+        )}
+
+        {/* ── Popups para Eventos de Fogo ──────────────────────── */}
+        {popupInfo && (
+          <Popup
+            longitude={popupInfo.longitude}
+            latitude={popupInfo.latitude}
+            anchor="bottom"
+            offset={14}
+            onClose={() => setPopupInfo(null)}
+            closeButton={true}
+            closeOnClick={false}
+            className="maplibre-dark-popup"
+            maxWidth="300px"
+          >
+            <div className="p-3 bg-[#0f172a] rounded-lg border border-slate-800 text-slate-200">
+              <div className="flex items-center justify-between mb-3 border-b border-slate-800 pb-2">
+                <Badge variant="outline" style={{ borderColor: RISK_COLORS[popupInfo.properties.risco], color: RISK_COLORS[popupInfo.properties.risco] }}>
+                  {RISK_LABELS[popupInfo.properties.risco]}
+                </Badge>
+                <span className="text-[10px] font-mono text-slate-500">#{popupInfo.properties.codigo}</span>
+              </div>
+              
+              <div className="grid grid-cols-2 gap-2 text-xs mb-3">
+                <div>
+                  <span className="text-slate-500 block">FRP Total</span>
+                  <span className="font-mono font-medium">{Number(popupInfo.properties.frp).toFixed(1)} MW</span>
+                </div>
+                <div>
+                  <span className="text-slate-500 block">Focos (Pontos)</span>
+                  <span className="font-mono font-medium">{popupInfo.properties.totalFocos} pts</span>
+                </div>
+              </div>
+
+              <div className="flex flex-col gap-2 pt-2 border-t border-slate-800">
+                {ordensServico.find((os: any) => os.eventoFogoId === popupInfo.properties.id) ? (
+                  <Button 
+                    size="sm" 
+                    variant="outline"
+                    className="w-full text-xs h-8 border-command/30 text-command hover:bg-command/10"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      const os = ordensServico.find((os: any) => os.eventoFogoId === popupInfo.properties.id);
+                      navigate({ to: '/ordens-servico', search: { highlightId: os.id } });
+                    }}
+                  >
+                    <ExternalLink className="mr-2 h-3 w-3" />
+                    Visualizar OS Vinculada
+                  </Button>
+                ) : (
+                  <Button 
+                    size="sm" 
+                    className="w-full text-xs h-8 bg-fire hover:bg-fire/90 text-white"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      navigate({ to: '/ordens-servico', search: { novoParaEvento: popupInfo.properties.id } });
+                    }}
+                  >
+                    <AlertTriangle className="mr-2 h-3 w-3" />
+                    Despachar Nova OS
+                  </Button>
+                )}
+              </div>
+            </div>
+          </Popup>
+        )}
+
+        {activePin && (
+          <Marker longitude={activePin.lng} latitude={activePin.lat} color="red" />
+        )}
+
         {!hideEvents && (
           <div style={{ position: 'absolute', top: 20, left: 20, zIndex: 10 }}>
             <button
@@ -128,41 +322,6 @@ export default function SituationMapClient({ selectedId, onSelect, onClickMap, a
               {showFocos ? '🔥 Ocultar Focos Individuais' : '🔥 Mostrar Focos Individuais'}
             </button>
           </div>
-        )}
-
-        {/* ── Fire markers (Eventos) ───────────────────────────── */}
-        {!hideEvents && focos.map((e: any) => {
-          let riscoLocal = 'medio';
-          if (e.status === 'ATIVO_SEVERO' || e.frpTotal > 300) riscoLocal = 'extremo';
-          else if (e.frpTotal > 100) riscoLocal = 'alto';
-          else if (e.frpTotal < 20) riscoLocal = 'baixo';
-
-          const fire = {
-            id: e.id,
-            codigo: e.id.substring(0,8).toUpperCase(),
-            municipio: 'Brasil',
-            uf: 'BR',
-            risco: riscoLocal,
-            frp: e.frpTotal || 0,
-            latitude: e.latitude,
-            longitude: e.longitude,
-            hectares: e.totalFocos * 5,
-            bioma: 'N/A',
-            totalFocos: e.totalFocos
-          };
-          
-          return (
-            <FireMarker 
-              key={e.id} 
-              fire={fire as any} 
-              selected={selectedId === e.id} 
-              onSelect={onSelect}
-            />
-          );
-        })}
-
-        {activePin && (
-          <Marker longitude={activePin.lng} latitude={activePin.lat} color="red" />
         )}
       </Map>
 
