@@ -58,13 +58,15 @@ interface OrdemServico {
   codigo: string;
   comando: string;
   equipe: string;
-  tipoDespacho: '' | 'Combate Incêndio Terrestre' | 'Combate Incêndio Aéreo' | 'Combate Incêndio Maquinário';
-  prioridade: 'P1' | 'P2' | 'P3';
-  status: 'Rascunho' | 'Aprovada' | 'Em andamento' | 'Concluída';
+  tipoDespacho: string;
+  prioridade: string;
+  status: string;
   responsavel: string;
   descricao: string;
   latLng: string;
   criadaHa: string;
+  dataFim: string;
+  eventoFogoId: string;
 }
 
 const initialData: OrdemServico[] = [];
@@ -75,15 +77,42 @@ const emptyForm = {
   equipe: '',
   tipoDespacho: '',
   prioridade: 'P2',
-  status: 'Em andamento',
+  status: 'ABERTA',
   responsavel: '',
   descricao: '',
   latLng: '',
-  criadaHa: 'agora',
+  criadaHa: '',
+  dataFim: '',
   eventoFogoId: '',
 };
 
 // ── Helpers ────────────────────────────────────────────
+function formatDateBR(dateStr: string) {
+  if (!dateStr) return '';
+  const d = new Date(dateStr);
+  return d.toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' });
+}
+
+function formatTipoDespacho(tipo: string) {
+  switch (tipo) {
+    case 'TERRESTRE': return 'Terrestre';
+    case 'AEREO': return 'Aéreo';
+    case 'MAQUINARIO': return 'Maquinário';
+    case 'AQUATICO': return 'Aquático';
+    default: return tipo || 'N/A';
+  }
+}
+
+function formatStatus(status: string) {
+  switch (status) {
+    case 'ABERTA': return 'Aberta';
+    case 'EM_EXECUCAO': return 'Em Execução';
+    case 'CONCLUIDA': return 'Concluída';
+    case 'CANCELADA': return 'Cancelada';
+    default: return status || 'N/A';
+  }
+}
+
 function prioridadeBadge(p: string) {
   switch (p) {
     case 'P1': return <Badge className="bg-fire/20 text-fire border-fire/30">P1</Badge>;
@@ -104,20 +133,22 @@ function getStatusColor(status: string) {
 }
 
 function statusBadge(s: string) {
+  const display = formatStatus(s);
   switch (s) {
-    case 'Rascunho': return <Badge variant="secondary">{s}</Badge>;
-    case 'Aprovada': return <Badge className="bg-command/20 text-command border-command/30">{s}</Badge>;
-    case 'Em andamento': return <Badge className="bg-fire/20 text-fire border-fire/30">{s}</Badge>;
-    case 'Concluída': return <Badge className="bg-success/20 text-success border-success/30">{s}</Badge>;
-    default: return <Badge variant="secondary">{s}</Badge>;
+    case 'ABERTA': return <Badge variant="secondary">{display}</Badge>;
+    case 'EM_EXECUCAO': return <Badge className="bg-amber-500/10 text-amber-500 border-amber-500/30">{display}</Badge>;
+    case 'CONCLUIDA': return <Badge className="bg-emerald-500/10 text-emerald-500 border-emerald-500/30">{display}</Badge>;
+    case 'CANCELADA': return <Badge className="bg-red-500/10 text-red-500 border-red-500/30">{display}</Badge>;
+    default: return <Badge variant="secondary">{display}</Badge>;
   }
 }
 
 function tipoBadge(t: string) {
-  if (t.includes('Terrestre')) return <Badge className="bg-success/20 text-success border-success/30">Terrestre</Badge>;
-  if (t.includes('Aéreo')) return <Badge className="bg-command/20 text-command border-command/30">Aéreo</Badge>;
-  if (t.includes('Maquinário')) return <Badge className="bg-warning/20 text-warning border-warning/30">Maquinário</Badge>;
-  return <Badge variant="secondary">{t}</Badge>;
+  const display = formatTipoDespacho(t);
+  if (t === 'TERRESTRE') return <Badge className="bg-success/20 text-success border-success/30">{display}</Badge>;
+  if (t === 'AEREO') return <Badge className="bg-command/20 text-command border-command/30">{display}</Badge>;
+  if (t === 'MAQUINARIO') return <Badge className="bg-warning/20 text-warning border-warning/30">{display}</Badge>;
+  return <Badge variant="secondary">{display}</Badge>;
 }
 
 // ── Page Component ─────────────────────────────────────
@@ -218,20 +249,32 @@ function OrdensServicoPage() {
   }
 
   // ── Filtered data ──
-  const mappedData = ordensServicoDB.map((dbOs: any) => ({
-    id: dbOs.id,
-    codigo: String(dbOs.id),
-    comando: dbOs.comandoId ? String(dbOs.comandoId) : '',
-    equipe: dbOs.escalaId ? String(dbOs.escalaId) : '',
-    tipoDespacho: dbOs.tipoDespacho || '',
-    prioridade: 'P2',
-    status: dbOs.status || 'ABERTA',
-    responsavel: dbOs.relatorId ? String(dbOs.relatorId) : '',
-    descricao: dbOs.descricaoTarefa || '',
-    eventoFogoId: dbOs.eventoFogoId || '',
-    latLng: (dbOs.latitude && dbOs.longitude) ? `${dbOs.latitude}, ${dbOs.longitude}` : '',
-    criadaHa: dbOs.dataCriacao || ''
-  }));
+  const mappedData = ordensServicoDB.map((dbOs: any) => {
+    const escala = todasEscalas.find((e: any) => e.id === dbOs.escalaId);
+    const equipeName = escala?.equipe ? escala.equipe.nome : (escala?.nome || 'Equipe Desconhecida');
+    const centroId = escala?.equipe?.centroComando?.id || dbOs.comandoId || escala?.centroComandoId;
+    const centro = centrosDeComandoDB.find((c: any) => c.id === centroId);
+    const comandoName = centro?.nome || 'Centro Desconhecido';
+    
+    const resp = usuariosDB.find((u: any) => u.id === dbOs.relatorId);
+    const responsavelName = resp?.nome || dbOs.relatorId || 'Desconhecido';
+
+    return {
+      id: dbOs.id,
+      codigo: String(dbOs.id),
+      comando: comandoName,
+      equipe: equipeName,
+      tipoDespacho: dbOs.tipoDespacho || '',
+      prioridade: dbOs.prioridade || 'P2',
+      status: dbOs.status || 'ABERTA',
+      responsavel: responsavelName,
+      descricao: dbOs.descricaoTarefa || '',
+      eventoFogoId: dbOs.eventoFogoId || '',
+      latLng: (dbOs.latitude && dbOs.longitude) ? `${dbOs.latitude}, ${dbOs.longitude}` : '',
+      criadaHa: dbOs.dataCriacao ? formatDateBR(dbOs.dataCriacao) : '',
+      dataFim: dbOs.dataFim ? formatDateBR(dbOs.dataFim) : ''
+    };
+  });
 
   const filtered = mappedData.filter((item: any) => {
     const matchSearch =
@@ -265,6 +308,7 @@ function OrdensServicoPage() {
       eventoFogoId: item.eventoFogoId,
       latLng: item.latLng,
       criadaHa: item.criadaHa,
+      dataFim: item.dataFim,
     });
     setDialogOpen(true);
   }
@@ -287,7 +331,8 @@ function OrdensServicoPage() {
           descricao: dbOs.descricaoTarefa || '',
           eventoFogoId: dbOs.eventoFogoId || '',
           latLng: (dbOs.latitude && dbOs.longitude) ? `${dbOs.latitude}, ${dbOs.longitude}` : '',
-          criadaHa: dbOs.dataCriacao || ''
+          criadaHa: dbOs.dataCriacao ? formatDateBR(dbOs.dataCriacao) : '',
+          dataFim: dbOs.dataFim ? formatDateBR(dbOs.dataFim) : ''
         };
         openEdit(item);
       }
@@ -435,7 +480,8 @@ function OrdensServicoPage() {
                 <TableHead>Responsável</TableHead>
                 <TableHead>Prioridade</TableHead>
                 <TableHead>Status</TableHead>
-                <TableHead>Criada há</TableHead>
+                <TableHead>Data de criação</TableHead>
+                <TableHead>Data final</TableHead>
                 <TableHead className="text-right">Ações</TableHead>
               </TableRow>
             </TableHeader>
@@ -459,6 +505,7 @@ function OrdensServicoPage() {
                     <TableCell>{prioridadeBadge(item.prioridade)}</TableCell>
                     <TableCell>{statusBadge(item.status)}</TableCell>
                     <TableCell className="text-muted-foreground">{item.criadaHa}</TableCell>
+                    <TableCell className="text-muted-foreground">{item.dataFim}</TableCell>
                     <TableCell className="text-right">
                       <div className="flex justify-end gap-1">
                         <Button variant="ghost" size="icon" onClick={() => openEdit(item)} className="h-8 w-8 hover:text-command">
@@ -482,11 +529,11 @@ function OrdensServicoPage() {
 
       {/* Create/Edit Dialog */}
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent className="glass-strong sm:max-w-[800px] max-h-[90vh] overflow-y-auto">
+        <DialogContent className="glass-strong sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>{editingItem ? 'Editar OS' : 'Cadastrar OS'}</DialogTitle>
+            <DialogTitle>Visualizar / Editar OS</DialogTitle>
             <DialogDescription>
-              {editingItem ? 'Atualize os dados da OS.' : 'Preencha os dados para cadastrar a OS.'}
+              Atualize as descrições ou vincule a um Evento de Fogo.
             </DialogDescription>
           </DialogHeader>
           <div className="grid gap-4 py-4">
@@ -494,195 +541,39 @@ function OrdensServicoPage() {
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="codigo">Código OS</Label>
-                  <Input id="codigo" value={form.codigo} readOnly className="mono bg-secondary/30" />
+                  <Input id="codigo" value={form.codigo} readOnly className="mono bg-secondary/30 text-muted-foreground" />
                 </div>
                 <div className="space-y-2">
-                  <Label>Status da OS</Label>
-                  <Input 
-                    id="status" 
-                    value={form.status === 'EM_EXECUCAO' ? 'Em Execução' : form.status === 'CONCLUIDA' ? 'Concluída' : form.status} 
-                    readOnly 
-                    className="bg-secondary/30 font-semibold" 
-                  />
+                  <Label>ID do Evento de Fogo</Label>
+                  <Select value={form.eventoFogoId} onValueChange={(v) => setForm({...form, eventoFogoId: v === 'none' ? '' : v})}>
+                    <SelectTrigger>
+                       <SelectValue placeholder="Selecione..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                       <SelectItem value="none">Nenhum evento</SelectItem>
+                       {focosDB.map((f: any) => (
+                          <SelectItem key={f.id} value={String(f.id)}>Foco #{f.id}</SelectItem>
+                       ))}
+                    </SelectContent>
+                  </Select>
                 </div>
               </div>
             )}
             
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label>Tipo de Despacho</Label>
-                <Select value={form.tipoDespacho} onValueChange={(v) => setForm({ ...form, tipoDespacho: v as any })}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Selecione o tipo" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="Combate Incêndio Terrestre">Combate Incêndio Terrestre</SelectItem>
-                    <SelectItem value="Combate Incêndio Aéreo">Combate Incêndio Aéreo</SelectItem>
-                    <SelectItem value="Combate Incêndio Maquinário">Combate Incêndio Maquinário</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-2">
-                <Label>ID do Evento de Fogo (Opcional)</Label>
-                <Input 
-                  placeholder="UUID do evento..." 
-                  value={form.eventoFogoId || ''} 
-                  onChange={(e) => setForm({ ...form, eventoFogoId: e.target.value })} 
-                  className="mono text-xs"
-                />
-              </div>
-            </div>
-
-
-
-            <div className="space-y-2">
-              <Label>Localização (Mapa) {editingItem && "- Apenas Visualização"}</Label>
-              {!editingItem && (
-                <div className="relative mb-2">
-                  <Input
-                    placeholder="Pesquisar cidade (Ex: Cuiabá)..."
-                    value={citySearch}
-                    onChange={(e) => setCitySearch(e.target.value)}
-                  />
-                  {cityResults.length > 0 && (
-                    <div className="absolute top-full left-0 right-0 z-[100] bg-background border border-border mt-1 max-h-48 overflow-y-auto rounded-md shadow-lg">
-                      {cityResults.map((res: any, idx) => (
-                        <div
-                          key={idx}
-                          className="px-3 py-2 hover:bg-secondary/50 cursor-pointer text-sm"
-                          onClick={() => {
-                            const lat = parseFloat(res.lat);
-                            const lng = parseFloat(res.lon);
-                            setForm({ ...form, latLng: `${lat.toFixed(4)}, ${lng.toFixed(4)}` });
-                            setFlyTo({ lat, lng });
-                            setCityResults([]);
-                            setCitySearch(res.display_name.split(',')[0]);
-                          }}
-                        >
-                          {res.display_name}
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              )}
-              <div className={`border border-border rounded-md overflow-hidden relative h-[300px] bg-secondary/20 ${editingItem ? 'opacity-80 pointer-events-none' : ''}`}>
-                <SituationMap
-                  onClickMap={(lat, lng) => {
-                    if (editingItem) return;
-                    const isDmsFormat = form.latLng.includes('°');
-                    if (isDmsFormat) {
-                      setForm({ ...form, latLng: `${ddToDms(lat, false)}, ${ddToDms(lng, true)}` });
-                    } else {
-                      setForm({ ...form, latLng: `${lat.toFixed(4)}, ${lng.toFixed(4)}` });
-                    }
-                    setFlyTo({ lat, lng });
-                  }}
-                  activePin={(() => {
-                    if (!form.latLng) return null;
-                    if (form.latLng.includes('°')) {
-                      const parse = (dms: string) => {
-                        const parts = dms.match(/(\d+)\s*°\s*(\d+)\s*'\s*([\d.]+)\s*"\s*([NSWE])/i);
-                        if (!parts) return NaN;
-                        let dd = parseFloat(parts[1]) + parseFloat(parts[2]) / 60 + parseFloat(parts[3]) / 3600;
-                        if (parts[4].toUpperCase() === 'S' || parts[4].toUpperCase() === 'W') dd = -dd;
-                        return dd;
-                      };
-                      const latStr = form.latLng.split(',')[0]?.trim();
-                      const lngStr = form.latLng.split(',')[1]?.trim();
-                      if (!latStr || !lngStr) return null;
-                      const lat = parse(latStr);
-                      const lng = parse(lngStr);
-                      return !isNaN(lat) && !isNaN(lng) ? { lat, lng } : null;
-                    } else {
-                      const lat = parseFloat(form.latLng.split(',')[0]);
-                      const lng = parseFloat(form.latLng.split(',')[1]);
-                      return !isNaN(lat) && !isNaN(lng) ? { lat, lng } : null;
-                    }
-                  })()}
-                  hideEvents={true}
-                  flyTo={flyTo}
-                />
-              </div>
-              {!editingItem && (
-                <>
-                  <span className="text-xs text-muted-foreground mt-1 block">Clique no mapa para registrar as coordenadas ou digite abaixo.</span>
-                  <div className="flex items-center gap-2 mt-2">
-                    <Input
-                      placeholder="Latitude (Ex: -15.6010)"
-                      value={form.latLng.split(',')[0]?.trim() || ''}
-                      onChange={(e) => {
-                        const currentLng = form.latLng.includes(',') ? form.latLng.split(',')[1]?.trim() : '';
-                        setForm({ ...form, latLng: `${e.target.value}, ${currentLng}` });
-                      }}
-                      className="font-mono flex-1"
-                    />
-                    <Input
-                      placeholder="Longitude (Ex: -56.0970)"
-                      value={form.latLng.includes(',') ? form.latLng.split(',')[1]?.trim() : ''}
-                      onChange={(e) => {
-                        const currentLat = form.latLng.split(',')[0]?.trim() || '';
-                        setForm({ ...form, latLng: `${currentLat}, ${e.target.value}` });
-                      }}
-                      className="font-mono flex-1"
-                    />
-                    <Button 
-                      variant="outline"
-                      onClick={() => {
-                        const lat = parseFloat(form.latLng.split(',')[0]?.trim() || '');
-                        const lng = parseFloat(form.latLng.includes(',') ? form.latLng.split(',')[1]?.trim() : '');
-                        if (!isNaN(lat) && !isNaN(lng)) {
-                          setForm({ ...form, latLng: `${ddToDms(lat, false)}, ${ddToDms(lng, true)}` });
-                        }
-                      }}
-                      type="button"
-                    >
-                      Converter p/ DMS
-                    </Button>
-                  </div>
-                </>
-              )}
-            </div>
-
-            <div className="space-y-2">
-              <Label>Evento de Fogo (ID)</Label>
-              <Input 
-                placeholder="ID do Evento de Fogo (opcional)" 
-                value={form.eventoFogoId || ''} 
-                onChange={(e) => setForm({ ...form, eventoFogoId: e.target.value })}
-              />
-            </div>
-
             <div className="space-y-2">
               <Label>Descrição da OS</Label>
               <Textarea 
                 placeholder="Descreva as orientações e diretrizes da OS..." 
                 value={form.descricao}
                 onChange={(e) => setForm({ ...form, descricao: e.target.value })}
-                rows={4}
+                rows={6}
               />
             </div>
-            {editingItem && (
-              <div className="space-y-2">
-                <Label>Status</Label>
-                <Select value={form.status} onValueChange={(v) => setForm({ ...form, status: v as OrdemServico['status'] })}>
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="ABERTA">Aberta</SelectItem>
-                    <SelectItem value="EM_EXECUCAO">Em Execução</SelectItem>
-                    <SelectItem value="CONCLUIDA">Concluída</SelectItem>
-                    <SelectItem value="CANCELADA">Cancelada</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            )}
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setDialogOpen(false)} type="button">Cancelar</Button>
             <Button onClick={save} className="bg-fire hover:bg-fire/90 text-white" type="button">
-              {editingItem ? 'Salvar Alterações' : 'Criar OS e Despacho'}
+              Salvar Alterações
             </Button>
           </DialogFooter>
         </DialogContent>
