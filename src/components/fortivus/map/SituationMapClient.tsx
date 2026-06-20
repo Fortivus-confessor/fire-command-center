@@ -313,7 +313,7 @@ export default function SituationMapClient({ selectedId, onSelect, onClickMap, a
                     className="w-full text-xs h-8 bg-fire hover:bg-fire/90 text-white"
                     onClick={(e) => {
                       e.stopPropagation();
-                      navigate({ to: '/ordens-servico', search: { novoParaEvento: popupInfo.properties.id } });
+                      navigate({ to: '/ordens-servico/nova', search: { eventoFogoId: popupInfo.properties.id } });
                     }}
                   >
                     <AlertTriangle className="mr-2 h-3 w-3" />

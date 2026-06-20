@@ -1,4 +1,4 @@
-import { createFileRoute } from '@tanstack/react-router';
+import { createFileRoute, useNavigate } from '@tanstack/react-router';
 import { useState, useEffect } from 'react';
 import { Plus, Search, Pencil, Trash2, FileText, Filter, MapPin } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -48,7 +48,6 @@ export const Route = createFileRoute('/ordens-servico')({
   validateSearch: (search: Record<string, unknown>) => {
     return {
       highlightId: search.highlightId as string | undefined,
-      novoParaEvento: search.novoParaEvento as string | undefined,
     }
   }
 });
@@ -128,8 +127,10 @@ function OrdensServicoPage() {
   const [filterStatus, setFilterStatus] = useState('all');
   const [filterPrioridade, setFilterPrioridade] = useState('all');
 
+  const navigate = useNavigate();
+
   const [dialogOpen, setDialogOpen] = useState(false);
-  const [editingItem, setEditingItem] = useState<OrdemServico | null>(null);
+  const [editingItem, setEditingItem] = useState<any>(null);
   const [form, setForm] = useState(emptyForm);
 
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
@@ -268,7 +269,7 @@ function OrdensServicoPage() {
     setDialogOpen(true);
   }
 
-  // ── Handling Search Params (Highlight / NovoParaEvento)
+  // ── Handling Search Params (Highlight)
   const searchParams = Route.useSearch();
   useEffect(() => {
     if (searchParams.highlightId && ordensServicoDB.length > 0) {
@@ -290,11 +291,8 @@ function OrdensServicoPage() {
         };
         openEdit(item);
       }
-    } else if (searchParams.novoParaEvento) {
-      openNew();
-      setForm(prev => ({ ...prev, eventoFogoId: searchParams.novoParaEvento }));
     }
-  }, [searchParams.highlightId, searchParams.novoParaEvento, ordensServicoDB]);
+  }, [searchParams.highlightId, ordensServicoDB]);
 
   async function save() {
     try {
@@ -380,7 +378,7 @@ function OrdensServicoPage() {
             Crie Ordens de Serviço
           </p>
         </div>
-        <Button onClick={openNew} className="bg-fire hover:bg-fire/90 text-white">
+        <Button onClick={() => navigate({ to: '/ordens-servico/nova' })} className="bg-fire hover:bg-fire/90 text-white">
           <Plus className="h-4 w-4 mr-2" />
           Cadastrar OS
         </Button>
@@ -535,65 +533,6 @@ function OrdensServicoPage() {
               </div>
             </div>
 
-            {!editingItem && (
-              <>
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label>Comando (Centro)</Label>
-                    <Select value={form.comando || ''} onValueChange={(v) => setForm({ ...form, comando: v, equipe: '', responsavel: '' })}>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Selecione o comando" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {centrosDeComandoDB.map((cc: any) => <SelectItem key={cc.id} value={String(cc.id)}>{cc.nome}</SelectItem>)}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Equipe</Label>
-                    <Select disabled={!form.comando} value={form.equipe || ''} onValueChange={(v) => setForm({ ...form, equipe: v, responsavel: '' })}>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Selecione a escala/equipe" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {escalasAtivas.map((eq: any) => {
-                          return <SelectItem key={eq.id} value={String(eq.id)}>{eq.equipeNome} - {eq.comandanteNome || 'Sem Cmt'}</SelectItem>
-                        })}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </div>
-
-                <div className="space-y-2">
-                  <Label>Usuário Responsável</Label>
-                  <Select disabled={!form.equipe} value={form.responsavel || ''} onValueChange={(v) => setForm({ ...form, responsavel: v })}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Selecione o responsável" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {usuariosDB.filter((u: any) => {
-                        const selectedScale = todasEscalas.find((e: any) => String(e.id) === String(form.equipe));
-                        if (!selectedScale) return false;
-                        const ids = [...(selectedScale.integranteIds || []), selectedScale.comandanteId].map(String);
-                        return ids.includes(String(u.id));
-                      }).map((u: any) => <SelectItem key={u.id} value={String(u.id)}>{u.nome}</SelectItem>)}
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                  <div className="space-y-2">
-                    <Label>Prioridade</Label>
-                    <Select value={form.prioridade} onValueChange={(v: any) => setForm({ ...form, prioridade: v })}>
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="P1">P1 - Imediata</SelectItem>
-                        <SelectItem value="P2">P2 - Alta</SelectItem>
-                        <SelectItem value="P3">P3 - Normal</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
               </>
             )}
 
