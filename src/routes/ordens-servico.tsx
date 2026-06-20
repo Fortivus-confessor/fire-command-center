@@ -500,17 +500,12 @@ function OrdensServicoPage() {
                 </div>
                 <div className="space-y-2">
                   <Label>Status da OS</Label>
-                  <Select value={form.status} onValueChange={(v: any) => setForm({ ...form, status: v })}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Status" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="ABERTA">Aberta</SelectItem>
-                      <SelectItem value="EM_EXECUCAO">Em Execução</SelectItem>
-                      <SelectItem value="CONCLUIDA">Concluída</SelectItem>
-                      <SelectItem value="CANCELADA">Cancelada</SelectItem>
-                    </SelectContent>
-                  </Select>
+                  <Input 
+                    id="status" 
+                    value={form.status === 'EM_EXECUCAO' ? 'Em Execução' : form.status === 'CONCLUIDA' ? 'Concluída' : form.status} 
+                    readOnly 
+                    className="bg-secondary/30 font-semibold" 
+                  />
                 </div>
               </div>
             )}
