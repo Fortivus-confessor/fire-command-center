@@ -31,10 +31,10 @@ const MAP_STYLES: Record<string, any> = {
 };
 
 const legendItems = [
-  { label: 'Extremo · FRP > 300', color: '#f97316' },
-  { label: 'Alto · FRP 100–300',  color: '#eab308' },
-  { label: 'Médio',               color: '#3b82f6' },
-  { label: 'Baixo',               color: '#22c55e' },
+  { id: 'extremo', label: 'Extremo · FRP ≥ 300', color: '#f97316' },
+  { id: 'alto',    label: 'Alto · FRP 100–300',  color: '#eab308' },
+  { id: 'medio',   label: 'Médio · FRP 50–100',  color: '#3b82f6' },
+  { id: 'baixo',   label: 'Baixo · FRP < 50',    color: '#22c55e' },
 ];
 
 const RISK_LABELS: Record<string, string> = {
@@ -65,6 +65,9 @@ export default function SituationMapClient({ selectedId, onSelect, onClickMap, a
   const [showFocos, setShowFocos] = useState(false);
   const [mapStyleKey, setMapStyleKey] = useState<string>('carto_dark');
   const [showLayerControl, setShowLayerControl] = useState(false);
+  const [activeRisks, setActiveRisks] = useState<Record<string, boolean>>({
+    extremo: true, alto: true, medio: true, baixo: true
+  });
   const [geoData, setGeoData] = useState<any>(null);
   const [popupInfo, setPopupInfo] = useState<any>(null);
   const navigate = useNavigate();
@@ -121,26 +124,28 @@ export default function SituationMapClient({ selectedId, onSelect, onClickMap, a
   const fireGeojson = useMemo(() => {
     return {
       type: 'FeatureCollection',
-      features: focos.map((e: any) => {
-        let risco = 'medio';
-        if (e.status === 'ATIVO_SEVERO' || e.frpTotal > 300) risco = 'extremo';
-        else if (e.frpTotal > 100) risco = 'alto';
-        else if (e.frpTotal < 20) risco = 'baixo';
+      features: focos
+        .map((e: any) => {
+          let risco = 'baixo';
+          if (e.status === 'ATIVO_SEVERO' || e.frpTotal >= 300) risco = 'extremo';
+          else if (e.frpTotal >= 100) risco = 'alto';
+          else if (e.frpTotal >= 50) risco = 'medio';
 
-        return {
-          type: 'Feature',
-          geometry: { type: 'Point', coordinates: [e.longitude, e.latitude] },
-          properties: {
-            id: e.id,
-            codigo: e.id.substring(0,8).toUpperCase(),
-            risco,
-            frp: e.frpTotal || 0,
-            totalFocos: e.totalFocos
-          }
-        };
-      })
+          return {
+            type: 'Feature',
+            geometry: { type: 'Point', coordinates: [e.longitude, e.latitude] },
+            properties: {
+              id: e.id,
+              codigo: e.id.substring(0,8).toUpperCase(),
+              risco,
+              frp: e.frpTotal || 0,
+              totalFocos: e.totalFocos
+            }
+          };
+        })
+        .filter((f: any) => activeRisks[f.properties.risco])
     };
-  }, [focos]);
+  }, [focos, activeRisks]);
 
   return (
     <div className="relative h-full w-full overflow-hidden rounded-xl border border-border">
@@ -381,16 +386,24 @@ export default function SituationMapClient({ selectedId, onSelect, onClickMap, a
       </div>
 
       {!hideEvents && (
-        <div className="absolute bottom-3 left-3 z-[10] glass rounded-lg px-2.5 py-2 text-[10px] mono space-y-1 pointer-events-none">
-          {legendItems.map((item) => (
-            <div key={item.label} className="flex items-center gap-2">
-              <span
-                className="h-2 w-2 rounded-full flex-shrink-0"
-                style={{ background: item.color, boxShadow: `0 0 6px ${item.color}88` }}
-              />
-              <span className="text-muted-foreground">{item.label}</span>
-            </div>
-          ))}
+        <div className="absolute bottom-3 left-3 z-[10] glass rounded-lg px-2.5 py-2 text-[10px] mono space-y-1">
+          {legendItems.map((item) => {
+            const isActive = activeRisks[item.id];
+            return (
+              <button 
+                key={item.id} 
+                onClick={() => setActiveRisks(prev => ({ ...prev, [item.id]: !prev[item.id] }))}
+                className="flex items-center gap-2 w-full text-left transition-opacity hover:opacity-80"
+                style={{ opacity: isActive ? 1 : 0.4 }}
+              >
+                <span
+                  className="h-2 w-2 rounded-full flex-shrink-0"
+                  style={{ background: item.color, boxShadow: isActive ? `0 0 6px ${item.color}88` : 'none' }}
+                />
+                <span className={isActive ? 'text-slate-200' : 'text-slate-500'}>{item.label}</span>
+              </button>
+            );
+          })}
         </div>
       )}
 
