@@ -1,6 +1,6 @@
 import { createFileRoute } from '@tanstack/react-router';
 import { useState } from 'react';
-import { Plus, Search, Pencil, Trash2, Users, Filter, Loader2 } from 'lucide-react';
+import { Plus, Search, Pencil, Trash2, Users, Filter, Loader2, ChevronLeft, ChevronRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -78,10 +78,16 @@ function tipoBadge(t: string) {
 function EquipesPage() {
   const queryClient = useQueryClient();
 
-  const { data: equipes = [], isLoading: loadingEquipes } = useQuery<EquipeDTO[]>({
-    queryKey: ['equipes'],
-    queryFn: () => fetchWithAuth('/admin/equipes'),
+  const [pageIndex, setPageIndex] = useState(0);
+  const [listAll, setListAll] = useState(false);
+  const pageSize = listAll ? 1000 : 10;
+
+  const { data: pageData, isLoading: loadingEquipes } = useQuery<any>({
+    queryKey: ['equipes', pageIndex, pageSize],
+    queryFn: () => fetchWithAuth(`/admin/equipes/paged?page=${pageIndex}&size=${pageSize}`)
   });
+
+  const equipes = pageData?.content || [];
 
   const { data: centros = [] } = useQuery<CentroComandoDTO[]>({
     queryKey: ['centros-comando'],
@@ -123,7 +129,7 @@ function EquipesPage() {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
 
-  const filtered = equipes.filter((item) => {
+  const filtered = equipes.filter((item: EquipeDTO) => {
     const centroNome = centros.find(c => c.id === item.centroComandoId)?.nome || '';
     const matchSearch =
       !search ||
@@ -238,7 +244,7 @@ function EquipesPage() {
                   </TableCell>
                 </TableRow>
               ) : (
-                filtered.map((item) => (
+                filtered.map((item: EquipeDTO) => (
                   <TableRow key={item.id} className="hover:bg-secondary/20 transition">
                     <TableCell className="mono font-bold">{item.nome}</TableCell>
                     <TableCell>{centros.find(c => c.id === item.centroComandoId)?.nome || 'Sem centro'}</TableCell>
@@ -259,9 +265,33 @@ function EquipesPage() {
             </TableBody>
           </Table>
         </div>
-        <div className="px-4 py-3 border-t border-border text-sm text-muted-foreground">
-          Mostrando {filtered.length} de {equipes.length} registros
-        </div>
+        
+          {!listAll && pageData && pageData.totalPages > 1 && (
+            <div className="px-4 py-3 border-t border-border flex items-center justify-between">
+              <div className="text-sm text-muted-foreground">
+                Página {pageData.number + 1} de {pageData.totalPages} (Mostrando {filtered.length} de {pageData.totalElements})
+              </div>
+              <div className="flex gap-2">
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  onClick={() => setPageIndex(p => Math.max(0, p - 1))}
+                  disabled={pageData.first}
+                >
+                  <ChevronLeft className="h-4 w-4" />
+                </Button>
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  onClick={() => setPageIndex(p => p + 1)}
+                  disabled={pageData.last}
+                >
+                  <ChevronRight className="h-4 w-4" />
+                </Button>
+              </div>
+            </div>
+          )}
+
       </div>
 
       {/* Create/Edit Dialog */}

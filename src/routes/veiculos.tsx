@@ -1,6 +1,6 @@
 import { createFileRoute } from '@tanstack/react-router';
 import { useState } from 'react';
-import { Plus, Search, Pencil, Trash2, Truck, Filter } from 'lucide-react';
+import { Plus, Search, Pencil, Trash2, Truck, Filter, ChevronLeft, ChevronRight, Eye, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import {
@@ -49,25 +49,26 @@ interface Veiculo {
   identificador: string;
   prefixo: string;
   modelo: string;
-  tipo: 'Terrestre' | 'Aéreo' | 'Maquinário' | 'Aquático';
+  tipo: 'TERRESTRE' | 'AEREO' | 'MAQUINARIO' | 'AQUATICO';
   contrato: 'Locado' | 'Órgão de Apoio' | 'Próprio';
 }
 
 // ── Mock Data ──────────────────────────────────────────
 const initialData: Veiculo[] = [
-  { id: '1', identificador: 'ABC-1234', prefixo: 'VTR-01', modelo: 'Caminhão ABTR', tipo: 'Terrestre', contrato: 'Próprio' },
-  { id: '2', identificador: 'PR-HFB', prefixo: '', modelo: 'Helicóptero AS350', tipo: 'Aéreo', contrato: 'Locado' },
-  { id: '3', identificador: 'PAR-8B55', prefixo: 'VTR-02', modelo: 'Viatura L200', tipo: 'Terrestre', contrato: 'Próprio' },
-  { id: '4', identificador: 'MQN-0012', prefixo: '', modelo: 'Trator de esteira D6', tipo: 'Maquinário', contrato: 'Órgão de Apoio' },
-  { id: '5', identificador: 'TOC-3C47', prefixo: 'VTR-05', modelo: 'Caminhão Pipa', tipo: 'Terrestre', contrato: 'Locado' },
+  { id: '1', identificador: 'ABC-1234', prefixo: 'VTR-01', modelo: 'Caminhão ABTR', tipo: 'TERRESTRE', contrato: 'Próprio' },
+  { id: '2', identificador: 'PR-HFB', prefixo: '', modelo: 'Helicóptero AS350', tipo: 'AEREO', contrato: 'Locado' },
+  { id: '3', identificador: 'PAR-8B55', prefixo: 'VTR-02', modelo: 'Viatura L200', tipo: 'TERRESTRE', contrato: 'Próprio' },
+  { id: '4', identificador: 'MQN-0012', prefixo: '', modelo: 'Trator de esteira D6', tipo: 'MAQUINARIO', contrato: 'Órgão de Apoio' },
+  { id: '5', identificador: 'TOC-3C47', prefixo: 'VTR-05', modelo: 'Caminhão Pipa', tipo: 'TERRESTRE', contrato: 'Locado' },
 ];
 
-const emptyForm: Omit<Veiculo, 'id'> = {
+const emptyForm = {
   identificador: '',
   prefixo: '',
   modelo: '',
-  tipo: 'TERRESTRE' as any,
-  contrato: 'Próprio',
+  tipo: '' as any,
+  contrato: '' as any,
+  fotoArquivo: null as File | null,
 };
 
 // ── Helpers ────────────────────────────────────────────
@@ -104,14 +105,19 @@ function VeiculosPage() {
 
   const saveMutation = useMutation({
     mutationFn: async (veiculo: any) => {
+      if (veiculo.removeExistingPhoto && veiculo.id) {
+        await fetchWithAuth(`/ativos/frota/${veiculo.id}/foto`, { method: 'DELETE' }).catch(console.error);
+      }
+
       const formData = new FormData();
       if (veiculo.id) formData.append('id', veiculo.id);
       formData.append('identificador', veiculo.identificador);
-      formData.append('prefixo', veiculo.prefixo || '');
+      formData.append('prefixo', veiculo.tipo === 'TERRESTRE' ? (veiculo.prefixo || '') : '');
       formData.append('modelo', veiculo.modelo);
       formData.append('categoria', veiculo.tipo);
-      // O contrato no backend não existe em Veiculo, o backend tem EquipeId. Vamos mockar o envio ou adaptar?
-      // O backend do Fortivus Veiculo não tem campo "contrato" e "tipo" é "categoria".
+      if (veiculo.fotoArquivo) {
+        formData.append('fotoArquivo', veiculo.fotoArquivo);
+      }
       
       return fetchWithAuth('/ativos/frota', {
         method: 'POST',
@@ -133,25 +139,47 @@ function VeiculosPage() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingItem, setEditingItem] = useState<Veiculo | null>(null);
   const [form, setForm] = useState(emptyForm);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [removeExistingPhoto, setRemoveExistingPhoto] = useState(false);
 
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
 
+  const [viewDialogOpen, setViewDialogOpen] = useState(false);
+  const [viewingItem, setViewingItem] = useState<any>(null);
+
+  const [imageModalOpen, setImageModalOpen] = useState(false);
+  const [imageModalUrl, setImageModalUrl] = useState<string | null>(null);
+
+  function openImageModal(url: string) {
+    setImageModalUrl(url);
+    setImageModalOpen(true);
+  }
+
   const filtered = veiculosData.filter((item: any) => {
     // Adapter do backend (categoria -> tipo)
     const tipoItem = item.categoria || item.tipo;
+    const contratoItem = item.contrato || 'Próprio';
     const matchSearch =
       !search ||
       (item.identificador && item.identificador.toLowerCase().includes(search.toLowerCase())) ||
       (item.modelo && item.modelo.toLowerCase().includes(search.toLowerCase())) ||
       (item.prefixo && item.prefixo.toLowerCase().includes(search.toLowerCase()));
     const matchTipo = filterTipo === 'all' || tipoItem === filterTipo;
-    return matchSearch && matchTipo;
+    const matchContrato = filterContrato === 'all' || contratoItem === filterContrato;
+    return matchSearch && matchTipo && matchContrato;
   });
+
+  function openView(item: any) {
+    setViewingItem(item);
+    setViewDialogOpen(true);
+  }
 
   function openNew() {
     setEditingItem(null);
     setForm({ ...emptyForm });
+    setPreviewUrl(null);
+    setRemoveExistingPhoto(false);
     setDialogOpen(true);
   }
 
@@ -161,15 +189,19 @@ function VeiculosPage() {
       identificador: item.identificador || '',
       prefixo: item.prefixo || '',
       modelo: item.modelo || '',
-      tipo: item.categoria || item.tipo || 'TERRESTRE',
-      contrato: item.contrato || 'Próprio', // mock field
+      tipo: item.categoria || item.tipo || '',
+      contrato: item.contrato || '',
+      fotoArquivo: null,
     });
+    setPreviewUrl(item.fotoUrl || null);
+    setRemoveExistingPhoto(false);
     setDialogOpen(true);
   }
 
   function handleSave() {
     saveMutation.mutate({
       id: editingItem?.id,
+      removeExistingPhoto,
       ...form
     });
     setDialogOpen(false);
@@ -270,13 +302,34 @@ function VeiculosPage() {
               ) : (
                 filtered.map((item) => (
                   <TableRow key={item.id} className="hover:bg-secondary/20 transition">
-                    <TableCell className="mono font-bold">{item.identificador}</TableCell>
+                    <TableCell className="font-medium">
+                      <div className="flex items-center gap-2">
+                        {item.fotoUrl && (
+                          <div 
+                            className="w-8 h-8 rounded-full overflow-hidden border border-border cursor-pointer hover:ring-2 hover:ring-primary transition shrink-0"
+                            onClick={() => openImageModal(item.fotoUrl)}
+                            title="Ver imagem grande"
+                          >
+                            <img src={item.fotoUrl} alt="Foto" className="w-full h-full object-cover" />
+                          </div>
+                        )}
+                        {!item.fotoUrl && (
+                          <div className="w-8 h-8 rounded-full bg-secondary flex items-center justify-center border border-border shrink-0">
+                            <Truck className="h-4 w-4 text-muted-foreground" />
+                          </div>
+                        )}
+                        {item.identificador}
+                      </div>
+                    </TableCell>
                     <TableCell className="mono">{ (item.categoria || item.tipo) === 'TERRESTRE' ? (item.prefixo || '-') : '-'}</TableCell>
                     <TableCell>{item.modelo}</TableCell>
                     <TableCell>{tipoBadge(item.categoria || item.tipo)}</TableCell>
                     <TableCell>{contratoBadge(item.contrato || 'Próprio')}</TableCell>
                     <TableCell className="text-right">
                       <div className="flex justify-end gap-1">
+                        <Button variant="ghost" size="icon" onClick={() => openView(item)} className="h-8 w-8 hover:text-primary">
+                          <Eye className="h-4 w-4" />
+                        </Button>
                         <Button variant="ghost" size="icon" onClick={() => openEdit(item)} className="h-8 w-8 hover:text-command">
                           <Pencil className="h-4 w-4" />
                         </Button>
@@ -291,10 +344,8 @@ function VeiculosPage() {
             </TableBody>
           </Table>
         </div>
-        <div className="px-4 py-3 border-t border-border text-sm text-muted-foreground">
-          Mostrando {filtered.length} de {veiculosData.length} registros
-        </div>
-      </div>
+        
+              </div>
 
       {/* Create/Edit Dialog */}
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
@@ -310,7 +361,7 @@ function VeiculosPage() {
               <Label>Tipo</Label>
               <Select value={form.tipo} onValueChange={(v) => setForm({ ...form, tipo: v as Veiculo['tipo'] })}>
                 <SelectTrigger>
-                  <SelectValue />
+                  <SelectValue placeholder="Selecione um tipo" />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="TERRESTRE">Terrestre</SelectItem>
@@ -358,7 +409,7 @@ function VeiculosPage() {
                 <Label>Contrato</Label>
                 <Select value={form.contrato} onValueChange={(v) => setForm({ ...form, contrato: v as Veiculo['contrato'] })}>
                   <SelectTrigger>
-                    <SelectValue />
+                    <SelectValue placeholder="Selecione um contrato" />
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="Próprio">Próprio</SelectItem>
@@ -368,6 +419,53 @@ function VeiculosPage() {
                 </Select>
               </div>
             </div>
+            <div className="space-y-2">
+              <Label htmlFor="fotoArquivo">Imagem do Veículo (Máx 10MB, JPG/PNG)</Label>
+              <div className="flex flex-col sm:flex-row gap-4 items-start">
+                {previewUrl && (
+                  <div className="relative w-32 h-32 rounded-lg border border-border overflow-hidden shrink-0 group">
+                    <img src={previewUrl} alt="Preview" className="w-full h-full object-cover" />
+                    <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition flex items-center justify-center">
+                      <Button 
+                        variant="destructive" 
+                        size="icon" 
+                        className="h-8 w-8"
+                        onClick={() => {
+                          setPreviewUrl(null);
+                          setForm({ ...form, fotoArquivo: null });
+                          setRemoveExistingPhoto(true);
+                        }}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </div>
+                )}
+                <div className="flex-1 w-full">
+                  <Input
+                    id="fotoArquivo"
+                    type="file"
+                    accept="image/jpeg, image/png"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      if (file) {
+                        if (file.size > 10 * 1024 * 1024) {
+                          alert('A imagem deve ter no máximo 10MB.');
+                          e.target.value = '';
+                          return;
+                        }
+                        setForm({ ...form, fotoArquivo: file });
+                        setPreviewUrl(URL.createObjectURL(file));
+                        setRemoveExistingPhoto(false);
+                      }
+                    }}
+                  />
+                  <p className="text-xs text-muted-foreground mt-2">
+                    {previewUrl ? 'Selecione outra imagem para substituir.' : 'Selecione uma imagem para o veículo.'}
+                  </p>
+                </div>
+              </div>
+            </div>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setDialogOpen(false)}>Cancelar</Button>
@@ -375,6 +473,55 @@ function VeiculosPage() {
               {editingItem ? 'Salvar Alterações' : 'Criar Veículo'}
             </Button>
           </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* View Dialog */}
+      <Dialog open={viewDialogOpen} onOpenChange={setViewDialogOpen}>
+        <DialogContent className="glass-strong sm:max-w-[600px]">
+          <DialogHeader>
+            <DialogTitle>Visualizar Veículo</DialogTitle>
+          </DialogHeader>
+          {viewingItem && (
+            <div className="space-y-4">
+              {viewingItem.fotoUrl && (
+                <div className="w-full h-48 rounded-lg overflow-hidden border border-border">
+                  <img src={viewingItem.fotoUrl} alt="Veículo" className="w-full h-full object-cover" />
+                </div>
+              )}
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <p className="text-sm text-muted-foreground">Identificador</p>
+                  <p className="font-medium">{viewingItem.identificador}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-muted-foreground">Modelo</p>
+                  <p className="font-medium">{viewingItem.modelo}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-muted-foreground">Prefixo</p>
+                  <p className="font-medium">{(viewingItem.categoria || viewingItem.tipo) === 'TERRESTRE' ? (viewingItem.prefixo || '-') : '-'}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-muted-foreground">Tipo</p>
+                  <div>{tipoBadge(viewingItem.categoria || viewingItem.tipo)}</div>
+                </div>
+                <div>
+                  <p className="text-sm text-muted-foreground">Contrato</p>
+                  <div>{contratoBadge(viewingItem.contrato || 'Próprio')}</div>
+                </div>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Image Only Dialog */}
+      <Dialog open={imageModalOpen} onOpenChange={setImageModalOpen}>
+        <DialogContent className="sm:max-w-[700px] p-1 bg-black/90 border-none flex justify-center items-center">
+          {imageModalUrl && (
+             <img src={imageModalUrl} alt="Veículo Ampliado" className="max-w-full max-h-[85vh] object-contain rounded-md" />
+          )}
         </DialogContent>
       </Dialog>
 

@@ -36,17 +36,14 @@ function ResponderAereoPage() {
         });
       }
       
-      toast({
-        title: 'Relatório Aéreo Finalizado',
+      toast.success('Relatório Aéreo Finalizado', {
         description: 'Os dados do relatório aéreo e as evidências foram enviados com sucesso.',
       });
       navigate({ to: '/despachos' });
     } catch (err) {
       console.error(err);
-      toast({
-        title: 'Erro no Envio',
+      toast.error('Erro no Envio', {
         description: 'Houve um problema ao salvar as informações ou realizar o upload das fotos.',
-        variant: 'destructive',
       });
     } finally {
       setIsSubmitting(false);

@@ -19,6 +19,7 @@ export function RelatorioTerrestreForm({ onSubmit, onFilesChange }: { onSubmit?:
   const [outrosOrgaos, setOutrosOrgaos] = useState(false);
   const [outraOrigem, setOutraOrigem] = useState(false);
   const [resultado, setResultado] = useState<string>('andamento');
+  const [outroAgua, setOutroAgua] = useState(false);
 
   const acoes = [
     'Reconhecimento e Planejamento', 'Combate a Incêndio florestal direto',
@@ -47,8 +48,8 @@ export function RelatorioTerrestreForm({ onSubmit, onFilesChange }: { onSubmit?:
     'Sem indícios da possível causa', 'Outros'
   ];
 
-  const [propriedadesApoio, setPropriedadesApoio] = useState([{ id: 1, maq: false, mao: false, mapOpen: false }]);
-  const [propriedadesRecusa, setPropriedadesRecusa] = useState([{ id: 1, mapOpen: false }]);
+  const [propriedadesApoio, setPropriedadesApoio] = useState([{ id: 1, maq: false, mao: false, outro: false, mapOpen: false }]);
+  const [propriedadesRecusa, setPropriedadesRecusa] = useState([{ id: 1, outro: false, mapOpen: false }]);
 
   return (
     <form id="form-terrestre" onSubmit={onSubmit} className="space-y-8 p-1">
@@ -228,7 +229,7 @@ export function RelatorioTerrestreForm({ onSubmit, onFilesChange }: { onSubmit?:
                 </div>
               </div>
             ))}
-            <Button variant="outline" size="sm" onClick={() => setPropriedadesApoio(prev => [...prev, { id: Date.now(), maq: false, mao: false, mapOpen: false }])} className="text-xs">
+            <Button variant="outline" size="sm" onClick={() => setPropriedadesApoio(prev => [...prev, { id: Date.now(), maq: false, mao: false, outro: false, mapOpen: false }])} className="text-xs">
               <Plus className="h-3 w-3 mr-1" /> Adicionar outra propriedade
             </Button>
           </div>
@@ -306,7 +307,7 @@ export function RelatorioTerrestreForm({ onSubmit, onFilesChange }: { onSubmit?:
                 </div>
               </div>
             ))}
-            <Button variant="outline" size="sm" onClick={() => setPropriedadesRecusa(prev => [...prev, { id: Date.now(), mapOpen: false }])} className="text-xs">
+            <Button variant="outline" size="sm" onClick={() => setPropriedadesRecusa(prev => [...prev, { id: Date.now(), outro: false, mapOpen: false }])} className="text-xs">
               <Plus className="h-3 w-3 mr-1" /> Adicionar outra propriedade
             </Button>
           </div>

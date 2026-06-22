@@ -1,6 +1,6 @@
 import { createFileRoute } from '@tanstack/react-router';
 import { useState } from 'react';
-import { Plus, Search, Pencil, Trash2, UserCog, Filter, Loader2 } from 'lucide-react';
+import { Plus, Search, Pencil, Trash2, UserCog, Filter, Loader2, ChevronLeft, ChevronRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -107,10 +107,16 @@ function maskCpf(cpf: string) {
 function UsuariosPage() {
   const queryClient = useQueryClient();
 
-  const { data: usuarios = [], isLoading: loadingUsuarios } = useQuery<UsuarioDTO[]>({
-    queryKey: ['usuarios'],
-    queryFn: () => fetchWithAuth('/admin/usuarios'),
+  const [pageIndex, setPageIndex] = useState(0);
+  const [listAll, setListAll] = useState(false);
+  const pageSize = listAll ? 1000 : 10;
+
+  const { data: pageData, isLoading: loadingUsuarios } = useQuery<any>({
+    queryKey: ['usuarios', pageIndex, pageSize],
+    queryFn: () => fetchWithAuth(`/admin/usuarios/paged?page=${pageIndex}&size=${pageSize}`)
   });
+
+  const usuarios = pageData?.content || [];
 
   const { data: centros = [] } = useQuery<CentroComandoDTO[]>({
     queryKey: ['centros-comando'],
@@ -160,7 +166,7 @@ function UsuariosPage() {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
 
-  const filtered = usuarios.filter((item) => {
+  const filtered = usuarios.filter((item: UsuarioDTO) => {
     const matchSearch =
       !search ||
       item.nome?.toLowerCase().includes(search.toLowerCase()) ||
@@ -280,7 +286,7 @@ function UsuariosPage() {
                   </TableCell>
                 </TableRow>
               ) : (
-                filtered.map((item) => (
+                filtered.map((item: UsuarioDTO) => (
                   <TableRow key={item.id} className="hover:bg-secondary/20 transition">
                     <TableCell className="font-medium">{item.nome}</TableCell>
                     <TableCell className="text-sm text-muted-foreground">{item.email}</TableCell>
@@ -304,9 +310,33 @@ function UsuariosPage() {
             </TableBody>
           </Table>
         </div>
-        <div className="px-4 py-3 border-t border-border text-sm text-muted-foreground">
-          Mostrando {filtered.length} de {usuarios.length} registros
-        </div>
+        
+          {!listAll && pageData && pageData.totalPages > 1 && (
+            <div className="px-4 py-3 border-t border-border flex items-center justify-between">
+              <div className="text-sm text-muted-foreground">
+                Página {pageData.number + 1} de {pageData.totalPages} (Mostrando {filtered.length} de {pageData.totalElements})
+              </div>
+              <div className="flex gap-2">
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  onClick={() => setPageIndex(p => Math.max(0, p - 1))}
+                  disabled={pageData.first}
+                >
+                  <ChevronLeft className="h-4 w-4" />
+                </Button>
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  onClick={() => setPageIndex(p => p + 1)}
+                  disabled={pageData.last}
+                >
+                  <ChevronRight className="h-4 w-4" />
+                </Button>
+              </div>
+            </div>
+          )}
+
       </div>
 
       {/* Create/Edit Dialog */}

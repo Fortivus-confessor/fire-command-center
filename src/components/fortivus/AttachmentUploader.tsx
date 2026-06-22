@@ -15,7 +15,7 @@ export function AttachmentUploader({ entityId, entityType, onUploadComplete }: A
   const [uploading, setUploading] = useState(false);
   const [progress, setProgress] = useState(0);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const { toast } = useToast();
+
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files) {
@@ -66,8 +66,7 @@ export function AttachmentUploader({ entityId, entityType, onUploadComplete }: A
         setProgress(((i + 1) / files.length) * 100);
       }
 
-      toast({
-        title: 'Upload Concluído',
+      toast.success('Upload Concluído', {
         description: `${files.length} arquivo(s) enviado(s) com sucesso.`,
       });
 
@@ -76,10 +75,8 @@ export function AttachmentUploader({ entityId, entityType, onUploadComplete }: A
       if (onUploadComplete) onUploadComplete();
     } catch (err) {
       console.error(err);
-      toast({
-        title: 'Erro no Upload',
+      toast.error('Erro no Upload', {
         description: 'Não foi possível enviar os arquivos. Tente novamente.',
-        variant: 'destructive',
       });
     } finally {
       setUploading(false);

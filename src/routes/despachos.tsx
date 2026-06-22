@@ -1,6 +1,6 @@
 import { createFileRoute, useNavigate } from '@tanstack/react-router';
 import { useState } from 'react';
-import { Search, MessageSquare, Trash2, Truck, Filter } from 'lucide-react';
+import { Search, MessageSquare, Trash2, Truck, Filter, ChevronLeft, ChevronRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import {
@@ -80,6 +80,8 @@ function statusBadge(s: string) {
 function DespachosPage() {
   const navigate = useNavigate();
   const [data, setData] = useState<Despacho[]>(initialData);
+  const [listAll, setListAll] = useState(false);
+  const [pageIndex, setPageIndex] = useState(0);
   const [search, setSearch] = useState('');
   const [filterStatus, setFilterStatus] = useState('all');
 
@@ -222,9 +224,9 @@ function DespachosPage() {
             </TableBody>
           </Table>
         </div>
-        <div className="px-4 py-3 border-t border-border text-sm text-muted-foreground">
-          Mostrando {filtered.length} de {data.length} registros
-        </div>
+        
+        
+
       </div>
 
       {/* Respond Dialog */}

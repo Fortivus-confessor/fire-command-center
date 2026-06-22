@@ -21,6 +21,7 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as ResponderTerrestreIdRouteImport } from './routes/responder-terrestre.$id'
 import { Route as ResponderMaquinarioIdRouteImport } from './routes/responder-maquinario.$id'
 import { Route as ResponderAereoIdRouteImport } from './routes/responder-aereo.$id'
+import { Route as OrdensServicoNovaRouteImport } from './routes/ordens-servico_.nova'
 
 const VeiculosRoute = VeiculosRouteImport.update({
   id: '/veiculos',
@@ -82,6 +83,11 @@ const ResponderAereoIdRoute = ResponderAereoIdRouteImport.update({
   path: '/responder-aereo/$id',
   getParentRoute: () => rootRouteImport,
 } as any)
+const OrdensServicoNovaRoute = OrdensServicoNovaRouteImport.update({
+  id: '/ordens-servico_/nova',
+  path: '/ordens-servico/nova',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -93,6 +99,7 @@ export interface FileRoutesByFullPath {
   '/ordens-servico': typeof OrdensServicoRoute
   '/usuarios': typeof UsuariosRoute
   '/veiculos': typeof VeiculosRoute
+  '/ordens-servico/nova': typeof OrdensServicoNovaRoute
   '/responder-aereo/$id': typeof ResponderAereoIdRoute
   '/responder-maquinario/$id': typeof ResponderMaquinarioIdRoute
   '/responder-terrestre/$id': typeof ResponderTerrestreIdRoute
@@ -107,6 +114,7 @@ export interface FileRoutesByTo {
   '/ordens-servico': typeof OrdensServicoRoute
   '/usuarios': typeof UsuariosRoute
   '/veiculos': typeof VeiculosRoute
+  '/ordens-servico/nova': typeof OrdensServicoNovaRoute
   '/responder-aereo/$id': typeof ResponderAereoIdRoute
   '/responder-maquinario/$id': typeof ResponderMaquinarioIdRoute
   '/responder-terrestre/$id': typeof ResponderTerrestreIdRoute
@@ -122,6 +130,7 @@ export interface FileRoutesById {
   '/ordens-servico': typeof OrdensServicoRoute
   '/usuarios': typeof UsuariosRoute
   '/veiculos': typeof VeiculosRoute
+  '/ordens-servico_/nova': typeof OrdensServicoNovaRoute
   '/responder-aereo/$id': typeof ResponderAereoIdRoute
   '/responder-maquinario/$id': typeof ResponderMaquinarioIdRoute
   '/responder-terrestre/$id': typeof ResponderTerrestreIdRoute
@@ -138,6 +147,7 @@ export interface FileRouteTypes {
     | '/ordens-servico'
     | '/usuarios'
     | '/veiculos'
+    | '/ordens-servico/nova'
     | '/responder-aereo/$id'
     | '/responder-maquinario/$id'
     | '/responder-terrestre/$id'
@@ -152,6 +162,7 @@ export interface FileRouteTypes {
     | '/ordens-servico'
     | '/usuarios'
     | '/veiculos'
+    | '/ordens-servico/nova'
     | '/responder-aereo/$id'
     | '/responder-maquinario/$id'
     | '/responder-terrestre/$id'
@@ -166,6 +177,7 @@ export interface FileRouteTypes {
     | '/ordens-servico'
     | '/usuarios'
     | '/veiculos'
+    | '/ordens-servico_/nova'
     | '/responder-aereo/$id'
     | '/responder-maquinario/$id'
     | '/responder-terrestre/$id'
@@ -181,6 +193,7 @@ export interface RootRouteChildren {
   OrdensServicoRoute: typeof OrdensServicoRoute
   UsuariosRoute: typeof UsuariosRoute
   VeiculosRoute: typeof VeiculosRoute
+  OrdensServicoNovaRoute: typeof OrdensServicoNovaRoute
   ResponderAereoIdRoute: typeof ResponderAereoIdRoute
   ResponderMaquinarioIdRoute: typeof ResponderMaquinarioIdRoute
   ResponderTerrestreIdRoute: typeof ResponderTerrestreIdRoute
@@ -272,6 +285,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ResponderAereoIdRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/ordens-servico_/nova': {
+      id: '/ordens-servico_/nova'
+      path: '/ordens-servico/nova'
+      fullPath: '/ordens-servico/nova'
+      preLoaderRoute: typeof OrdensServicoNovaRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -285,6 +305,7 @@ const rootRouteChildren: RootRouteChildren = {
   OrdensServicoRoute: OrdensServicoRoute,
   UsuariosRoute: UsuariosRoute,
   VeiculosRoute: VeiculosRoute,
+  OrdensServicoNovaRoute: OrdensServicoNovaRoute,
   ResponderAereoIdRoute: ResponderAereoIdRoute,
   ResponderMaquinarioIdRoute: ResponderMaquinarioIdRoute,
   ResponderTerrestreIdRoute: ResponderTerrestreIdRoute,

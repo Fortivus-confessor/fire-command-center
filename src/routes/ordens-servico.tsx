@@ -1,6 +1,6 @@
 import { createFileRoute, useNavigate } from '@tanstack/react-router';
 import { useState, useEffect } from 'react';
-import { Plus, Search, Pencil, Trash2, FileText, Filter, MapPin } from 'lucide-react';
+import { Plus, Search, Pencil, Trash2, FileText, Filter, MapPin, ChevronLeft, ChevronRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -153,7 +153,16 @@ function tipoBadge(t: string) {
 
 // ── Page Component ─────────────────────────────────────
 function OrdensServicoPage() {
-  const [data, setData] = useState<OrdemServico[]>(initialData);
+  const [pageIndex, setPageIndex] = useState(0);
+  const [listAll, setListAll] = useState(false);
+  const pageSize = listAll ? 1000 : 10;
+
+  const { data: pageData, isLoading: loadingOrdens } = useQuery<any>({
+    queryKey: ['ordens-servico', pageIndex, pageSize],
+    queryFn: () => fetchWithAuth(`/operacional/os/paged?page=${pageIndex}&size=${pageSize}`)
+  });
+
+  const data = pageData?.content || [];
   const [search, setSearch] = useState('');
   const [filterStatus, setFilterStatus] = useState('all');
   const [filterPrioridade, setFilterPrioridade] = useState('all');
@@ -191,11 +200,6 @@ function OrdensServicoPage() {
   const { data: todasEquipes = [] } = useQuery<any[]>({
     queryKey: ['equipes'],
     queryFn: () => fetchWithAuth('/admin/equipes')
-  });
-
-  const { data: focosDB = [] } = useQuery<any[]>({
-    queryKey: ['focos'],
-    queryFn: () => fetchWithAuth('/focos'),
   });
 
   const { data: ordensServicoDB = [], refetch } = useQuery<any[]>({
@@ -472,7 +476,7 @@ function OrdensServicoPage() {
             Crie Ordens de Serviço
           </p>
         </div>
-        <Button onClick={() => navigate({ to: '/ordens-servico/nova' })} className="bg-fire hover:bg-fire/90 text-white">
+        <Button onClick={() => navigate({ to: '/ordens-servico/nova', search: { eventoFogoId: undefined } })} className="bg-fire hover:bg-fire/90 text-white">
           <Plus className="h-4 w-4 mr-2" />
           Cadastrar OS
         </Button>
@@ -571,9 +575,33 @@ function OrdensServicoPage() {
             </TableBody>
           </Table>
         </div>
-        <div className="px-4 py-3 border-t border-border text-sm text-muted-foreground">
-          Mostrando {filtered.length} de {data.length} registros
-        </div>
+        
+          {!listAll && pageData && pageData.totalPages > 1 && (
+            <div className="px-4 py-3 border-t border-border flex items-center justify-between">
+              <div className="text-sm text-muted-foreground">
+                Página {pageData.number + 1} de {pageData.totalPages} (Mostrando {filtered.length} de {pageData.totalElements})
+              </div>
+              <div className="flex gap-2">
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  onClick={() => setPageIndex(p => Math.max(0, p - 1))}
+                  disabled={pageData.first}
+                >
+                  <ChevronLeft className="h-4 w-4" />
+                </Button>
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  onClick={() => setPageIndex(p => p + 1)}
+                  disabled={pageData.last}
+                >
+                  <ChevronRight className="h-4 w-4" />
+                </Button>
+              </div>
+            </div>
+          )}
+
       </div>
 
       {/* Create/Edit Dialog */}

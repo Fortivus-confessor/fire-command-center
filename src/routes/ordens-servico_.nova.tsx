@@ -91,7 +91,7 @@ function NovaOrdemServicoPage() {
       });
       if (res && res.id) {
         toast.success("Despacho e OS criados com sucesso!");
-        navigate({ to: '/ordens-servico' });
+        navigate({ to: '/ordens-servico', search: { highlightId: undefined } });
       } else {
         toast.error("Erro ao criar OS.");
       }
@@ -168,7 +168,7 @@ function NovaOrdemServicoPage() {
     <div className="p-4 sm:p-6 space-y-6 h-full flex flex-col">
       {/* Header */}
       <div className="flex items-center gap-4">
-        <Button variant="outline" size="icon" onClick={() => navigate({ to: '/ordens-servico' })}>
+        <Button variant="outline" size="icon" onClick={() => navigate({ to: '/ordens-servico', search: { highlightId: undefined } })}>
           <ArrowLeft className="h-4 w-4" />
         </Button>
         <div>
@@ -325,7 +325,7 @@ function NovaOrdemServicoPage() {
             </div>
             
             <div className="pt-4 flex justify-end gap-3 border-t border-border">
-              <Button variant="outline" onClick={() => navigate({ to: '/ordens-servico' })}>
+              <Button variant="outline" onClick={() => navigate({ to: '/ordens-servico', search: { highlightId: undefined } })}>
                 Cancelar
               </Button>
               <Button onClick={save} className="bg-fire hover:bg-fire/90 text-white">
