@@ -194,6 +194,9 @@ function UsuariosPage() {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
 
+  const [viewDialogOpen, setViewDialogOpen] = useState(false);
+  const [viewingItem, setViewingItem] = useState<UsuarioDTO | null>(null);
+
   const [imageModalOpen, setImageModalOpen] = useState(false);
   const [imageModalUrl, setImageModalUrl] = useState<string | null>(null);
 
@@ -204,6 +207,11 @@ function UsuariosPage() {
   function openImageModal(url: string) {
     setImageModalUrl(url);
     setImageModalOpen(true);
+  }
+
+  function openView(item: UsuarioDTO) {
+    setViewingItem(item);
+    setViewDialogOpen(true);
   }
 
   const filtered = usuarios.filter((item: UsuarioDTO) => {
@@ -392,10 +400,13 @@ function UsuariosPage() {
                     <TableCell>{statusBadge(item.estadoOperacional)}</TableCell>
                     <TableCell className="text-right">
                       <div className="flex justify-end gap-1">
-                        <Button variant="ghost" size="icon" onClick={() => openEdit(item)} className="h-8 w-8 hover:text-command">
+                        <Button variant="ghost" size="icon" onClick={() => openView(item)} className="h-8 w-8 hover:text-info" title="Visualizar">
+                          <Eye className="h-4 w-4" />
+                        </Button>
+                        <Button variant="ghost" size="icon" onClick={() => openEdit(item)} className="h-8 w-8 hover:text-command" title="Editar">
                           <Pencil className="h-4 w-4" />
                         </Button>
-                        <Button variant="ghost" size="icon" onClick={() => confirmDelete(item.id!)} className="h-8 w-8 hover:text-destructive">
+                        <Button variant="ghost" size="icon" onClick={() => confirmDelete(item.id!)} className="h-8 w-8 hover:text-destructive" title="Excluir">
                           <Trash2 className="h-4 w-4" />
                         </Button>
                       </div>
@@ -625,9 +636,10 @@ function UsuariosPage() {
               </Select>
             </div>
 
+            {!editingItem && (
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="senha" className={errors.senha ? 'text-destructive' : ''}>Senha {editingItem ? '(Opcional)' : '*'}</Label>
+                <Label htmlFor="senha" className={errors.senha ? 'text-destructive' : ''}>Senha *</Label>
                 <div className="relative">
                   <Input
                     id="senha"
@@ -649,7 +661,7 @@ function UsuariosPage() {
                 </div>
               </div>
               <div className="space-y-2">
-                <Label htmlFor="confirmarSenha" className={errors.confirmarSenha ? 'text-destructive' : ''}>Confirmar Senha {editingItem ? '(Opcional)' : '*'}</Label>
+                <Label htmlFor="confirmarSenha" className={errors.confirmarSenha ? 'text-destructive' : ''}>Confirmar Senha *</Label>
                 <div className="relative">
                   <Input
                     id="confirmarSenha"
@@ -671,6 +683,7 @@ function UsuariosPage() {
                 </div>
               </div>
             </div>
+            )}
 
           </div>
           <DialogFooter>
@@ -678,6 +691,42 @@ function UsuariosPage() {
             <Button onClick={handleSave} className="bg-fire hover:bg-fire/90 text-white" disabled={mutationCreateEdit.isPending}>
               {mutationCreateEdit.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : editingItem ? 'Salvar Alterações' : 'Criar Usuário'}
             </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* View Modal */}
+      <Dialog open={viewDialogOpen} onOpenChange={setViewDialogOpen}>
+        <DialogContent className="glass-strong sm:max-w-[500px]">
+          <DialogHeader>
+            <DialogTitle>Detalhes do Usuário</DialogTitle>
+            <DialogDescription>
+              Informações completas do usuário.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="py-4">
+            {viewingItem && (
+              <div className="grid grid-cols-2 gap-x-4 gap-y-3 text-sm">
+                {viewingItem.fotoUrl && (
+                  <div className="col-span-2 flex justify-center mb-4">
+                    <img src={viewingItem.fotoUrl} alt="Foto" className="w-32 h-32 object-cover rounded-full border-4 border-secondary shadow-md" />
+                  </div>
+                )}
+                {viewingItem.nome && <><div className="font-semibold text-muted-foreground text-right">Nome:</div><div>{viewingItem.nome}</div></>}
+                {viewingItem.email && <><div className="font-semibold text-muted-foreground text-right">E-mail:</div><div>{viewingItem.email}</div></>}
+                {viewingItem.cpf && <><div className="font-semibold text-muted-foreground text-right">CPF:</div><div className="mono">{viewingItem.cpf}</div></>}
+                {viewingItem.rg && <><div className="font-semibold text-muted-foreground text-right">RG:</div><div>{viewingItem.rg}</div></>}
+                {viewingItem.matricula && <><div className="font-semibold text-muted-foreground text-right">Matrícula:</div><div>{viewingItem.matricula}</div></>}
+                {viewingItem.dataNascimento && <><div className="font-semibold text-muted-foreground text-right">Data Nasc.:</div><div>{viewingItem.dataNascimento.split('-').reverse().join('/')}</div></>}
+                {viewingItem.tipoSanguineo && <><div className="font-semibold text-muted-foreground text-right">Tipo Sanguíneo:</div><div>{viewingItem.tipoSanguineo}</div></>}
+                {viewingItem.perfil && <><div className="font-semibold text-muted-foreground text-right">Role:</div><div>{roleLabels[viewingItem.perfil] || viewingItem.perfil}</div></>}
+                {viewingItem.estadoOperacional && <><div className="font-semibold text-muted-foreground text-right">Estado Operacional:</div><div>{viewingItem.estadoOperacional}</div></>}
+                {viewingItem.centroComandoId && <><div className="font-semibold text-muted-foreground text-right">Centro Comando:</div><div>{centros.find(c => c.id === viewingItem.centroComandoId)?.nome || '-'}</div></>}
+              </div>
+            )}
+          </div>
+          <DialogFooter>
+            <Button onClick={() => setViewDialogOpen(false)} variant="outline">Fechar</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
