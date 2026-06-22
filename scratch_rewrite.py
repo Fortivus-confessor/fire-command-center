@@ -1,4 +1,6 @@
-import { createFileRoute } from '@tanstack/react-router';
+import os
+
+content = """import { createFileRoute } from '@tanstack/react-router';
 import { useState } from 'react';
 import { Plus, Search, Pencil, Trash2, UserCog, Filter, Loader2, ChevronLeft, ChevronRight, Eye, EyeOff, User, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -711,3 +713,7 @@ function UsuariosPage() {
     </div>
   );
 }
+"""
+
+with open("C:/Users/TUCKLOUT/Documents/projetos/tcc_codigo/fire-command-center/src/routes/usuarios.tsx", "w", encoding="utf-8") as f:
+    f.write(content)
