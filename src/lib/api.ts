@@ -1,6 +1,7 @@
 import { getKeycloak } from '../contexts/AuthContext';
 
-const API_BASE_URL = '/combate/api/v1';
+const isServer = typeof window === 'undefined';
+const API_BASE_URL = isServer ? 'http://localhost:8000/combate/api/v1' : '/combate/api/v1';
 
 export async function fetchWithAuth(endpoint: string, options: RequestInit = {}) {
   const kc = await getKeycloak();

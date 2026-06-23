@@ -27,7 +27,8 @@ const emptyForm = {
 function NovoDespachoPage() {
   const { id: osId } = Route.useParams();
   const navigate = useNavigate();
-  const [form, setForm] = useState({ ...emptyForm });
+  const [form, setForm] = useState(emptyForm);
+  const [errors, setErrors] = useState<Record<string, string>>({});
 
   const [isDms, setIsDms] = useState(false);
   const [latInput, setLatInput] = useState('');
@@ -125,19 +126,26 @@ function NovoDespachoPage() {
 
   async function save() {
     try {
-      if (!form.comando || !form.equipe || !form.responsavel || !form.categoria || !form.descricao) {
-         toast.error("Preencha todos os campos obrigatórios");
-         return;
-      }
+      const newErrors: Record<string, string> = {};
+      if (!form.comando) newErrors.comando = 'Obrigatório';
+      if (!form.equipe) newErrors.equipe = 'Obrigatório';
+      if (!form.responsavel) newErrors.responsavel = 'Obrigatório';
+      if (!form.categoria) newErrors.categoria = 'Obrigatório';
+      if (!form.descricao) newErrors.descricao = 'Obrigatório';
 
       const latDD = parseCoordinateToDD(latInput);
       const lngDD = parseCoordinateToDD(lngInput);
-
       if (isNaN(latDD) || isNaN(lngDD)) {
-        toast.error("Por favor, preencha latitude e longitude corretamente");
+        newErrors.latLng = 'Coordenadas inválidas';
+      }
+
+      if (Object.keys(newErrors).length > 0) {
+        setErrors(newErrors);
+        toast.error("Por favor, preencha todos os campos corretamente");
         return;
       }
-      
+      setErrors({});
+
       const p = {
         ordemServicoId: Number(osId),
         escalaId: form.equipe,
@@ -294,10 +302,10 @@ function NovoDespachoPage() {
             
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label>Centro de Comando *</Label>
-                <Select value={form.comando} onValueChange={(v) => setForm({ ...form, comando: v, equipe: '' })}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Selecione..." />
+                <Label className={errors.comando ? "text-red-500" : ""}>Centro de Comando *</Label>
+                <Select value={form.comando} onValueChange={(v) => { setForm({ ...form, comando: v, equipe: '', responsavel: '' }); setErrors({...errors, comando: ''}); }}>
+                  <SelectTrigger className={errors.comando ? "border-red-500" : ""}>
+                    <SelectValue placeholder="Selecione o centro..." />
                   </SelectTrigger>
                   <SelectContent>
                     {centrosDeComandoDB.map(c => (
@@ -305,21 +313,21 @@ function NovoDespachoPage() {
                     ))}
                   </SelectContent>
                 </Select>
+                {errors.comando && <p className="text-xs text-red-500">{errors.comando}</p>}
               </div>
               <div className="space-y-2">
-                <Label>Equipe (Escala) *</Label>
-                <Select value={form.equipe} onValueChange={(v) => setForm({ ...form, equipe: v })} disabled={!form.comando}>
-                  <SelectTrigger>
+                <Label className={errors.equipe ? "text-red-500" : ""}>Escala / Equipe *</Label>
+                <Select disabled={!form.comando} value={form.equipe} onValueChange={(v) => { setForm({ ...form, equipe: v, responsavel: '' }); setErrors({...errors, equipe: ''}); }}>
+                  <SelectTrigger className={errors.equipe ? "border-red-500" : ""}>
                     <SelectValue placeholder={form.comando ? "Selecione..." : "Selecione comando..."} />
                   </SelectTrigger>
                   <SelectContent>
                     {escalasAtivas.map(e => {
-                      const eq = todasEquipes.find(eq => String(eq.id) === String(e.equipeId));
-                      const cmd = todosUsuarios.find(u => String(u.id) === String(e.comandanteId));
-                      return <SelectItem key={e.id} value={String(e.id)}>{eq?.nome || 'Desconhecida'} - {cmd?.nome || 'Comandante Desconhecido'}</SelectItem>;
+                      return <SelectItem key={e.id} value={String(e.id)}>{e.equipeNome || 'Desconhecida'} - {e.comandanteNome || 'Comandante Desconhecido'}</SelectItem>;
                     })}
                   </SelectContent>
                 </Select>
+                {errors.equipe && <p className="text-xs text-red-500">{errors.equipe}</p>}
                 {isEscalaWorking && (
                   <div className="text-xs text-warning bg-warning/10 p-1.5 rounded border border-warning/20">
                     Aviso: A escala selecionada possui despachos em andamento.
@@ -330,9 +338,9 @@ function NovoDespachoPage() {
 
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label>Usuário Responsável *</Label>
-                <Select disabled={!form.equipe} value={form.responsavel} onValueChange={(v) => setForm({ ...form, responsavel: v })}>
-                  <SelectTrigger>
+                <Label className={errors.responsavel ? "text-red-500" : ""}>Usuário Responsável *</Label>
+                <Select disabled={!form.equipe} value={form.responsavel} onValueChange={(v) => { setForm({ ...form, responsavel: v }); setErrors({...errors, responsavel: ''}); }}>
+                  <SelectTrigger className={errors.responsavel ? "border-red-500" : ""}>
                     <SelectValue placeholder="Selecione o responsável..." />
                   </SelectTrigger>
                   <SelectContent>
@@ -346,11 +354,12 @@ function NovoDespachoPage() {
                     ))}
                   </SelectContent>
                 </Select>
+                {errors.responsavel && <p className="text-xs text-red-500">{errors.responsavel}</p>}
               </div>
               <div className="space-y-2">
-                <Label>Categoria *</Label>
-                <Select value={form.categoria} onValueChange={(v) => setForm({ ...form, categoria: v })}>
-                  <SelectTrigger>
+                <Label className={errors.categoria ? "text-red-500" : ""}>Categoria *</Label>
+                <Select value={form.categoria} onValueChange={(v) => { setForm({ ...form, categoria: v }); setErrors({...errors, categoria: ''}); }}>
+                  <SelectTrigger className={errors.categoria ? "border-red-500" : ""}>
                     <SelectValue placeholder="Selecione a categoria..." />
                   </SelectTrigger>
                   <SelectContent>
@@ -360,22 +369,24 @@ function NovoDespachoPage() {
                     <SelectItem value="AQUATICO">Aquático</SelectItem>
                   </SelectContent>
                 </Select>
+                {errors.categoria && <p className="text-xs text-red-500">{errors.categoria}</p>}
               </div>
             </div>
 
             <div className="space-y-2">
-              <Label>Descrição / Diretrizes *</Label>
+              <Label className={errors.descricao ? "text-red-500" : ""}>Descrição / Diretrizes *</Label>
               <Textarea
                 placeholder="Diretrizes do despacho..."
                 value={form.descricao}
-                onChange={e => setForm({...form, descricao: e.target.value})}
-                className="min-h-[100px]"
+                onChange={e => { setForm({...form, descricao: e.target.value}); setErrors({...errors, descricao: ''}); }}
+                className={`min-h-[100px] ${errors.descricao ? "border-red-500" : ""}`}
               />
+              {errors.descricao && <p className="text-xs text-red-500">{errors.descricao}</p>}
             </div>
             
             <div className="space-y-3">
               <div className="flex items-center justify-between">
-                <Label>Ponto de Encontro / Local (Clique no mapa ou digite) *</Label>
+                <Label className={errors.latLng ? "text-red-500" : ""}>Ponto de Encontro / Local (Clique no mapa ou digite) *</Label>
                 <Button 
                   variant="outline" 
                   size="sm" 
@@ -390,23 +401,24 @@ function NovoDespachoPage() {
                 <div className="relative flex-1">
                   <MapPin className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
                   <Input
-                    className="pl-9 text-xs"
+                    className={`pl-9 text-xs ${errors.latLng ? "border-red-500" : ""}`}
                     placeholder={isDms ? "Lat (ex: 15° 30' 0\" S)" : "Latitude (ex: -15.500)"}
                     value={latInput}
-                    onChange={(e) => setLatInput(e.target.value)}
+                    onChange={(e) => { setLatInput(e.target.value); setErrors({...errors, latLng: ''}); }}
                     onBlur={applyManualCoordinates}
                   />
                 </div>
                 <div className="relative flex-1">
                   <Input
-                    className="text-xs"
+                    className={`text-xs ${errors.latLng ? "border-red-500" : ""}`}
                     placeholder={isDms ? "Lng (ex: 50° 0' 0\" W)" : "Longitude (ex: -50.000)"}
                     value={lngInput}
-                    onChange={(e) => setLngInput(e.target.value)}
+                    onChange={(e) => { setLngInput(e.target.value); setErrors({...errors, latLng: ''}); }}
                     onBlur={applyManualCoordinates}
                   />
                 </div>
               </div>
+              {errors.latLng && <p className="text-xs text-red-500">{errors.latLng}</p>}
             </div>
           </div>
 

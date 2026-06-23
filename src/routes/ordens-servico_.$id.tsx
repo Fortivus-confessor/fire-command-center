@@ -31,6 +31,7 @@ function formatDateBR(dateStr: string) {
 function formatStatus(status: string) {
   switch (status) {
     case 'ABERTA': return 'Aberta';
+    case 'EM_ANDAMENTO': return 'Em Andamento';
     case 'EM_EXECUCAO': return 'Em Execução';
     case 'CONCLUIDA': return 'Concluída';
     case 'CANCELADA': return 'Cancelada';
@@ -45,6 +46,7 @@ function statusBadge(s: string) {
   const display = formatStatus(s);
   switch (s) {
     case 'ABERTA': return <Badge variant="secondary">{display}</Badge>;
+    case 'EM_ANDAMENTO':
     case 'EM_EXECUCAO': 
     case 'EM_DESLOCAMENTO':
     case 'EM_COMBATE':
@@ -206,9 +208,11 @@ function OrdemServicoDetalhePage() {
         </Button>
       </div>
 
-      <div className="rounded-xl overflow-hidden glass border border-border">
-        <Table>
-          <TableHeader className="bg-secondary/40">
+      <div className="rounded-xl glass border border-border overflow-hidden">
+        <div className="overflow-x-auto">
+          <div className="min-w-[900px]">
+            <Table>
+              <TableHeader className="bg-secondary/40">
             <TableRow>
               <TableHead>ID</TableHead>
               <TableHead>Escala / Equipe</TableHead>
@@ -229,15 +233,12 @@ function OrdemServicoDetalhePage() {
             ) : (
               despachos.map(d => {
                 const esc = todasEscalas.find(e => String(e.id) === String(d.escalaId));
-                const eq = todasEquipes.find(e => String(e.id) === String(esc?.equipeId));
-                const cmd = todosUsuarios.find(u => u.id === esc?.comandanteId);
-                const responsavel = todosUsuarios.find(u => u.id === d.responsavelId);
+                const responsavel = todosUsuarios.find(u => String(u.id) === String(d.responsavelId));
                 return (
                   <TableRow key={d.id}>
-                    <TableCell className="mono">{d.id}</TableCell>
+                    <TableCell className="mono">D{d.id}</TableCell>
                     <TableCell>
-                      <div className="font-medium">{eq?.nome || 'Equipe Desconhecida'} - {cmd?.nome || 'Comandante Desconhecido'}</div>
-                      <div className="text-xs text-muted-foreground">Escala ID: {d.escalaId}</div>
+                      <div className="font-medium">{esc?.equipeNome || 'Equipe Desconhecida'} - {esc?.comandanteNome || 'Comandante Desconhecido'}</div>
                     </TableCell>
                     <TableCell>{responsavel?.nome || 'Não Atribuído'}</TableCell>
                     <TableCell>{categoriaBadge(d.categoria)}</TableCell>
@@ -251,9 +252,11 @@ function OrdemServicoDetalhePage() {
                   </TableRow>
                 );
               })
-            )}
-          </TableBody>
-        </Table>
+              )}
+            </TableBody>
+          </Table>
+          </div>
+        </div>
       </div>
     </div>
   );
