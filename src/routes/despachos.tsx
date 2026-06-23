@@ -39,6 +39,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { useCanAccess } from '@/hooks/useCanAccess';
 
 export const Route = createFileRoute('/despachos')({
   component: DespachosPage,
@@ -76,9 +77,11 @@ function statusBadge(s: string) {
   }
 }
 
-// ── Page Component ─────────────────────────────────────
+// ▀▄▀▄ Page Component ▀▄▀▄▀▄▀▄▀▄▀▄▀▄▀▄▀▄▀▄▀▄▀▄▀▄▀▄▀▄▀▄▀▄▀▄▀▄▀▄▀▄▀▄▀▄▀▄▀▄▀▄▀▄▀▄▀▄▀▄▀▄▀▄▀▄▀▄▀▄▀▄▀▄▀▄▀▄▀▄
 function DespachosPage() {
   const navigate = useNavigate();
+  const canRespond = useCanAccess('despachos', 'edit');
+  const canDelete = useCanAccess('despachos', 'delete');
   const [data, setData] = useState<Despacho[]>(initialData);
   const [listAll, setListAll] = useState(false);
   const [pageIndex, setPageIndex] = useState(0);
@@ -209,13 +212,17 @@ function DespachosPage() {
                     <TableCell>{statusBadge(item.status)}</TableCell>
                     <TableCell className="text-right">
                       <div className="flex justify-end gap-1">
+                        {canRespond && (
                         <Button variant="ghost" size="sm" onClick={() => openRespond(item)} className="h-8 hover:text-command gap-1 px-2">
                           <MessageSquare className="h-4 w-4" />
                           <span className="hidden sm:inline">Responder</span>
                         </Button>
+                        )}
+                        {canDelete && (
                         <Button variant="ghost" size="icon" onClick={() => confirmDelete(item.id)} className="h-8 w-8 hover:text-destructive">
                           <Trash2 className="h-4 w-4" />
                         </Button>
+                        )}
                       </div>
                     </TableCell>
                   </TableRow>

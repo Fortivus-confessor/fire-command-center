@@ -11,6 +11,7 @@ import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { fetchWithAuth } from '@/lib/api';
+import { useCanAccess } from '@/hooks/useCanAccess';
 
 export const Route = createFileRoute('/centro-comando')({
   component: CentroComandoPage,
@@ -37,6 +38,7 @@ const emptyForm: CentroComandoDTO = {
 
 function CentroComandoPage() {
   const queryClient = useQueryClient();
+  const canManage = useCanAccess('centro-comando', 'edit');
 
   const { data: centros = [], isLoading } = useQuery<CentroComandoDTO[]>({
     queryKey: ['centros-comando'],
@@ -137,10 +139,12 @@ function CentroComandoPage() {
             Gerencie os centros de comando regionais
           </p>
         </div>
+        {canManage && (
         <Button onClick={openNew} className="bg-fire hover:bg-fire/90 text-white">
           <Plus className="h-4 w-4 mr-2" />
           Novo Centro
         </Button>
+        )}
       </div>
 
       {/* Filters */}
@@ -197,12 +201,16 @@ function CentroComandoPage() {
                     </TableCell>
                     <TableCell className="text-right">
                       <div className="flex justify-end gap-1">
-                        <Button variant="ghost" size="icon" onClick={() => openEdit(item)} className="h-8 w-8 hover:text-command">
-                          <Pencil className="h-4 w-4" />
-                        </Button>
-                        <Button variant="ghost" size="icon" onClick={() => confirmDelete(item.id!)} className="h-8 w-8 hover:text-destructive">
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
+                        {canManage && (
+                          <>
+                          <Button variant="ghost" size="icon" onClick={() => openEdit(item)} className="h-8 w-8 hover:text-command">
+                            <Pencil className="h-4 w-4" />
+                          </Button>
+                          <Button variant="ghost" size="icon" onClick={() => confirmDelete(item.id!)} className="h-8 w-8 hover:text-destructive">
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                          </>
+                        )}
                       </div>
                     </TableCell>
                   </TableRow>

@@ -1,4 +1,4 @@
-﻿import { createFileRoute, Link } from '@tanstack/react-router';
+import { createFileRoute, Link } from '@tanstack/react-router';
 import { useState } from 'react';
 import { Search, Flame, AlertTriangle, MapPin, Eye, ExternalLink, ChevronLeft, ChevronRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -23,6 +23,7 @@ import {
   DialogTitle,
   DialogDescription,
 } from '@/components/ui/dialog';
+import { useCanAccess } from '@/hooks/useCanAccess';
 
 export const Route = createFileRoute('/eventos-fogo')({
   component: EventosFogoPage,
@@ -78,6 +79,7 @@ function EventosFogoPage() {
   const pageSize = listAll ? 1000 : 10;
   const [search, setSearch] = useState('');
   const [selectedEvent, setSelectedEvent] = useState<EventoFogo | null>(null);
+  const canCreateOS = useCanAccess('ordens-servico', 'create');
 
   const { data: pageData, isLoading } = useQuery<PageResponse>({
     queryKey: ['eventosFogoPaged', pageIndex, pageSize],
@@ -217,11 +219,13 @@ function EventosFogoPage() {
                             <Button variant="ghost" size="sm" onClick={() => setSelectedEvent(item)}>
                               <Eye className="h-4 w-4 mr-1" /> Visualizar
                             </Button>
-                            <Link to={`/ordens-servico/nova`} search={{ eventoFogoId: item.id }}>
-                              <Button variant="outline" size="sm" className="border-command text-command hover:bg-command hover:text-white">
-                                <ExternalLink className="h-4 w-4 mr-1" /> Despachar OS
-                              </Button>
-                            </Link>
+                            {canCreateOS && (
+                              <Link to={`/ordens-servico/nova`} search={{ eventoFogoId: item.id }}>
+                                <Button variant="outline" size="sm" className="border-command text-command hover:bg-command hover:text-white">
+                                  <ExternalLink className="h-4 w-4 mr-1" /> Despachar OS
+                                </Button>
+                              </Link>
+                            )}
                           </div>
                         </TableCell>
                       </TableRow>
@@ -235,7 +239,7 @@ function EventosFogoPage() {
             {!listAll && pageData && pageData.totalPages > 1 && (
               <div className="px-4 py-3 border-t border-border flex items-center justify-between">
                 <div className="text-sm text-muted-foreground">
-                  PÃ¡gina {pageData.number + 1} de {pageData.totalPages}
+                  Página {pageData.number + 1} de {pageData.totalPages}
                 </div>
                 <div className="flex gap-2">
                   <Button 
@@ -314,14 +318,16 @@ function EventosFogoPage() {
                 </div>
               </div>
 
-              <div className="pt-4 border-t border-border flex justify-end gap-2">
+              <div className="flex justify-end mt-6 gap-3">
                 <Button variant="outline" onClick={() => setSelectedEvent(null)}>Fechar</Button>
-                <Link to={`/ordens-servico/nova`} search={{ eventoFogoId: selectedEvent.id }} onClick={() => setSelectedEvent(null)}>
-                  <Button className="bg-command text-white hover:bg-command/90">
-                    <ExternalLink className="h-4 w-4 mr-2" />
-                    Despachar OS
-                  </Button>
-                </Link>
+                {canCreateOS && (
+                  <Link to={`/ordens-servico/nova`} search={{ eventoFogoId: selectedEvent.id }} onClick={() => setSelectedEvent(null)}>
+                    <Button className="bg-command text-white hover:bg-command/90">
+                      <ExternalLink className="h-4 w-4 mr-2" />
+                      Despachar OS
+                    </Button>
+                  </Link>
+                )}
               </div>
             </div>
           )}

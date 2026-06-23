@@ -5,6 +5,8 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { fetchWithAuth } from '@/lib/api';
+import { useCanAccess } from '@/hooks/useCanAccess';
+import { useAuth } from '@/contexts/AuthContext';
 import {
   Table,
   TableBody,
@@ -77,6 +79,8 @@ function tipoBadge(t: string) {
 // ── Page Component ─────────────────────────────────────
 function EquipesPage() {
   const queryClient = useQueryClient();
+  const canManage = useCanAccess('equipes', 'edit');
+  const { role } = useAuth();
 
   const [pageIndex, setPageIndex] = useState(0);
   const [listAll, setListAll] = useState(false);
@@ -181,13 +185,15 @@ function EquipesPage() {
             Equipes
           </h1>
           <p className="text-sm text-muted-foreground mt-1">
-            Gerencie as equipes de combate e seus recursos
+            Gerencie os grupos e pelotões operativos
           </p>
         </div>
-        <Button onClick={openNew} className="bg-fire hover:bg-fire/90 text-white">
-          <Plus className="h-4 w-4 mr-2" />
-          Nova Equipe
-        </Button>
+        {canManage && (
+          <Button onClick={openNew} className="bg-fire hover:bg-fire/90 text-white">
+            <Plus className="h-4 w-4 mr-2" />
+            Nova Equipe
+          </Button>
+        )}
       </div>
 
       {/* Filters */}
@@ -251,12 +257,16 @@ function EquipesPage() {
                     <TableCell>{tipoBadge(item.categoria)}</TableCell>
                     <TableCell className="text-right">
                       <div className="flex justify-end gap-1">
-                        <Button variant="ghost" size="icon" onClick={() => openEdit(item)} className="h-8 w-8 hover:text-command">
-                          <Pencil className="h-4 w-4" />
-                        </Button>
-                        <Button variant="ghost" size="icon" onClick={() => confirmDelete(item.id!)} className="h-8 w-8 hover:text-destructive">
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
+                        {canManage && (
+                          <>
+                            <Button variant="ghost" size="icon" onClick={() => openEdit(item)} className="h-8 w-8 hover:text-command">
+                              <Pencil className="h-4 w-4" />
+                            </Button>
+                            <Button variant="ghost" size="icon" onClick={() => confirmDelete(item.id!)} className="h-8 w-8 hover:text-destructive">
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </>
+                        )}
                       </div>
                     </TableCell>
                   </TableRow>
@@ -331,7 +341,7 @@ function EquipesPage() {
             </div>
             <div className="space-y-2">
               <Label>Centro de Comando</Label>
-              <Select value={form.centroComandoId} onValueChange={(v) => setForm({ ...form, centroComandoId: v })}>
+              <Select disabled={role === 'CENTRO_COMANDO'} value={form.centroComandoId} onValueChange={(v) => setForm({ ...form, centroComandoId: v })}>
                 <SelectTrigger>
                   <SelectValue placeholder="Selecione o centro" />
                 </SelectTrigger>

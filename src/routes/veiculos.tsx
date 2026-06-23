@@ -69,6 +69,7 @@ const emptyForm = {
   tipo: '' as any,
   contrato: '' as any,
   fotoArquivo: null as File | null,
+  centroComando: '',
 };
 
 // ── Helpers ────────────────────────────────────────────
@@ -93,14 +94,21 @@ function contratoBadge(c: string) {
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { fetchWithAuth } from '../lib/api';
+import { useCanAccess } from '../hooks/useCanAccess';
 
 // ── Page Component ─────────────────────────────────────
 function VeiculosPage() {
   const queryClient = useQueryClient();
+  const canManage = useCanAccess('veiculos', 'edit');
 
   const { data: veiculosData = [], isLoading } = useQuery<Veiculo[]>({
     queryKey: ['veiculos'],
     queryFn: () => fetchWithAuth('/ativos/frota')
+  });
+
+  const { data: centrosDeComandoDB = [] } = useQuery<any[]>({
+    queryKey: ['centros-comando'],
+    queryFn: () => fetchWithAuth('/admin/centros'),
   });
 
   const saveMutation = useMutation({
@@ -115,6 +123,9 @@ function VeiculosPage() {
       formData.append('prefixo', veiculo.tipo === 'TERRESTRE' ? (veiculo.prefixo || '') : '');
       formData.append('modelo', veiculo.modelo);
       formData.append('categoria', veiculo.tipo);
+      if (veiculo.centroComando && veiculo.centroComando !== 'Nenhum') {
+        formData.append('centroComandoId', veiculo.centroComando);
+      }
       if (veiculo.fotoArquivo) {
         formData.append('fotoArquivo', veiculo.fotoArquivo);
       }
@@ -192,6 +203,7 @@ function VeiculosPage() {
       tipo: item.categoria || item.tipo || '',
       contrato: item.contrato || '',
       fotoArquivo: null,
+      centroComando: item.centroComandoId || '',
     });
     setPreviewUrl(item.fotoUrl || null);
     setRemoveExistingPhoto(false);
@@ -233,10 +245,12 @@ function VeiculosPage() {
             Gerencie a frota de veículos, aeronaves e maquinários
           </p>
         </div>
+        {canManage && (
         <Button onClick={openNew} className="bg-fire hover:bg-fire/90 text-white">
           <Plus className="h-4 w-4 mr-2" />
           Novo Veículo
         </Button>
+        )}
       </div>
 
       {/* Filters */}
@@ -330,12 +344,16 @@ function VeiculosPage() {
                         <Button variant="ghost" size="icon" onClick={() => openView(item)} className="h-8 w-8 hover:text-primary">
                           <Eye className="h-4 w-4" />
                         </Button>
+                        {canManage && (
+                        <>
                         <Button variant="ghost" size="icon" onClick={() => openEdit(item)} className="h-8 w-8 hover:text-command">
                           <Pencil className="h-4 w-4" />
                         </Button>
                         <Button variant="ghost" size="icon" onClick={() => confirmDelete(item.id)} className="h-8 w-8 hover:text-destructive">
                           <Trash2 className="h-4 w-4" />
                         </Button>
+                        </>
+                        )}
                       </div>
                     </TableCell>
                   </TableRow>
@@ -368,6 +386,20 @@ function VeiculosPage() {
                   <SelectItem value="AEREO">Aéreo</SelectItem>
                   <SelectItem value="MAQUINARIO">Maquinário</SelectItem>
                   <SelectItem value="AQUATICO">Aquático</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label>Centro de Comando</Label>
+              <Select value={form.centroComando} onValueChange={(v) => setForm({ ...form, centroComando: v })}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Selecione um centro" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Nenhum">Nenhum</SelectItem>
+                  {centrosDeComandoDB.map((cc: any) => (
+                    <SelectItem key={cc.id} value={String(cc.id)}>{cc.nome}</SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>

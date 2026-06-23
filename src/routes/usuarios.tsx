@@ -1,6 +1,6 @@
 import { createFileRoute } from '@tanstack/react-router';
 import { useState } from 'react';
-import { Plus, Search, Pencil, Trash2, UserCog, Filter, Loader2, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Plus, Search, Pencil, Trash2, UserCog, Filter, Loader2, ChevronLeft, ChevronRight, Eye, EyeOff, X, Image as ImageIcon } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -55,6 +55,14 @@ interface UsuarioDTO {
   perfil: string;
   estadoOperacional: string;
   centroComandoId?: string;
+  rg?: string;
+  matricula?: string;
+  dataNascimento?: string;
+  tipoSanguineo?: string;
+  senha?: string;
+  confirmarSenha?: string;
+  fotoUrl?: string | null;
+  fotoArquivo?: File | null;
 }
 
 interface CentroComandoDTO {
@@ -69,6 +77,13 @@ const emptyForm: UsuarioDTO = {
   perfil: 'ROLE_COMBATENTE',
   estadoOperacional: 'DISPONIVEL',
   centroComandoId: '',
+  rg: '',
+  matricula: '',
+  dataNascimento: '',
+  tipoSanguineo: '',
+  senha: '',
+  confirmarSenha: '',
+  fotoArquivo: null,
 };
 
 const roleLabels: Record<string, string> = {
@@ -123,6 +138,11 @@ function UsuariosPage() {
     queryFn: () => fetchWithAuth('/admin/centros'),
   });
 
+  const [viewingItem, setViewingItem] = useState<UsuarioDTO | null>(null);
+  const [photoPreview, setPhotoPreview] = useState<string | null>(null);
+  const [showPassword, setShowPassword] = useState(false);
+  const [formError, setFormError] = useState<string | null>(null);
+
   const mutationCreateEdit = useMutation({
     mutationFn: (usuario: UsuarioDTO) => {
       const formData = new FormData();
@@ -134,6 +154,18 @@ function UsuariosPage() {
       formData.append('estadoOperacional', usuario.estadoOperacional);
       if (usuario.centroComandoId && usuario.centroComandoId !== 'none') {
         formData.append('centroComandoId', usuario.centroComandoId);
+      }
+      if (usuario.rg) formData.append('rg', usuario.rg);
+      if (usuario.matricula) formData.append('matricula', usuario.matricula);
+      if (usuario.dataNascimento) formData.append('dataNascimento', usuario.dataNascimento);
+      if (usuario.tipoSanguineo) formData.append('tipoSanguineo', usuario.tipoSanguineo);
+      if (usuario.senha && !usuario.id) formData.append('senha', usuario.senha); // Backend only uses password for creation
+      
+      if (usuario.fotoArquivo) {
+        formData.append('fotoArquivo', usuario.fotoArquivo);
+      } else if (usuario.fotoUrl === null && editingItem?.fotoUrl) {
+        // Indicador para o backend remover a foto
+        formData.append('removerFoto', 'true');
       }
       
       return fetchWithAuth('/admin/usuarios', {
@@ -178,6 +210,9 @@ function UsuariosPage() {
   function openNew() {
     setEditingItem(null);
     setForm({ ...emptyForm });
+    setPhotoPreview(null);
+    setFormError(null);
+    setShowPassword(false);
     setDialogOpen(true);
   }
 
@@ -185,17 +220,58 @@ function UsuariosPage() {
     setEditingItem(item);
     setForm({
       id: item.id,
-      nome: item.nome || '',
-      email: item.email || '',
-      cpf: item.cpf || '',
-      perfil: item.perfil || 'ROLE_COMBATENTE',
-      estadoOperacional: item.estadoOperacional || 'DISPONIVEL',
-      centroComandoId: item.centroComandoId || '',
+      nome: item.nome,
+      email: item.email,
+      cpf: item.cpf,
+      perfil: item.perfil,
+      estadoOperacional: item.estadoOperacional,
+      centroComandoId: item.centroComandoId || 'none',
+      rg: item.rg || '',
+      matricula: item.matricula || '',
+      dataNascimento: item.dataNascimento || '',
+      tipoSanguineo: item.tipoSanguineo || '',
+      fotoUrl: item.fotoUrl || null,
+      senha: '', // Don't load password
+      confirmarSenha: '',
+      fotoArquivo: null,
     });
+    setPhotoPreview(item.fotoUrl || null);
+    setFormError(null);
+    setShowPassword(false);
     setDialogOpen(true);
   }
 
+  function openView(item: UsuarioDTO) {
+    setViewingItem(item);
+  }
+
+  function handlePhotoChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (file) {
+      setForm({ ...form, fotoArquivo: file });
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setPhotoPreview(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+  }
+
+  function removePhoto() {
+    setForm({ ...form, fotoArquivo: null, fotoUrl: null });
+    setPhotoPreview(null);
+  }
+
   function handleSave() {
+    if (!form.nome || !form.email || !form.cpf || !form.perfil || !form.estadoOperacional || form.centroComandoId === 'none' || form.centroComandoId === '') {
+      setFormError('Preencha todos os campos obrigatórios (marcados com *).');
+      return;
+    }
+    if (!editingItem && (!form.senha || form.senha !== form.confirmarSenha)) {
+      setFormError('As senhas não coincidem ou estão vazias.');
+      return;
+    }
+    setFormError(null);
     mutationCreateEdit.mutate(form);
   }
 
@@ -296,10 +372,13 @@ function UsuariosPage() {
                     <TableCell>{statusBadge(item.estadoOperacional)}</TableCell>
                     <TableCell className="text-right">
                       <div className="flex justify-end gap-1">
-                        <Button variant="ghost" size="icon" onClick={() => openEdit(item)} className="h-8 w-8 hover:text-command">
+                        <Button variant="ghost" size="icon" onClick={() => openView(item)} className="h-8 w-8 hover:text-primary" title="Visualizar">
+                          <Eye className="h-4 w-4" />
+                        </Button>
+                        <Button variant="ghost" size="icon" onClick={() => openEdit(item)} className="h-8 w-8 hover:text-command" title="Editar">
                           <Pencil className="h-4 w-4" />
                         </Button>
-                        <Button variant="ghost" size="icon" onClick={() => confirmDelete(item.id!)} className="h-8 w-8 hover:text-destructive">
+                        <Button variant="ghost" size="icon" onClick={() => confirmDelete(item.id!)} className="h-8 w-8 hover:text-destructive" title="Excluir">
                           <Trash2 className="h-4 w-4" />
                         </Button>
                       </div>
@@ -349,18 +428,47 @@ function UsuariosPage() {
             </DialogDescription>
           </DialogHeader>
           <div className="grid gap-4 py-4">
-            <div className="space-y-2">
-              <Label htmlFor="nome">Nome Completo</Label>
-              <Input
-                id="nome"
-                value={form.nome}
-                onChange={(e) => setForm({ ...form, nome: e.target.value })}
-                placeholder="Nome do usuário"
-              />
+            
+            {/* Foto Profile */}
+            <div className="flex flex-col items-center gap-3 mb-2">
+              <div className="relative h-24 w-24 rounded-full border-2 border-dashed border-border overflow-hidden bg-secondary/30 flex items-center justify-center">
+                {photoPreview ? (
+                  <img src={photoPreview} alt="Preview" className="h-full w-full object-cover" />
+                ) : (
+                  <ImageIcon className="h-8 w-8 text-muted-foreground" />
+                )}
+                {photoPreview && (
+                  <Button variant="destructive" size="icon" className="absolute top-1 right-1 h-6 w-6 rounded-full" onClick={removePhoto}>
+                    <X className="h-3 w-3" />
+                  </Button>
+                )}
+              </div>
+              <div className="flex items-center gap-2">
+                <Input
+                  id="fotoArquivo"
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  onChange={handlePhotoChange}
+                />
+                <Label htmlFor="fotoArquivo" className="cursor-pointer bg-secondary hover:bg-secondary/80 px-3 py-1.5 rounded-md text-xs font-medium transition-colors">
+                  {photoPreview ? 'Trocar Foto' : 'Adicionar Foto'}
+                </Label>
+              </div>
             </div>
+
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="email">Email</Label>
+                <Label htmlFor="nome">Nome Completo *</Label>
+                <Input
+                  id="nome"
+                  value={form.nome}
+                  onChange={(e) => setForm({ ...form, nome: e.target.value })}
+                  placeholder="Nome do usuário"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="email">Email *</Label>
                 <Input
                   id="email"
                   type="email"
@@ -369,8 +477,11 @@ function UsuariosPage() {
                   placeholder="email@fortivus.gov.br"
                 />
               </div>
+            </div>
+            
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="cpf">CPF</Label>
+                <Label htmlFor="cpf">CPF *</Label>
                 <Input
                   id="cpf"
                   value={form.cpf}
@@ -379,10 +490,59 @@ function UsuariosPage() {
                   className="mono"
                 />
               </div>
+              <div className="space-y-2">
+                <Label htmlFor="rg">RG</Label>
+                <Input
+                  id="rg"
+                  value={form.rg}
+                  onChange={(e) => setForm({ ...form, rg: e.target.value })}
+                  placeholder="000000"
+                  className="mono"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="matricula">Matrícula</Label>
+                <Input
+                  id="matricula"
+                  value={form.matricula}
+                  onChange={(e) => setForm({ ...form, matricula: e.target.value })}
+                  placeholder="00000"
+                  className="mono"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="dataNascimento">Data de Nasc.</Label>
+                <Input
+                  id="dataNascimento"
+                  type="date"
+                  value={form.dataNascimento}
+                  onChange={(e) => setForm({ ...form, dataNascimento: e.target.value })}
+                  className="mono"
+                />
+              </div>
             </div>
+
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label>Role</Label>
+                <Label>Tipo Sanguíneo</Label>
+                <Select value={form.tipoSanguineo} onValueChange={(v) => setForm({ ...form, tipoSanguineo: v })}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecione" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="A_POSITIVO">A+</SelectItem>
+                    <SelectItem value="A_NEGATIVO">A-</SelectItem>
+                    <SelectItem value="B_POSITIVO">B+</SelectItem>
+                    <SelectItem value="B_NEGATIVO">B-</SelectItem>
+                    <SelectItem value="AB_POSITIVO">AB+</SelectItem>
+                    <SelectItem value="AB_NEGATIVO">AB-</SelectItem>
+                    <SelectItem value="O_POSITIVO">O+</SelectItem>
+                    <SelectItem value="O_NEGATIVO">O-</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label>Role *</Label>
                 <Select value={form.perfil} onValueChange={(v) => setForm({ ...form, perfil: v })}>
                   <SelectTrigger>
                     <SelectValue />
@@ -395,8 +555,11 @@ function UsuariosPage() {
                   </SelectContent>
                 </Select>
               </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label>Estado Operacional</Label>
+                <Label>Estado Operacional *</Label>
                 <Select value={form.estadoOperacional} onValueChange={(v) => setForm({ ...form, estadoOperacional: v })}>
                   <SelectTrigger>
                     <SelectValue />
@@ -410,27 +573,134 @@ function UsuariosPage() {
                   </SelectContent>
                 </Select>
               </div>
+              <div className="space-y-2">
+                <Label>Centro de Comando *</Label>
+                <Select value={form.centroComandoId} onValueChange={(v) => setForm({ ...form, centroComandoId: v })}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecione" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">Nenhum</SelectItem>
+                    {centros.map((cc) => (
+                      <SelectItem key={cc.id} value={cc.id}>{cc.nome}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
-            <div className="space-y-2">
-              <Label>Centro de Comando</Label>
-              <Select value={form.centroComandoId} onValueChange={(v) => setForm({ ...form, centroComandoId: v })}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Selecione" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="none">Nenhum</SelectItem>
-                  {centros.map((cc) => (
-                    <SelectItem key={cc.id} value={cc.id}>{cc.nome}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+
+            {/* Senha - Apenas para criação */}
+            {!editingItem && (
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2 relative">
+                  <Label htmlFor="senha">Senha *</Label>
+                  <Input
+                    id="senha"
+                    type={showPassword ? 'text' : 'password'}
+                    value={form.senha}
+                    onChange={(e) => setForm({ ...form, senha: e.target.value })}
+                    placeholder="******"
+                  />
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    className="absolute right-1 top-7 h-7 w-7 text-muted-foreground hover:text-foreground"
+                    onClick={() => setShowPassword(!showPassword)}
+                  >
+                    {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  </Button>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="confirmarSenha">Confirmar Senha *</Label>
+                  <Input
+                    id="confirmarSenha"
+                    type={showPassword ? 'text' : 'password'}
+                    value={form.confirmarSenha}
+                    onChange={(e) => setForm({ ...form, confirmarSenha: e.target.value })}
+                    placeholder="******"
+                  />
+                </div>
+              </div>
+            )}
+            
+            {formError && (
+              <div className="text-sm text-destructive mt-2">{formError}</div>
+            )}
+
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setDialogOpen(false)} disabled={mutationCreateEdit.isPending}>Cancelar</Button>
             <Button onClick={handleSave} className="bg-fire hover:bg-fire/90 text-white" disabled={mutationCreateEdit.isPending}>
               {mutationCreateEdit.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : editingItem ? 'Salvar Alterações' : 'Criar Usuário'}
             </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* View Dialog */}
+      <Dialog open={viewingItem !== null} onOpenChange={(open) => !open && setViewingItem(null)}>
+        <DialogContent className="glass-strong sm:max-w-[600px]">
+          <DialogHeader>
+            <DialogTitle>Visualizar Usuário</DialogTitle>
+          </DialogHeader>
+          {viewingItem && (
+            <div className="py-4 space-y-4">
+              <div className="flex items-center gap-4">
+                {viewingItem.fotoUrl ? (
+                  <img src={viewingItem.fotoUrl} alt="Foto" className="h-20 w-20 rounded-full object-cover border-2 border-border" />
+                ) : (
+                  <div className="h-20 w-20 rounded-full bg-secondary/50 flex items-center justify-center">
+                    <ImageIcon className="h-8 w-8 text-muted-foreground" />
+                  </div>
+                )}
+                <div>
+                  <h3 className="font-semibold text-lg">{viewingItem.nome}</h3>
+                  <p className="text-muted-foreground">{viewingItem.email}</p>
+                  <div className="flex gap-2 mt-2">
+                    {roleBadge(viewingItem.perfil)}
+                    {statusBadge(viewingItem.estadoOperacional)}
+                  </div>
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-y-4 gap-x-6 text-sm bg-secondary/20 p-4 rounded-lg">
+                <div>
+                  <span className="text-muted-foreground block mb-1">CPF</span>
+                  <span className="mono font-medium">{viewingItem.cpf || '-'}</span>
+                </div>
+                {viewingItem.rg && (
+                <div>
+                  <span className="text-muted-foreground block mb-1">RG</span>
+                  <span className="mono font-medium">{viewingItem.rg}</span>
+                </div>
+                )}
+                {viewingItem.matricula && (
+                <div>
+                  <span className="text-muted-foreground block mb-1">Matrícula</span>
+                  <span className="mono font-medium">{viewingItem.matricula}</span>
+                </div>
+                )}
+                {viewingItem.dataNascimento && (
+                <div>
+                  <span className="text-muted-foreground block mb-1">Data Nasc.</span>
+                  <span className="mono font-medium">{new Date(viewingItem.dataNascimento).toLocaleDateString('pt-BR')}</span>
+                </div>
+                )}
+                {viewingItem.tipoSanguineo && (
+                <div>
+                  <span className="text-muted-foreground block mb-1">Tipo Sanguíneo</span>
+                  <span className="font-medium">{viewingItem.tipoSanguineo.replace('_POSITIVO', '+').replace('_NEGATIVO', '-')}</span>
+                </div>
+                )}
+                <div>
+                  <span className="text-muted-foreground block mb-1">Centro de Comando</span>
+                  <span className="font-medium">{centros.find(c => c.id === viewingItem.centroComandoId)?.nome || '-'}</span>
+                </div>
+              </div>
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setViewingItem(null)}>Fechar</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
