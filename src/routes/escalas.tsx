@@ -41,6 +41,7 @@ import {
 import { cn } from '@/lib/utils';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { fetchWithAuth } from '@/lib/api';
+import { useCanAccess } from '@/hooks/useCanAccess';
 
 export const Route = createFileRoute('/escalas')({
   component: EscalasPage,
@@ -78,6 +79,7 @@ function getActiveVehicles(data: any[], ignoreEscalaId?: string) {
 // ── Page Component ─────────────────────────────────────
 function EscalasPage() {
   const queryClient = useQueryClient();
+  const canManage = useCanAccess('escalas', 'edit');
   const { data: centrosDeComandoDB = [] } = useQuery<any[]>({
     queryKey: ['centros-comando'],
     queryFn: () => fetchWithAuth('/admin/centros'),
@@ -354,13 +356,15 @@ function EscalasPage() {
             Escalas
           </h1>
           <p className="text-sm text-muted-foreground mt-1">
-            Gerencie as escalas de serviço das equipes
+            Monte e gerencie as escalas operacionais das equipes
           </p>
         </div>
+        {canManage && (
         <Button onClick={openNew} className="bg-fire hover:bg-fire/90 text-white">
           <Plus className="h-4 w-4 mr-2" />
           Nova Escala
         </Button>
+        )}
       </div>
 
       {/* Filters */}
@@ -476,12 +480,16 @@ function EscalasPage() {
                     <TableCell className="mono">{item.integranteIds?.length || 0} usuário(s)</TableCell>
                     <TableCell className="text-right">
                       <div className="flex justify-end gap-1">
-                        <Button variant="ghost" size="icon" onClick={() => openEdit(item)} className="h-8 w-8 hover:text-command">
-                          <Pencil className="h-4 w-4" />
-                        </Button>
-                        <Button variant="ghost" size="icon" onClick={() => confirmDelete(item.id)} className="h-8 w-8 hover:text-destructive">
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
+                        {canManage && (
+                        <>
+                          <Button variant="ghost" size="icon" onClick={() => openEdit(item)} className="h-8 w-8 hover:text-command">
+                            <Pencil className="h-4 w-4" />
+                          </Button>
+                          <Button variant="ghost" size="icon" onClick={() => confirmDelete(item.id)} className="h-8 w-8 hover:text-destructive">
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </>
+                        )}
                       </div>
                     </TableCell>
                   </TableRow>

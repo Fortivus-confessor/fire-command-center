@@ -32,15 +32,17 @@ export function canAccess(role: UserRole, resource: Resource, action: Action): b
 
   // CENTRO_COMANDO can do everything in their scope (filtering happens in data layer)
   if (role === 'CENTRO_COMANDO') {
-    if (resource === 'centro-comando' && action !== 'view') return false; // can't manage other CCs
-    if (resource === 'usuarios') return false; // can't manage users
+    if (resource === 'centro-comando' && action !== 'view') return false;
+    if (resource === 'veiculos' && action !== 'view') return false;
+    if (resource === 'despachos' && action !== 'view') return false;
+    if (resource === 'usuarios') return false;
     return true;
   }
 
-  // COMBATENTE: only view their own OS and dispatches
+  // COMBATENTE: only view their own OS and dispatches, and respond to dispatches
   if (role === 'COMBATENTE') {
-    if (resource === 'ordens-servico' || resource === 'despachos') return action === 'view';
-    if (resource === 'eventos-fogo') return action === 'view';
+    if (resource === 'ordens-servico') return action === 'view';
+    if (resource === 'despachos') return action === 'view' || action === 'edit'; // edit is respond
     return false;
   }
 

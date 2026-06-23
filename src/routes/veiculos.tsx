@@ -93,10 +93,12 @@ function contratoBadge(c: string) {
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { fetchWithAuth } from '../lib/api';
+import { useCanAccess } from '../hooks/useCanAccess';
 
 // ── Page Component ─────────────────────────────────────
 function VeiculosPage() {
   const queryClient = useQueryClient();
+  const canManage = useCanAccess('veiculos', 'edit');
 
   const { data: veiculosData = [], isLoading } = useQuery<Veiculo[]>({
     queryKey: ['veiculos'],
@@ -233,10 +235,12 @@ function VeiculosPage() {
             Gerencie a frota de veículos, aeronaves e maquinários
           </p>
         </div>
+        {canManage && (
         <Button onClick={openNew} className="bg-fire hover:bg-fire/90 text-white">
           <Plus className="h-4 w-4 mr-2" />
           Novo Veículo
         </Button>
+        )}
       </div>
 
       {/* Filters */}
@@ -330,12 +334,16 @@ function VeiculosPage() {
                         <Button variant="ghost" size="icon" onClick={() => openView(item)} className="h-8 w-8 hover:text-primary">
                           <Eye className="h-4 w-4" />
                         </Button>
+                        {canManage && (
+                        <>
                         <Button variant="ghost" size="icon" onClick={() => openEdit(item)} className="h-8 w-8 hover:text-command">
                           <Pencil className="h-4 w-4" />
                         </Button>
                         <Button variant="ghost" size="icon" onClick={() => confirmDelete(item.id)} className="h-8 w-8 hover:text-destructive">
                           <Trash2 className="h-4 w-4" />
                         </Button>
+                        </>
+                        )}
                       </div>
                     </TableCell>
                   </TableRow>

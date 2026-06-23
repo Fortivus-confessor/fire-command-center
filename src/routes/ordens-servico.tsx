@@ -7,6 +7,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { useQuery } from '@tanstack/react-query';
 import { fetchWithAuth } from '@/lib/api';
 import { SituationMap } from '../components/fortivus/map/SituationMap';
+import { useCanAccess } from '@/hooks/useCanAccess';
 import {
   Table,
   TableBody,
@@ -156,6 +157,10 @@ function OrdensServicoPage() {
   const [pageIndex, setPageIndex] = useState(0);
   const [listAll, setListAll] = useState(false);
   const pageSize = listAll ? 1000 : 10;
+  const highlightId = Route.useSearch({ select: (s) => s.highlightId });
+  const navigate = useNavigate();
+  const canManage = useCanAccess('ordens-servico', 'edit');
+  const canCreate = useCanAccess('ordens-servico', 'create');
 
   const { data: pageData, isLoading: loadingOrdens } = useQuery<any>({
     queryKey: ['ordens-servico', pageIndex, pageSize],
@@ -166,8 +171,6 @@ function OrdensServicoPage() {
   const [search, setSearch] = useState('');
   const [filterStatus, setFilterStatus] = useState('all');
   const [filterPrioridade, setFilterPrioridade] = useState('all');
-
-  const navigate = useNavigate();
 
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingItem, setEditingItem] = useState<any>(null);
@@ -349,10 +352,9 @@ function OrdensServicoPage() {
   }
 
   // ── Handling Search Params (Highlight)
-  const searchParams = Route.useSearch();
   useEffect(() => {
-    if (searchParams.highlightId && ordensServicoDB.length > 0) {
-      const dbOs = ordensServicoDB.find((os: any) => os.id === Number(searchParams.highlightId));
+    if (highlightId && ordensServicoDB.length > 0) {
+      const dbOs = ordensServicoDB.find((os: any) => os.id === Number(highlightId));
       if (dbOs) {
         const item = {
           id: dbOs.id,
@@ -372,7 +374,7 @@ function OrdensServicoPage() {
         openEdit(item);
       }
     }
-  }, [searchParams.highlightId, ordensServicoDB]);
+  }, [highlightId, ordensServicoDB]);
 
   async function save() {
     try {
@@ -476,10 +478,12 @@ function OrdensServicoPage() {
             Crie Ordens de Serviço
           </p>
         </div>
+        {canCreate && (
         <Button onClick={() => navigate({ to: '/ordens-servico/nova', search: { eventoFogoId: undefined } })} className="bg-fire hover:bg-fire/90 text-white">
           <Plus className="h-4 w-4 mr-2" />
           Cadastrar OS
         </Button>
+        )}
       </div>
 
       {/* Filters */}
@@ -564,9 +568,11 @@ function OrdensServicoPage() {
                         <Button variant="ghost" size="icon" onClick={() => openEdit(item)} className="h-8 w-8 hover:text-command">
                           <Pencil className="h-4 w-4" />
                         </Button>
+                        {canManage && (
                         <Button variant="ghost" size="icon" onClick={() => confirmDelete(item.id)} className="h-8 w-8 hover:text-destructive">
                           <Trash2 className="h-4 w-4" />
                         </Button>
+                        )}
                       </div>
                     </TableCell>
                   </TableRow>
