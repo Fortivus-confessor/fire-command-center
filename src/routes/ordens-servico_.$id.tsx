@@ -212,6 +212,7 @@ function OrdemServicoDetalhePage() {
             <TableRow>
               <TableHead>ID</TableHead>
               <TableHead>Escala / Equipe</TableHead>
+              <TableHead>Responsável</TableHead>
               <TableHead>Categoria</TableHead>
               <TableHead>Status</TableHead>
               <TableHead>Data Início</TableHead>
@@ -230,6 +231,7 @@ function OrdemServicoDetalhePage() {
                 const esc = todasEscalas.find(e => String(e.id) === String(d.escalaId));
                 const eq = todasEquipes.find(e => String(e.id) === String(esc?.equipeId));
                 const cmd = todosUsuarios.find(u => u.id === esc?.comandanteId);
+                const responsavel = todosUsuarios.find(u => u.id === d.responsavelId);
                 return (
                   <TableRow key={d.id}>
                     <TableCell className="mono">{d.id}</TableCell>
@@ -237,6 +239,7 @@ function OrdemServicoDetalhePage() {
                       <div className="font-medium">{eq?.nome || 'Equipe Desconhecida'} - {cmd?.nome || 'Comandante Desconhecido'}</div>
                       <div className="text-xs text-muted-foreground">Escala ID: {d.escalaId}</div>
                     </TableCell>
+                    <TableCell>{responsavel?.nome || 'Não Atribuído'}</TableCell>
                     <TableCell>{categoriaBadge(d.categoria)}</TableCell>
                     <TableCell>{statusBadge(d.status)}</TableCell>
                     <TableCell>{formatDateBR(d.dataInicio)}</TableCell>
