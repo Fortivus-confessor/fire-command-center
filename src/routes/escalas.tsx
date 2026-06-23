@@ -100,6 +100,11 @@ function EscalasPage() {
     queryFn: () => fetchWithAuth('/admin/usuarios'),
   });
 
+  const { data: despachosDB = [] } = useQuery<any[]>({
+    queryKey: ['despachos'],
+    queryFn: () => fetchWithAuth('/operacional/despachos')
+  });
+
   const usuariosDisponiveis: string[] = usuariosDB.map((u: any) => u.nome).filter(Boolean);
 
   const { data: escalasData = [] } = useQuery<any[]>({
@@ -148,6 +153,7 @@ function EscalasPage() {
 
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [blockDialogOpen, setBlockDialogOpen] = useState(false);
 
   const [selectedLeft, setSelectedLeft] = useState<string[]>([]);
   const [selectedRight, setSelectedRight] = useState<string[]>([]);
@@ -296,6 +302,11 @@ function EscalasPage() {
   }
 
   function confirmDelete(id: string) {
+    const hasDespacho = despachosDB.some((d: any) => String(d.escalaId) === String(id));
+    if (hasDespacho) {
+      setBlockDialogOpen(true);
+      return;
+    }
     setDeletingId(id);
     setDeleteDialogOpen(true);
   }
@@ -418,16 +429,6 @@ function EscalasPage() {
         />
       </div>
 
-      <div className="flex flex-col sm:flex-row gap-3">
-        <div className="relative max-w-sm flex-1">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input
-            placeholder="Buscar termo genérico..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="pl-9"
-          />
-        </div>
       </div>
 
       {/* Table */}
@@ -683,7 +684,7 @@ function EscalasPage() {
               </div>
 
               <div className="space-y-2">
-                <Label className={errors.comandanteId ? "text-destructive" : ""}>Comandante da Escala</Label>
+                <Label className={errors.comandanteId ? "text-destructive" : ""}>Comandante da Escala *</Label>
                 <Select disabled={form.integranteIds.length === 0} value={form.comandanteId || ""} onValueChange={(v) => setForm({ ...form, comandanteId: v })}>
                   <SelectTrigger className={errors.comandanteId ? "border-destructive" : ""}>
                     <SelectValue placeholder="Selecione o comandante" />
@@ -726,6 +727,24 @@ function EscalasPage() {
             <AlertDialogAction onClick={handleDelete} className="bg-destructive hover:bg-destructive/90">
               Excluir
             </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Block Confirmation */}
+      <AlertDialog open={blockDialogOpen} onOpenChange={setBlockDialogOpen}>
+        <AlertDialogContent className="glass-strong">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="text-warning flex items-center gap-2">
+              <AlertTriangle className="h-5 w-5" />
+              Ação Bloqueada
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              Esta escala não pode ser excluída porque possui um ou mais despachos vinculados a ela.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setBlockDialogOpen(false)}>Entendi</AlertDialogCancel>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
