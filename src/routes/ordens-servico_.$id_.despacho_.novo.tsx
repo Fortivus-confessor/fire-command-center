@@ -18,6 +18,7 @@ export const Route = createFileRoute('/ordens-servico_/$id_/despacho_/novo')({
 const emptyForm = {
   comando: '',
   equipe: '',
+  responsavel: '',
   categoria: '',
   descricao: '',
   latLng: '',
@@ -99,6 +100,11 @@ function NovoDespachoPage() {
     queryFn: () => fetchWithAuth('/admin/equipes')
   });
 
+  const { data: todosUsuarios = [] } = useQuery<any[]>({
+    queryKey: ['usuarios'],
+    queryFn: () => fetchWithAuth('/admin/usuarios')
+  });
+
   const { data: todosDespachos = [] } = useQuery<any[]>({
     queryKey: ['despachos'],
     queryFn: () => fetchWithAuth('/operacional/despachos')
@@ -112,7 +118,7 @@ function NovoDespachoPage() {
 
   async function save() {
     try {
-      if (!form.comando || !form.equipe || !form.categoria || !form.descricao) {
+      if (!form.comando || !form.equipe || !form.responsavel || !form.categoria || !form.descricao) {
          toast.error("Preencha todos os campos obrigatórios");
          return;
       }
@@ -243,8 +249,10 @@ function NovoDespachoPage() {
                isolatedEventId={os?.eventoFogoId || 'NONE_ISOLATED'}
                onClickMap={handleMapClick}
                flyTo={flyTo}
-               // Desenhamos um marcador extra representando o local do primeiro despacho/OS (se diferente)
-               extraMarkers={os?.latitude ? [{ lat: os.latitude, lng: os.longitude, color: '#f59e0b', tooltip: 'Local Inicial da OS' }] : undefined}
+               extraMarkers={[
+                 ...(os?.latitude ? [{ lat: os.latitude, lng: os.longitude, color: '#f59e0b', tooltip: 'Local Inicial da OS' }] : []),
+                 ...(latInput && lngInput && !isNaN(parseFloat(latInput)) && !isNaN(parseFloat(lngInput)) ? [{ lat: parseFloat(latInput), lng: parseFloat(lngInput), color: '#ef4444', tooltip: 'Local de Despacho (Novo)' }] : [])
+               ]}
             />
           </div>
           <div className="text-xs text-muted-foreground text-center">
@@ -280,7 +288,8 @@ function NovoDespachoPage() {
                   <SelectContent>
                     {escalasAtivas.map(e => {
                       const eq = todasEquipes.find(eq => eq.id === e.equipeId);
-                      return <SelectItem key={e.id} value={String(e.id)}>{eq?.nome || 'Desconhecida'} (ID: {e.id})</SelectItem>;
+                      const cmd = todosUsuarios.find(u => u.id === e.comandanteId);
+                      return <SelectItem key={e.id} value={String(e.id)}>{eq?.nome || 'Desconhecida'} - {cmd?.nome || 'Comandante Desconhecido'}</SelectItem>;
                     })}
                   </SelectContent>
                 </Select>
@@ -293,7 +302,20 @@ function NovoDespachoPage() {
             </div>
 
             <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2 col-span-2">
+              <div className="space-y-2">
+                <Label>Usuário Responsável *</Label>
+                <Select value={form.responsavel} onValueChange={(v) => setForm({ ...form, responsavel: v })}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecione o responsável..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {todosUsuarios.map(u => (
+                      <SelectItem key={u.id} value={String(u.id)}>{u.nome}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
                 <Label>Categoria *</Label>
                 <Select value={form.categoria} onValueChange={(v) => setForm({ ...form, categoria: v })}>
                   <SelectTrigger>
