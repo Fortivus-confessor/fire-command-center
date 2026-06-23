@@ -1,6 +1,6 @@
 import { createFileRoute, useNavigate } from '@tanstack/react-router';
 import { useState } from 'react';
-import { Plus, ArrowLeft, FileText, MapPin, ArrowRightLeft } from 'lucide-react';
+import { Plus, ArrowLeft, FileText, MapPin, ArrowRightLeft, Search } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -10,6 +10,7 @@ import SituationMapClient from '../components/fortivus/map/SituationMapClient';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from 'sonner';
+import { useEffect } from 'react';
 
 export const Route = createFileRoute('/ordens-servico_/nova')({
   component: NovaOrdemServicoPage,
@@ -41,6 +42,41 @@ function NovaOrdemServicoPage() {
   const [latInput, setLatInput] = useState('');
   const [lngInput, setLngInput] = useState('');
   const [flyTo, setFlyTo] = useState<{lat: number, lng: number} | null>(null);
+
+  const [addressSearch, setAddressSearch] = useState('');
+  const [addressResults, setAddressResults] = useState<any[]>([]);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (addressSearch.length > 2) {
+        fetch(`https://nominatim.openstreetmap.org/search?format=json&countrycodes=br&q=${encodeURIComponent(addressSearch)}`)
+          .then(res => res.json())
+          .then(data => setAddressResults(data || []))
+          .catch(console.error);
+      } else {
+        setAddressResults([]);
+      }
+    }, 500);
+    return () => clearTimeout(timer);
+  }, [addressSearch]);
+
+  function handleAddressSelect(res: any) {
+    const lat = parseFloat(res.lat);
+    const lng = parseFloat(res.lon);
+    if (!isNaN(lat) && !isNaN(lng)) {
+      setForm(prev => ({ ...prev, latLng: `${lat.toFixed(6)}, ${lng.toFixed(6)}` }));
+      if (isDms) {
+        setLatInput(ddToDms(lat, false));
+        setLngInput(ddToDms(lng, true));
+      } else {
+        setLatInput(lat.toFixed(6));
+        setLngInput(lng.toFixed(6));
+      }
+      setFlyTo({ lat, lng });
+      setAddressSearch(res.display_name);
+      setAddressResults([]);
+    }
+  }
 
   const { data: centrosDeComandoDB = [] } = useQuery<any[]>({
     queryKey: ['centros-comando'],
@@ -185,11 +221,36 @@ function NovaOrdemServicoPage() {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 flex-1 min-h-[500px]">
         {/* Left Side: Map */}
         <div className="rounded-xl overflow-hidden glass border border-border flex flex-col relative h-[500px] lg:h-auto">
+          <div className="absolute top-2 left-2 right-2 z-[400] max-w-sm">
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Buscar endereço..."
+                value={addressSearch}
+                onChange={(e) => setAddressSearch(e.target.value)}
+                className="pl-9 bg-background/90 backdrop-blur-sm border-border shadow-sm"
+              />
+              {addressResults.length > 0 && (
+                <div className="absolute top-full mt-1 left-0 right-0 bg-background border border-border rounded-md shadow-lg overflow-y-auto max-h-48 z-[500]">
+                  {addressResults.map((res: any, idx) => (
+                    <div
+                      key={idx}
+                      className="px-3 py-2 text-sm cursor-pointer hover:bg-secondary/50 border-b border-border last:border-0"
+                      onClick={() => handleAddressSelect(res)}
+                    >
+                      {res.display_name}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
           <SituationMapClient 
              selectedId={eventoFogoId} 
-             isolatedEventId={eventoFogoId}
+             isolatedEventId={eventoFogoId || 'NONE_ISOLATED'}
              onClickMap={handleMapClick}
              activePin={form.latLng ? { lat: parseFloat(form.latLng.split(',')[0]), lng: parseFloat(form.latLng.split(',')[1]) } : null}
+             center={flyTo}
           />
         </div>
 
