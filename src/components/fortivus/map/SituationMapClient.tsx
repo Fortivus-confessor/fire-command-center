@@ -210,6 +210,28 @@ export default function SituationMapClient({ selectedId, onSelect, onClickMap, a
           </Source>
         )}
 
+        {/* ── Contorno Brasil ────────────────────────────────────── */}
+        {geoData && (
+          <Source id="brazil-source" type="geojson" data={geoData}>
+            <Layer
+              id="brazil-layer-fill"
+              type="fill"
+              paint={{
+                'fill-color': 'transparent'
+              }}
+            />
+            <Layer
+              id="brazil-layer-line"
+              type="line"
+              paint={{
+                'line-color': '#10b981',
+                'line-width': 1.5,
+                'line-opacity': 0.6
+              }}
+            />
+          </Source>
+        )}
+
         {/* ── Eventos de Fogo via WebGL Layers ─────────────────── */}
         {!hideEvents && (
           <Source id="fire-events" type="geojson" data={fireGeojson as any}>
