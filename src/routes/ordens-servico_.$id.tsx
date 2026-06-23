@@ -99,6 +99,11 @@ function OrdemServicoDetalhePage() {
     queryFn: () => fetchWithAuth('/admin/equipes')
   });
 
+  const { data: todosUsuarios = [] } = useQuery<any[]>({
+    queryKey: ['usuarios'],
+    queryFn: () => fetchWithAuth('/admin/usuarios')
+  });
+
   const { data: centrosDeComandoDB = [] } = useQuery<any[]>({
     queryKey: ['centros-comando'],
     queryFn: () => fetchWithAuth('/admin/centros'),
@@ -224,11 +229,12 @@ function OrdemServicoDetalhePage() {
               despachos.map(d => {
                 const esc = todasEscalas.find(e => String(e.id) === String(d.escalaId));
                 const eq = todasEquipes.find(e => String(e.id) === String(esc?.equipeId));
+                const cmd = todosUsuarios.find(u => u.id === esc?.comandanteId);
                 return (
                   <TableRow key={d.id}>
                     <TableCell className="mono">{d.id}</TableCell>
                     <TableCell>
-                      <div className="font-medium">{eq?.nome || 'Equipe Desconhecida'}</div>
+                      <div className="font-medium">{eq?.nome || 'Equipe Desconhecida'} - {cmd?.nome || 'Comandante Desconhecido'}</div>
                       <div className="text-xs text-muted-foreground">Escala ID: {d.escalaId}</div>
                     </TableCell>
                     <TableCell>{categoriaBadge(d.categoria)}</TableCell>
