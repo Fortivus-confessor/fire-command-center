@@ -123,6 +123,9 @@ function VeiculosPage() {
       formData.append('prefixo', veiculo.tipo === 'TERRESTRE' ? (veiculo.prefixo || '') : '');
       formData.append('modelo', veiculo.modelo);
       formData.append('categoria', veiculo.tipo);
+      if (veiculo.contrato) {
+        formData.append('contrato', veiculo.contrato);
+      }
       if (veiculo.centroComando && veiculo.centroComando !== 'Nenhum') {
         formData.append('centroComandoId', veiculo.centroComando);
       }
