@@ -69,6 +69,7 @@ const emptyForm = {
   tipo: '' as any,
   contrato: '' as any,
   fotoArquivo: null as File | null,
+  centroComando: '',
 };
 
 // ── Helpers ────────────────────────────────────────────
@@ -105,6 +106,11 @@ function VeiculosPage() {
     queryFn: () => fetchWithAuth('/ativos/frota')
   });
 
+  const { data: centrosDeComandoDB = [] } = useQuery<any[]>({
+    queryKey: ['centros-comando'],
+    queryFn: () => fetchWithAuth('/admin/centros'),
+  });
+
   const saveMutation = useMutation({
     mutationFn: async (veiculo: any) => {
       if (veiculo.removeExistingPhoto && veiculo.id) {
@@ -117,6 +123,9 @@ function VeiculosPage() {
       formData.append('prefixo', veiculo.tipo === 'TERRESTRE' ? (veiculo.prefixo || '') : '');
       formData.append('modelo', veiculo.modelo);
       formData.append('categoria', veiculo.tipo);
+      if (veiculo.centroComando && veiculo.centroComando !== 'Nenhum') {
+        formData.append('centroComandoId', veiculo.centroComando);
+      }
       if (veiculo.fotoArquivo) {
         formData.append('fotoArquivo', veiculo.fotoArquivo);
       }
@@ -194,6 +203,7 @@ function VeiculosPage() {
       tipo: item.categoria || item.tipo || '',
       contrato: item.contrato || '',
       fotoArquivo: null,
+      centroComando: item.centroComandoId || '',
     });
     setPreviewUrl(item.fotoUrl || null);
     setRemoveExistingPhoto(false);
@@ -376,6 +386,20 @@ function VeiculosPage() {
                   <SelectItem value="AEREO">Aéreo</SelectItem>
                   <SelectItem value="MAQUINARIO">Maquinário</SelectItem>
                   <SelectItem value="AQUATICO">Aquático</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label>Centro de Comando</Label>
+              <Select value={form.centroComando} onValueChange={(v) => setForm({ ...form, centroComando: v })}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Selecione um centro" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Nenhum">Nenhum</SelectItem>
+                  {centrosDeComandoDB.map((cc: any) => (
+                    <SelectItem key={cc.id} value={String(cc.id)}>{cc.nome}</SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>
