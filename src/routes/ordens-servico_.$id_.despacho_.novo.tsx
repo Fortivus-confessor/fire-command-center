@@ -279,16 +279,23 @@ function NovoDespachoPage() {
             )}
           </div>
           <div className="rounded-xl overflow-hidden glass border border-border flex-1 relative">
-            <SituationMapClient 
-               selectedId={os?.eventoFogoId} 
-               isolatedEventId={os?.eventoFogoId || 'NONE_ISOLATED'}
-               onClickMap={handleMapClick}
-               center={flyTo}
-               activePin={form.latLng ? { lat: parseCoordinateToDD(latInput), lng: parseCoordinateToDD(lngInput) } : null}
-               extraMarkers={[
-                 ...(os?.latitude ? [{ lat: os.latitude, lng: os.longitude, color: '#f59e0b', tooltip: 'Local Inicial da OS' }] : [])
-               ]}
-            />
+            {(() => {
+              const parsedLat = parseCoordinateToDD(latInput);
+              const parsedLng = parseCoordinateToDD(lngInput);
+              const hasValidPin = !isNaN(parsedLat) && !isNaN(parsedLng);
+              return (
+                <SituationMapClient 
+                  selectedId={os?.eventoFogoId} 
+                  isolatedEventId={os?.eventoFogoId || 'NONE_ISOLATED'}
+                  onClickMap={handleMapClick}
+                  center={flyTo}
+                  activePin={hasValidPin ? { lat: parsedLat, lng: parsedLng } : null}
+                  extraMarkers={[
+                    ...(os?.latitude ? [{ lat: os.latitude, lng: os.longitude, color: '#f59e0b', tooltip: 'Local Inicial da OS' }] : [])
+                  ]}
+                />
+              );
+            })()}
           </div>
           <div className="text-xs text-muted-foreground text-center">
             Clique no mapa ou busque um endereço para marcar a localização deste despacho.
