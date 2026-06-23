@@ -25,7 +25,7 @@ const emptyForm = {
   comando: '',
   equipe: '',
   tipoDespacho: '',
-  prioridade: 'P2',
+  prioridade: '',
   responsavel: '',
   descricao: '',
   latLng: '',
@@ -101,7 +101,7 @@ function NovaOrdemServicoPage() {
 
   async function save() {
     try {
-      if (!form.tipoDespacho || !form.comando || !form.equipe || !form.responsavel) {
+      if (!form.tipoDespacho || !form.comando || !form.equipe || !form.responsavel || !form.prioridade) {
          toast.error("Preencha todos os campos obrigatórios");
          return;
       }
@@ -210,7 +210,7 @@ function NovaOrdemServicoPage() {
         <div>
           <h1 className="text-2xl font-bold text-foreground flex items-center gap-2">
             <FileText className="h-6 w-6 text-fire" />
-            Cadastrar OS para evento de fogo
+            {eventoFogoId ? 'Cadastrar OS para evento de fogo' : 'Nova Ordem de Serviço Livre'}
           </h1>
           <p className="text-sm text-muted-foreground mt-1">
             Selecione a equipe, defina as diretrizes e despache a Ordem de Serviço.
@@ -220,38 +220,38 @@ function NovaOrdemServicoPage() {
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 flex-1 min-h-[500px]">
         {/* Left Side: Map */}
-        <div className="rounded-xl overflow-hidden glass border border-border flex flex-col relative h-[500px] lg:h-auto">
-          <div className="absolute top-2 left-2 right-2 z-[400] max-w-sm">
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input
-                placeholder="Buscar endereço..."
-                value={addressSearch}
-                onChange={(e) => setAddressSearch(e.target.value)}
-                className="pl-9 bg-background/90 backdrop-blur-sm border-border shadow-sm"
-              />
-              {addressResults.length > 0 && (
-                <div className="absolute top-full mt-1 left-0 right-0 bg-background border border-border rounded-md shadow-lg overflow-y-auto max-h-48 z-[500]">
-                  {addressResults.map((res: any, idx) => (
-                    <div
-                      key={idx}
-                      className="px-3 py-2 text-sm cursor-pointer hover:bg-secondary/50 border-b border-border last:border-0"
-                      onClick={() => handleAddressSelect(res)}
-                    >
-                      {res.display_name}
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
+        <div className="flex flex-col gap-3 h-[500px] lg:h-auto">
+          <div className="relative max-w-sm z-[400]">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="Buscar endereço..."
+              value={addressSearch}
+              onChange={(e) => setAddressSearch(e.target.value)}
+              className="pl-9 bg-background/90 backdrop-blur-sm border-border shadow-sm"
+            />
+            {addressResults.length > 0 && (
+              <div className="absolute top-full mt-1 left-0 right-0 bg-background border border-border rounded-md shadow-lg overflow-y-auto max-h-48 z-[500]">
+                {addressResults.map((res: any, idx) => (
+                  <div
+                    key={idx}
+                    className="px-3 py-2 text-sm cursor-pointer hover:bg-secondary/50 border-b border-border last:border-0"
+                    onClick={() => handleAddressSelect(res)}
+                  >
+                    {res.display_name}
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
-          <SituationMapClient 
-             selectedId={eventoFogoId} 
-             isolatedEventId={eventoFogoId || 'NONE_ISOLATED'}
-             onClickMap={handleMapClick}
-             activePin={form.latLng ? { lat: parseFloat(form.latLng.split(',')[0]), lng: parseFloat(form.latLng.split(',')[1]) } : null}
-             center={flyTo}
-          />
+          <div className="rounded-xl overflow-hidden glass border border-border flex-1 relative">
+            <SituationMapClient 
+               selectedId={eventoFogoId} 
+               isolatedEventId={eventoFogoId || 'NONE_ISOLATED'}
+               onClickMap={handleMapClick}
+               activePin={form.latLng ? { lat: parseFloat(form.latLng.split(',')[0]), lng: parseFloat(form.latLng.split(',')[1]) } : null}
+               center={flyTo}
+            />
+          </div>
         </div>
 
         {/* Right Side: Form */}
