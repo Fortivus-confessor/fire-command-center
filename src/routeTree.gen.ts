@@ -23,6 +23,7 @@ import { Route as ResponderMaquinarioIdRouteImport } from './routes/responder-ma
 import { Route as ResponderAereoIdRouteImport } from './routes/responder-aereo.$id'
 import { Route as OrdensServicoNovaRouteImport } from './routes/ordens-servico_.nova'
 import { Route as OrdensServicoIdRouteImport } from './routes/ordens-servico_.$id'
+import { Route as OrdensServicoIdDespachoNovoRouteImport } from './routes/ordens-servico_.$id_.despacho_.novo'
 
 const VeiculosRoute = VeiculosRouteImport.update({
   id: '/veiculos',
@@ -94,6 +95,12 @@ const OrdensServicoIdRoute = OrdensServicoIdRouteImport.update({
   path: '/ordens-servico/$id',
   getParentRoute: () => rootRouteImport,
 } as any)
+const OrdensServicoIdDespachoNovoRoute =
+  OrdensServicoIdDespachoNovoRouteImport.update({
+    id: '/ordens-servico_/$id_/despacho_/novo',
+    path: '/ordens-servico/$id/despacho/novo',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -110,6 +117,7 @@ export interface FileRoutesByFullPath {
   '/responder-aereo/$id': typeof ResponderAereoIdRoute
   '/responder-maquinario/$id': typeof ResponderMaquinarioIdRoute
   '/responder-terrestre/$id': typeof ResponderTerrestreIdRoute
+  '/ordens-servico/$id/despacho/novo': typeof OrdensServicoIdDespachoNovoRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -126,6 +134,7 @@ export interface FileRoutesByTo {
   '/responder-aereo/$id': typeof ResponderAereoIdRoute
   '/responder-maquinario/$id': typeof ResponderMaquinarioIdRoute
   '/responder-terrestre/$id': typeof ResponderTerrestreIdRoute
+  '/ordens-servico/$id/despacho/novo': typeof OrdensServicoIdDespachoNovoRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -143,6 +152,7 @@ export interface FileRoutesById {
   '/responder-aereo/$id': typeof ResponderAereoIdRoute
   '/responder-maquinario/$id': typeof ResponderMaquinarioIdRoute
   '/responder-terrestre/$id': typeof ResponderTerrestreIdRoute
+  '/ordens-servico_/$id_/despacho_/novo': typeof OrdensServicoIdDespachoNovoRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -161,6 +171,7 @@ export interface FileRouteTypes {
     | '/responder-aereo/$id'
     | '/responder-maquinario/$id'
     | '/responder-terrestre/$id'
+    | '/ordens-servico/$id/despacho/novo'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -177,6 +188,7 @@ export interface FileRouteTypes {
     | '/responder-aereo/$id'
     | '/responder-maquinario/$id'
     | '/responder-terrestre/$id'
+    | '/ordens-servico/$id/despacho/novo'
   id:
     | '__root__'
     | '/'
@@ -193,6 +205,7 @@ export interface FileRouteTypes {
     | '/responder-aereo/$id'
     | '/responder-maquinario/$id'
     | '/responder-terrestre/$id'
+    | '/ordens-servico_/$id_/despacho_/novo'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -210,6 +223,7 @@ export interface RootRouteChildren {
   ResponderAereoIdRoute: typeof ResponderAereoIdRoute
   ResponderMaquinarioIdRoute: typeof ResponderMaquinarioIdRoute
   ResponderTerrestreIdRoute: typeof ResponderTerrestreIdRoute
+  OrdensServicoIdDespachoNovoRoute: typeof OrdensServicoIdDespachoNovoRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -312,6 +326,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof OrdensServicoIdRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/ordens-servico_/$id_/despacho_/novo': {
+      id: '/ordens-servico_/$id_/despacho_/novo'
+      path: '/ordens-servico/$id/despacho/novo'
+      fullPath: '/ordens-servico/$id/despacho/novo'
+      preLoaderRoute: typeof OrdensServicoIdDespachoNovoRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -330,6 +351,7 @@ const rootRouteChildren: RootRouteChildren = {
   ResponderAereoIdRoute: ResponderAereoIdRoute,
   ResponderMaquinarioIdRoute: ResponderMaquinarioIdRoute,
   ResponderTerrestreIdRoute: ResponderTerrestreIdRoute,
+  OrdensServicoIdDespachoNovoRoute: OrdensServicoIdDespachoNovoRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
