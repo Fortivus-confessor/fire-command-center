@@ -8,6 +8,7 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { MapPin, Plus, Trash2, Camera } from 'lucide-react';
 import { LocationPickerMap } from '@/components/fortivus/map/LocationPickerMap';
 import { FileUploader } from '@/components/fortivus/forms/FileUploader';
+import { toast } from 'sonner';
 
 export function RelatorioTerrestreForm({ onSubmit, onFilesChange }: { onSubmit?: (e: React.FormEvent) => void, onFilesChange?: (key: string, files: File[]) => void }) {
   const [agua, setAgua] = useState(false);
@@ -51,11 +52,34 @@ export function RelatorioTerrestreForm({ onSubmit, onFilesChange }: { onSubmit?:
   const [propriedadesApoio, setPropriedadesApoio] = useState([{ id: 1, maq: false, mao: false, outro: false, mapOpen: false }]);
   const [propriedadesRecusa, setPropriedadesRecusa] = useState([{ id: 1, outro: false, mapOpen: false }]);
 
+  const handleLocalSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    const form = e.currentTarget;
+
+    const hasAcao = Array.from(form.querySelectorAll('[id^="acao-"]')).some((cb: any) => cb.dataset.state === 'checked');
+    const hasOrgao = Array.from(form.querySelectorAll('[id^="orgao-"]')).some((cb: any) => cb.dataset.state === 'checked');
+    const hasMaterial = Array.from(form.querySelectorAll('[id^="mat-"]')).some((cb: any) => cb.dataset.state === 'checked');
+
+    const errors = [];
+    if (!hasAcao) errors.push('Ações de Combate Realizadas');
+    if (!hasOrgao) errors.push('Órgãos de Apoio');
+    if (!hasMaterial) errors.push('Materiais Utilizados');
+
+    if (errors.length > 0) {
+      toast.error('Campos obrigatórios incompletos', {
+        description: `Selecione pelo menos uma opção nas seguintes categorias: ${errors.join(', ')}`
+      });
+      return;
+    }
+
+    if (onSubmit) onSubmit(e);
+  };
+
   return (
-    <form id="form-terrestre" onSubmit={onSubmit} className="space-y-8 p-1">
+    <form id="form-terrestre" onSubmit={handleLocalSubmit} className="space-y-8 p-1">
       {/* Ações Realizadas */}
       <div className="space-y-3">
-        <h3 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground border-b border-border pb-2">Ações de Combate Realizadas</h3>
+        <h3 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground border-b border-border pb-2">Ações de Combate Realizadas <span className="text-destructive">*</span></h3>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           {acoes.map(a => (
             <div key={a} className="flex items-start space-x-2">
@@ -68,7 +92,7 @@ export function RelatorioTerrestreForm({ onSubmit, onFilesChange }: { onSubmit?:
 
       {/* Órgãos de Apoio */}
       <div className="space-y-3">
-        <h3 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground border-b border-border pb-2">Órgãos de Apoio</h3>
+        <h3 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground border-b border-border pb-2">Órgãos de Apoio <span className="text-destructive">*</span></h3>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           {orgaos.map(o => (
             <div key={o} className="flex items-start space-x-2">
@@ -105,7 +129,7 @@ export function RelatorioTerrestreForm({ onSubmit, onFilesChange }: { onSubmit?:
 
       {/* Materiais Utilizados */}
       <div className="space-y-3">
-        <h3 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground border-b border-border pb-2">Materiais Utilizados</h3>
+        <h3 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground border-b border-border pb-2">Materiais Utilizados <span className="text-destructive">*</span></h3>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           {materiais.map(m => (
             <div key={m} className="flex items-start space-x-2">
@@ -118,7 +142,7 @@ export function RelatorioTerrestreForm({ onSubmit, onFilesChange }: { onSubmit?:
 
       {/* Uso de Água */}
       <div className="space-y-4">
-        <h3 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground border-b border-border pb-2">Uso de Água na Ocorrência</h3>
+        <h3 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground border-b border-border pb-2">Uso de Água na Ocorrência <span className="text-destructive">*</span></h3>
         <RadioGroup value={agua ? "sim" : "nao"} onValueChange={(v) => setAgua(v === 'sim')} className="flex gap-4" required>
           <div className="flex items-center space-x-2">
             <RadioGroupItem value="sim" id="agua-sim" />
@@ -164,7 +188,7 @@ export function RelatorioTerrestreForm({ onSubmit, onFilesChange }: { onSubmit?:
 
       {/* Apoio Rural */}
       <div className="space-y-4">
-        <h3 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground border-b border-border pb-2">Apoio de Propriedades Rurais</h3>
+        <h3 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground border-b border-border pb-2">Apoio de Propriedades Rurais <span className="text-destructive">*</span></h3>
         <RadioGroup value={apoioRurais ? "sim" : "nao"} onValueChange={(v) => setApoioRurais(v === 'sim')} className="flex gap-4" required>
           <div className="flex items-center space-x-2">
             <RadioGroupItem value="sim" id="apoio-sim" />
@@ -238,7 +262,7 @@ export function RelatorioTerrestreForm({ onSubmit, onFilesChange }: { onSubmit?:
 
       {/* Recusa Rural */}
       <div className="space-y-4">
-        <h3 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground border-b border-border pb-2">Recusa de Colaboração</h3>
+        <h3 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground border-b border-border pb-2">Recusa de Colaboração <span className="text-destructive">*</span></h3>
         <p className="text-xs text-muted-foreground">Algum proprietário rural se recusou a colaborar com a operação de combate?</p>
         <RadioGroup value={recusaRurais ? "sim" : "nao"} onValueChange={(v) => setRecusaRurais(v === 'sim')} className="flex gap-4" required>
           <div className="flex items-center space-x-2">
@@ -316,7 +340,7 @@ export function RelatorioTerrestreForm({ onSubmit, onFilesChange }: { onSubmit?:
 
       {/* Origem e Imagens */}
       <div className="space-y-4">
-        <h3 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground border-b border-border pb-2">Possível Origem do Incêndio</h3>
+        <h3 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground border-b border-border pb-2">Possível Origem do Incêndio <span className="text-destructive">*</span></h3>
           <RadioGroup className="grid grid-cols-1 sm:grid-cols-2 gap-3" required onValueChange={(v) => setOutraOrigem(v === 'Outros')}>
           {origens.map(o => (
             <div key={o} className="flex items-start space-x-2">
@@ -340,8 +364,8 @@ export function RelatorioTerrestreForm({ onSubmit, onFilesChange }: { onSubmit?:
 
       {/* Efetividade */}
       <div className="space-y-3">
-        <h3 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground border-b border-border pb-2">Efetividade Estimada</h3>
-        <RadioGroup className="flex gap-6">
+        <h3 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground border-b border-border pb-2">Efetividade Estimada <span className="text-destructive">*</span></h3>
+        <RadioGroup className="flex gap-6" required>
           <div className="flex items-center space-x-2">
             <RadioGroupItem value="alta" id="efe-alta" />
             <Label htmlFor="efe-alta">Alta</Label>
@@ -395,14 +419,14 @@ export function RelatorioTerrestreForm({ onSubmit, onFilesChange }: { onSubmit?:
 
       {/* Histórico */}
       <div className="space-y-3">
-        <h3 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground border-b border-border pb-2">Histórico Descritivo</h3>
-        <Textarea placeholder="Descreva de forma livre a atuação, dificuldades encontradas e outras informações relevantes..." className="min-h-[120px]" />
+        <h3 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground border-b border-border pb-2">Histórico Descritivo <span className="text-destructive">*</span></h3>
+        <Textarea placeholder="Descreva de forma livre a atuação, dificuldades encontradas e outras informações relevantes..." className="min-h-[120px]" required />
       </div>
 
       {/* Resultado Final */}
       <div className="space-y-3">
-        <h3 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground border-b border-border pb-2">Resultado da Ocorrência</h3>
-        <RadioGroup value={resultado} onValueChange={setResultado} className="flex flex-col gap-3">
+        <h3 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground border-b border-border pb-2">Resultado da Ocorrência <span className="text-destructive">*</span></h3>
+        <RadioGroup value={resultado} onValueChange={setResultado} className="flex flex-col gap-3" required>
           <div className="flex items-start space-x-2">
             <RadioGroupItem value="andamento" id="res-andamento" className="mt-1" />
             <div className="grid gap-1.5 leading-none">

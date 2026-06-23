@@ -22,6 +22,9 @@ const emptyForm = {
   categoria: '',
   descricao: '',
   latLng: '',
+  status: '',
+  dataInicio: '',
+  dataFim: '',
 };
 
 function EditarDespachoPage() {
@@ -61,6 +64,9 @@ function EditarDespachoPage() {
         responsavel: String(despachoOriginal.responsavelId),
         categoria: despachoOriginal.categoria,
         descricao: despachoOriginal.descricaoTarefa,
+        status: despachoOriginal.status,
+        dataInicio: despachoOriginal.dataInicio ? despachoOriginal.dataInicio.slice(0, 16) : '',
+        dataFim: despachoOriginal.dataFim ? despachoOriginal.dataFim.slice(0, 16) : '',
         latLng: despachoOriginal.latitude && despachoOriginal.longitude ? `${despachoOriginal.latitude.toFixed(6)}, ${despachoOriginal.longitude.toFixed(6)}` : '',
       }));
       if (despachoOriginal.latitude && despachoOriginal.longitude) {
@@ -162,6 +168,8 @@ function EditarDespachoPage() {
       if (!form.responsavel) newErrors.responsavel = 'Obrigatório';
       if (!form.categoria) newErrors.categoria = 'Obrigatório';
       if (!form.descricao) newErrors.descricao = 'Obrigatório';
+      if (!form.status) newErrors.status = 'Obrigatório';
+      if (!form.dataInicio) newErrors.dataInicio = 'Obrigatório';
 
       const latDD = parseCoordinateToDD(latInput);
       const lngDD = parseCoordinateToDD(lngInput);
@@ -182,6 +190,9 @@ function EditarDespachoPage() {
         responsavelId: form.responsavel,
         categoria: form.categoria,
         descricaoTarefa: form.descricao,
+        status: form.status,
+        dataInicio: form.dataInicio ? new Date(form.dataInicio).toISOString() : null,
+        dataFim: form.dataFim ? new Date(form.dataFim).toISOString() : null,
         latitude: latDD,
         longitude: lngDD
       };
@@ -409,6 +420,41 @@ function EditarDespachoPage() {
                   </SelectContent>
                 </Select>
                 {errors.categoria && <p className="text-xs text-red-500">{errors.categoria}</p>}
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="space-y-2">
+                <Label className={errors.status ? "text-red-500" : ""}>Status do Despacho *</Label>
+                <Select value={form.status} onValueChange={(v) => { setForm({ ...form, status: v }); setErrors({...errors, status: ''}); }}>
+                  <SelectTrigger className={errors.status ? "border-red-500" : ""}>
+                    <SelectValue placeholder="Selecione o status..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="EM_ANDAMENTO">Em Andamento</SelectItem>
+                    <SelectItem value="PENDENTE_RELATORIO">Pendente Relatório</SelectItem>
+                    <SelectItem value="CONCLUIDO">Concluído</SelectItem>
+                  </SelectContent>
+                </Select>
+                {errors.status && <p className="text-xs text-red-500">{errors.status}</p>}
+              </div>
+              <div className="space-y-2">
+                <Label className={errors.dataInicio ? "text-red-500" : ""}>Data/Hora de Início *</Label>
+                <Input 
+                  type="datetime-local" 
+                  value={form.dataInicio} 
+                  onChange={(e) => { setForm({ ...form, dataInicio: e.target.value }); setErrors({...errors, dataInicio: ''}); }}
+                  className={errors.dataInicio ? "border-red-500" : ""}
+                />
+                {errors.dataInicio && <p className="text-xs text-red-500">{errors.dataInicio}</p>}
+              </div>
+              <div className="space-y-2">
+                <Label>Data/Hora de Fim</Label>
+                <Input 
+                  type="datetime-local" 
+                  value={form.dataFim} 
+                  onChange={(e) => setForm({ ...form, dataFim: e.target.value })}
+                />
               </div>
             </div>
 

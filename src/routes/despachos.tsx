@@ -84,7 +84,7 @@ function DespachosPage() {
 
   const { data: equipes = [] } = useQuery<any[]>({
     queryKey: ['equipes'],
-    queryFn: () => fetchWithAuth('/operacional/equipes'),
+    queryFn: () => fetchWithAuth('/admin/equipes'),
   });
 
   const { data: usuarios = [] } = useQuery<any[]>({
@@ -269,9 +269,14 @@ function DespachosPage() {
                               </Button>
                             )}
                             {canRespond && item.status !== 'EM_ANDAMENTO' && (
-                              <Button variant="outline" size="sm" onClick={() => openRespond(item)} className="h-8">
-                                Ver Resposta
-                              </Button>
+                              <div className="flex gap-2">
+                                <Button variant="outline" size="sm" onClick={() => window.open(`/relatorio-pdf/${item.id}`, '_blank')} className="h-8 border-blue-500/30 text-blue-600 hover:bg-blue-500 hover:text-white">
+                                  Visualizar (PDF)
+                                </Button>
+                                <Button variant="outline" size="sm" onClick={() => openRespond(item)} className="h-8 border-orange-500/30 text-orange-600 hover:bg-orange-500 hover:text-white">
+                                  Editar Resposta
+                                </Button>
+                              </div>
                             )}
                             {canDelete && (
                               <Button variant="ghost" size="icon" onClick={() => confirmDelete(item.id)} className="h-8 w-8 text-destructive hover:bg-destructive/10">

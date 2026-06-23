@@ -7,6 +7,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { LocationPickerMap } from '@/components/fortivus/map/LocationPickerMap';
 import { FileUploader } from '@/components/fortivus/forms/FileUploader';
+import { toast } from 'sonner';
 
 export function RelatorioAereoForm({ onSubmit, onFilesChange }: { onSubmit?: (e: React.FormEvent) => void, onFilesChange?: (key: string, files: File[]) => void }) {
   const [usoAgua, setUsoAgua] = useState(false);
@@ -16,8 +17,37 @@ export function RelatorioAereoForm({ onSubmit, onFilesChange }: { onSubmit?: (e:
   // States for "Outros" inputs
   const [outroAgua, setOutroAgua] = useState(false);
 
+  const handleLocalSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    const form = e.currentTarget;
+
+    const hasEmp = Array.from(form.querySelectorAll('[id^="emp-"]')).some((cb: any) => cb.dataset.state === 'checked');
+    const errors = [];
+    
+    if (!hasEmp) errors.push('Tipo de emprego');
+
+    if (usoAgua) {
+      const hasOrigem = Array.from(form.querySelectorAll('[id^="oagua-"]')).some((cb: any) => cb.dataset.state === 'checked');
+      if (!hasOrigem) errors.push('Origem da Água');
+    }
+
+    if (reforco) {
+      const hasRef = Array.from(form.querySelectorAll('[id^="ref-"]')).some((cb: any) => cb.dataset.state === 'checked');
+      if (!hasRef) errors.push('Reforços Necessários');
+    }
+
+    if (errors.length > 0) {
+      toast.error('Campos obrigatórios incompletos', {
+        description: `Selecione pelo menos uma opção nas seguintes categorias: ${errors.join(', ')}`
+      });
+      return;
+    }
+
+    if (onSubmit) onSubmit(e);
+  };
+
   return (
-    <form id="form-aereo" onSubmit={onSubmit} className="space-y-8 p-1">
+    <form id="form-aereo" onSubmit={handleLocalSubmit} className="space-y-8 p-1">
       {/* Tempo de Operação */}
       <div className="space-y-4">
         <h3 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground border-b border-border pb-2">Tempo de Operação</h3>
@@ -39,7 +69,7 @@ export function RelatorioAereoForm({ onSubmit, onFilesChange }: { onSubmit?: (e:
 
       {/* Tipo de Emprego */}
       <div className="space-y-4">
-        <h3 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground border-b border-border pb-2">Tipo de emprego</h3>
+        <h3 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground border-b border-border pb-2">Tipo de emprego <span className="text-destructive">*</span></h3>
         <div className="flex flex-wrap gap-4">
           <div className="flex items-center space-x-2">
             <Checkbox id="emp-direto" />
@@ -99,12 +129,12 @@ export function RelatorioAereoForm({ onSubmit, onFilesChange }: { onSubmit?: (e:
         {usoAgua && (
           <div className="space-y-4 pl-6 border-l-2 border-primary/30 pt-2">
             <div className="space-y-2 max-w-sm">
-              <Label>Quantidade (Litros)</Label>
-              <Input type="number" placeholder="Ex: 5000" />
+              <Label>Quantidade (Litros) <span className="text-destructive">*</span></Label>
+              <Input type="number" placeholder="Ex: 5000" required={usoAgua} />
             </div>
 
             <div className="space-y-2 pt-2">
-              <Label>Origem da Água</Label>
+              <Label>Origem da Água <span className="text-destructive">*</span></Label>
               <div className="flex flex-col gap-2">
                 <div className="flex items-center space-x-2">
                   <Checkbox id="oagua-curso" />
@@ -167,7 +197,7 @@ export function RelatorioAereoForm({ onSubmit, onFilesChange }: { onSubmit?: (e:
 
         {reforco && (
           <div className="space-y-3 pl-6 border-l-2 border-warning/30 pt-2">
-            <Label className="text-muted-foreground">Selecione os reforços necessários:</Label>
+            <Label className="text-muted-foreground">Selecione os reforços necessários: <span className="text-destructive">*</span></Label>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div className="flex items-center space-x-2">
                 <Checkbox id="ref-ter" />
@@ -195,8 +225,8 @@ export function RelatorioAereoForm({ onSubmit, onFilesChange }: { onSubmit?: (e:
         <h3 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground border-b border-border pb-2">Histórico e Resultado</h3>
         
         <div className="space-y-2">
-          <Label>Histórico descritivo</Label>
-          <Textarea placeholder="Descreva de forma livre os detalhes da operação aérea..." className="min-h-[120px]" />
+          <Label>Histórico descritivo <span className="text-destructive">*</span></Label>
+          <Textarea placeholder="Descreva de forma livre os detalhes da operação aérea..." className="min-h-[120px]" required />
         </div>
 
         <div className="space-y-3 pt-2">

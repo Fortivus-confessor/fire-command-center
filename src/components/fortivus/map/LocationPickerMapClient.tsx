@@ -63,9 +63,14 @@ export default function LocationPickerMapClient({ initialPosition = [-15.601, -5
   function MapInvalidator() {
     const map = useMapEvents({});
     useEffect(() => {
-      setTimeout(() => {
-        map.invalidateSize();
-      }, 100);
+      const timer = setTimeout(() => {
+        try {
+          if (map) map.invalidateSize();
+        } catch (e) {
+          console.warn("Leaflet invalidateSize error ignored");
+        }
+      }, 200);
+      return () => clearTimeout(timer);
     }, [map]);
     return null;
   }
