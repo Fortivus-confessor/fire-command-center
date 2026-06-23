@@ -4,7 +4,7 @@ import { Plus, ArrowLeft, Send, MapPin, ArrowRightLeft, Search } from 'lucide-re
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { fetchWithAuth } from '@/lib/api';
 import SituationMapClient from '../components/fortivus/map/SituationMapClient';
 import { Label } from '@/components/ui/label';
@@ -27,6 +27,7 @@ const emptyForm = {
 function NovoDespachoPage() {
   const { id: osId } = Route.useParams();
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const [form, setForm] = useState(emptyForm);
   const [errors, setErrors] = useState<Record<string, string>>({});
 
@@ -163,6 +164,8 @@ function NovoDespachoPage() {
       
       if (res && res.id) {
         toast.success("Despacho criado com sucesso!");
+        queryClient.invalidateQueries({ queryKey: ['os', osId] });
+        queryClient.invalidateQueries({ queryKey: ['despachos'] });
         navigate({ to: `/ordens-servico/${osId}` as any });
       } else {
         toast.error("Erro ao criar Despacho.");
