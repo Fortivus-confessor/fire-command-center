@@ -236,7 +236,7 @@ function OrdemServicoDetalhePage() {
                 const responsavel = todosUsuarios.find(u => String(u.id) === String(d.responsavelId));
                 return (
                   <TableRow key={d.id}>
-                    <TableCell className="mono">{d.id}</TableCell>
+                    <TableCell className="mono">D{d.id}</TableCell>
                     <TableCell>
                       <div className="font-medium">{esc?.equipeNome || 'Equipe Desconhecida'} - {esc?.comandanteNome || 'Comandante Desconhecido'}</div>
                     </TableCell>
