@@ -152,6 +152,7 @@ function VeiculosPage() {
   const [form, setForm] = useState(emptyForm);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [removeExistingPhoto, setRemoveExistingPhoto] = useState(false);
+  const [formError, setFormError] = useState<string | null>(null);
 
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
@@ -191,6 +192,7 @@ function VeiculosPage() {
     setForm({ ...emptyForm });
     setPreviewUrl(null);
     setRemoveExistingPhoto(false);
+    setFormError(null);
     setDialogOpen(true);
   }
 
@@ -207,10 +209,24 @@ function VeiculosPage() {
     });
     setPreviewUrl(item.fotoUrl || null);
     setRemoveExistingPhoto(false);
+    setFormError(null);
     setDialogOpen(true);
   }
 
   function handleSave() {
+    const isTerrestre = form.tipo === 'TERRESTRE';
+    if (!form.tipo || !form.identificador || !form.modelo || !form.contrato || !form.centroComando || form.centroComando === 'Nenhum' || (isTerrestre && !form.prefixo)) {
+      setFormError('Preencha todos os campos obrigatórios (marcados com *).');
+      return;
+    }
+
+    const identificadorExiste = veiculosData.some((v: any) => v.identificador.toLowerCase() === form.identificador.toLowerCase() && v.id !== editingItem?.id);
+    if (identificadorExiste) {
+      setFormError('Já existe um veículo cadastrado com este identificador.');
+      return;
+    }
+
+    setFormError(null);
     saveMutation.mutate({
       id: editingItem?.id,
       removeExistingPhoto,
@@ -376,7 +392,7 @@ function VeiculosPage() {
           </DialogHeader>
           <div className="grid gap-4 py-4">
             <div className="space-y-2">
-              <Label>Tipo</Label>
+              <Label>Tipo *</Label>
               <Select value={form.tipo} onValueChange={(v) => setForm({ ...form, tipo: v as Veiculo['tipo'] })}>
                 <SelectTrigger>
                   <SelectValue placeholder="Selecione um tipo" />
@@ -390,7 +406,7 @@ function VeiculosPage() {
               </Select>
             </div>
             <div className="space-y-2">
-              <Label>Centro de Comando</Label>
+              <Label>Centro de Comando *</Label>
               <Select value={form.centroComando} onValueChange={(v) => setForm({ ...form, centroComando: v })}>
                 <SelectTrigger>
                   <SelectValue placeholder="Selecione um centro" />
@@ -405,7 +421,7 @@ function VeiculosPage() {
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="identificador">Identificador (Placa/Código)</Label>
+                <Label htmlFor="identificador">Identificador (Placa/Código) *</Label>
                 <Input
                   id="identificador"
                   value={form.identificador}
@@ -416,7 +432,7 @@ function VeiculosPage() {
               </div>
               {form.tipo === 'TERRESTRE' && (
                 <div className="space-y-2">
-                  <Label htmlFor="prefixo">Prefixo</Label>
+                  <Label htmlFor="prefixo">Prefixo *</Label>
                   <Input
                     id="prefixo"
                     value={form.prefixo}
@@ -429,7 +445,7 @@ function VeiculosPage() {
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="modelo">Modelo</Label>
+                <Label htmlFor="modelo">Modelo *</Label>
                 <Input
                   id="modelo"
                   value={form.modelo}
@@ -438,7 +454,7 @@ function VeiculosPage() {
                 />
               </div>
               <div className="space-y-2">
-                <Label>Contrato</Label>
+                <Label>Contrato *</Label>
                 <Select value={form.contrato} onValueChange={(v) => setForm({ ...form, contrato: v as Veiculo['contrato'] })}>
                   <SelectTrigger>
                     <SelectValue placeholder="Selecione um contrato" />
@@ -498,6 +514,11 @@ function VeiculosPage() {
                 </div>
               </div>
             </div>
+            
+            {formError && (
+              <div className="text-sm text-destructive mt-2">{formError}</div>
+            )}
+
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setDialogOpen(false)}>Cancelar</Button>
