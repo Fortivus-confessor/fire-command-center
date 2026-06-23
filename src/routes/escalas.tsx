@@ -429,8 +429,6 @@ function EscalasPage() {
         />
       </div>
 
-      </div>
-
       {/* Table */}
       <div className="rounded-xl overflow-hidden glass border border-border">
         <div className="overflow-x-auto">
