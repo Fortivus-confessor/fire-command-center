@@ -1,6 +1,6 @@
 import { createFileRoute, useNavigate } from '@tanstack/react-router';
 import { useState, useEffect } from 'react';
-import { Plus, ArrowLeft, Truck, Search } from 'lucide-react';
+import { Plus, ArrowLeft, Send, MapPin, ArrowRightLeft, Search } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -37,9 +37,11 @@ function NovoDespachoPage() {
   const [addressSearch, setAddressSearch] = useState('');
   const [addressResults, setAddressResults] = useState<any[]>([]);
 
-  const { data: os, isLoading: loadingOs } = useQuery<any>({
+  // Carrega OS original para podermos pular para o local dela
+  const { data: os } = useQuery<any>({
     queryKey: ['os', osId],
-    queryFn: () => fetchWithAuth(`/operacional/os/${osId}`)
+    queryFn: () => fetchWithAuth(`/operacional/os/${osId}`),
+    enabled: !!osId
   });
 
   // Pre-fill latitude/longitude if OS has it
@@ -100,6 +102,11 @@ function NovoDespachoPage() {
     queryFn: () => fetchWithAuth('/admin/equipes')
   });
 
+  const { data: todasEscalas = [] } = useQuery<any[]>({
+    queryKey: ['todas-escalas'],
+    queryFn: () => fetchWithAuth('/operacional/escalas')
+  });
+
   const { data: todosUsuarios = [] } = useQuery<any[]>({
     queryKey: ['usuarios'],
     queryFn: () => fetchWithAuth('/admin/usuarios')
@@ -123,22 +130,18 @@ function NovoDespachoPage() {
          return;
       }
 
-      if (!latInput || !lngInput) {
-         toast.error("O mapa/localização do despacho é obrigatório");
-         return;
-      }
-      
       const latDD = parseCoordinateToDD(latInput);
       const lngDD = parseCoordinateToDD(lngInput);
 
       if (isNaN(latDD) || isNaN(lngDD)) {
-         toast.error("Coordenadas inválidas");
-         return;
+        toast.error("Por favor, preencha latitude e longitude corretamente");
+        return;
       }
       
       const p = {
         ordemServicoId: Number(osId),
         escalaId: form.equipe,
+        responsavelId: form.responsavel,
         categoria: form.categoria,
         descricaoTarefa: form.descricao,
         latitude: latDD,
@@ -190,6 +193,30 @@ function NovoDespachoPage() {
     return `${deg}° ${min}' ${sec}" ${dir}`;
   }
 
+  function toggleFormat() {
+    const latDD = parseCoordinateToDD(latInput);
+    const lngDD = parseCoordinateToDD(lngInput);
+    
+    if (isDms) {
+      setLatInput(isNaN(latDD) ? latInput : latDD.toFixed(6));
+      setLngInput(isNaN(lngDD) ? lngInput : lngDD.toFixed(6));
+      setIsDms(false);
+    } else {
+      setLatInput(isNaN(latDD) ? latInput : ddToDms(latDD, false));
+      setLngInput(isNaN(lngDD) ? lngInput : ddToDms(lngDD, true));
+      setIsDms(true);
+    }
+  }
+
+  function applyManualCoordinates() {
+    const latDD = parseCoordinateToDD(latInput);
+    const lngDD = parseCoordinateToDD(lngInput);
+    if (!isNaN(latDD) && !isNaN(lngDD)) {
+      setForm(prev => ({ ...prev, latLng: `${latDD.toFixed(6)}, ${lngDD.toFixed(6)}` }));
+      setFlyTo({ lat: latDD, lng: lngDD });
+    }
+  }
+
   function handleMapClick(lat: number, lng: number) {
     if (isDms) {
       setLatInput(ddToDms(lat, false));
@@ -209,7 +236,7 @@ function NovoDespachoPage() {
         </Button>
         <div>
           <h1 className="text-2xl font-bold text-foreground flex items-center gap-2">
-            <Truck className="h-6 w-6 text-warning" />
+            <Send className="h-6 w-6 text-warning" />
             Adicionar Despacho
           </h1>
           <p className="text-sm text-muted-foreground mt-1">
@@ -248,10 +275,10 @@ function NovoDespachoPage() {
                selectedId={os?.eventoFogoId} 
                isolatedEventId={os?.eventoFogoId || 'NONE_ISOLATED'}
                onClickMap={handleMapClick}
-               flyTo={flyTo}
+               center={flyTo}
+               activePin={form.latLng ? { lat: parseCoordinateToDD(latInput), lng: parseCoordinateToDD(lngInput) } : null}
                extraMarkers={[
-                 ...(os?.latitude ? [{ lat: os.latitude, lng: os.longitude, color: '#f59e0b', tooltip: 'Local Inicial da OS' }] : []),
-                 ...(latInput && lngInput && !isNaN(parseFloat(latInput)) && !isNaN(parseFloat(lngInput)) ? [{ lat: parseFloat(latInput), lng: parseFloat(lngInput), color: '#ef4444', tooltip: 'Local de Despacho (Novo)' }] : [])
+                 ...(os?.latitude ? [{ lat: os.latitude, lng: os.longitude, color: '#f59e0b', tooltip: 'Local Inicial da OS' }] : [])
                ]}
             />
           </div>
@@ -287,8 +314,8 @@ function NovoDespachoPage() {
                   </SelectTrigger>
                   <SelectContent>
                     {escalasAtivas.map(e => {
-                      const eq = todasEquipes.find(eq => eq.id === e.equipeId);
-                      const cmd = todosUsuarios.find(u => u.id === e.comandanteId);
+                      const eq = todasEquipes.find(eq => String(eq.id) === String(e.equipeId));
+                      const cmd = todosUsuarios.find(u => String(u.id) === String(e.comandanteId));
                       return <SelectItem key={e.id} value={String(e.id)}>{eq?.nome || 'Desconhecida'} - {cmd?.nome || 'Comandante Desconhecido'}</SelectItem>;
                     })}
                   </SelectContent>
@@ -304,12 +331,17 @@ function NovoDespachoPage() {
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label>Usuário Responsável *</Label>
-                <Select value={form.responsavel} onValueChange={(v) => setForm({ ...form, responsavel: v })}>
+                <Select disabled={!form.equipe} value={form.responsavel} onValueChange={(v) => setForm({ ...form, responsavel: v })}>
                   <SelectTrigger>
                     <SelectValue placeholder="Selecione o responsável..." />
                   </SelectTrigger>
                   <SelectContent>
-                    {todosUsuarios.map(u => (
+                    {todosUsuarios.filter((u: any) => {
+                      const selectedScale = todasEscalas.find((e: any) => String(e.id) === String(form.equipe));
+                      if (!selectedScale) return false;
+                      const ids = [...(selectedScale.integranteIds || []), selectedScale.comandanteId].map(String);
+                      return ids.includes(String(u.id));
+                    }).map(u => (
                       <SelectItem key={u.id} value={String(u.id)}>{u.nome}</SelectItem>
                     ))}
                   </SelectContent>
@@ -341,14 +373,39 @@ function NovoDespachoPage() {
               />
             </div>
             
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label>Latitude *</Label>
-                <Input value={latInput} onChange={e => setLatInput(e.target.value)} readOnly placeholder="-15.000" />
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <Label>Ponto de Encontro / Local (Clique no mapa ou digite) *</Label>
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  className="h-7 text-xs px-2"
+                  onClick={toggleFormat}
+                >
+                  <ArrowRightLeft className="w-3 h-3 mr-1" />
+                  {isDms ? 'Alternar para Decimal' : 'Alternar para Graus (DMS)'}
+                </Button>
               </div>
-              <div className="space-y-2">
-                <Label>Longitude *</Label>
-                <Input value={lngInput} onChange={e => setLngInput(e.target.value)} readOnly placeholder="-50.000" />
+              <div className="flex gap-2">
+                <div className="relative flex-1">
+                  <MapPin className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    className="pl-9 text-xs"
+                    placeholder={isDms ? "Lat (ex: 15° 30' 0\" S)" : "Latitude (ex: -15.500)"}
+                    value={latInput}
+                    onChange={(e) => setLatInput(e.target.value)}
+                    onBlur={applyManualCoordinates}
+                  />
+                </div>
+                <div className="relative flex-1">
+                  <Input
+                    className="text-xs"
+                    placeholder={isDms ? "Lng (ex: 50° 0' 0\" W)" : "Longitude (ex: -50.000)"}
+                    value={lngInput}
+                    onChange={(e) => setLngInput(e.target.value)}
+                    onBlur={applyManualCoordinates}
+                  />
+                </div>
               </div>
             </div>
           </div>
