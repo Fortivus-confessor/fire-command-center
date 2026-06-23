@@ -153,6 +153,7 @@ function VeiculosPage() {
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [removeExistingPhoto, setRemoveExistingPhoto] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
+  const [errors, setErrors] = useState<Record<string, string>>({});
 
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
@@ -193,6 +194,7 @@ function VeiculosPage() {
     setPreviewUrl(null);
     setRemoveExistingPhoto(false);
     setFormError(null);
+    setErrors({});
     setDialogOpen(true);
   }
 
@@ -210,23 +212,33 @@ function VeiculosPage() {
     setPreviewUrl(item.fotoUrl || null);
     setRemoveExistingPhoto(false);
     setFormError(null);
+    setErrors({});
     setDialogOpen(true);
   }
 
   function handleSave() {
-    const isTerrestre = form.tipo === 'TERRESTRE';
-    if (!form.tipo || !form.identificador || !form.modelo || !form.contrato || !form.centroComando || form.centroComando === 'Nenhum' || (isTerrestre && !form.prefixo)) {
-      setFormError('Preencha todos os campos obrigatórios (marcados com *).');
-      return;
-    }
-
-    const identificadorExiste = veiculosData.some((v: any) => v.identificador.toLowerCase() === form.identificador.toLowerCase() && v.id !== editingItem?.id);
-    if (identificadorExiste) {
-      setFormError('Já existe um veículo cadastrado com este identificador.');
-      return;
-    }
-
     setFormError(null);
+    setErrors({});
+    const newErrors: Record<string, string> = {};
+
+    if (!form.tipo) newErrors.tipo = "Selecione o tipo.";
+    if (!form.centroComando || form.centroComando === 'Nenhum') newErrors.centroComando = "Selecione o centro de comando.";
+    if (!form.identificador) newErrors.identificador = "Informe o identificador.";
+    if (form.tipo === 'TERRESTRE' && !form.prefixo) newErrors.prefixo = "Informe o prefixo.";
+    if (!form.modelo) newErrors.modelo = "Informe o modelo.";
+    if (!form.contrato) newErrors.contrato = "Selecione o contrato.";
+
+    const identificadorExiste = veiculosData.some((v: any) => v.identificador.toLowerCase() === form.identificador?.toLowerCase() && v.id !== editingItem?.id);
+    if (identificadorExiste) {
+      newErrors.identificador = "Já existe um veículo cadastrado com este identificador.";
+    }
+
+    if (Object.keys(newErrors).length > 0) {
+      setErrors(newErrors);
+      setFormError('Por favor, corrija os erros destacados abaixo.');
+      return;
+    }
+
     saveMutation.mutate({
       id: editingItem?.id,
       removeExistingPhoto,
@@ -392,9 +404,9 @@ function VeiculosPage() {
           </DialogHeader>
           <div className="grid gap-4 py-4">
             <div className="space-y-2">
-              <Label>Tipo *</Label>
+              <Label className={errors.tipo ? "text-destructive" : ""}>Tipo *</Label>
               <Select value={form.tipo} onValueChange={(v) => setForm({ ...form, tipo: v as Veiculo['tipo'] })}>
-                <SelectTrigger>
+                <SelectTrigger className={errors.tipo ? "border-destructive" : ""}>
                   <SelectValue placeholder="Selecione um tipo" />
                 </SelectTrigger>
                 <SelectContent>
@@ -404,11 +416,12 @@ function VeiculosPage() {
                   <SelectItem value="AQUATICO">Aquático</SelectItem>
                 </SelectContent>
               </Select>
+              {errors.tipo && <p className="text-xs text-destructive">{errors.tipo}</p>}
             </div>
             <div className="space-y-2">
-              <Label>Centro de Comando *</Label>
+              <Label className={errors.centroComando ? "text-destructive" : ""}>Centro de Comando *</Label>
               <Select value={form.centroComando} onValueChange={(v) => setForm({ ...form, centroComando: v })}>
-                <SelectTrigger>
+                <SelectTrigger className={errors.centroComando ? "border-destructive" : ""}>
                   <SelectValue placeholder="Selecione um centro" />
                 </SelectTrigger>
                 <SelectContent>
@@ -418,45 +431,50 @@ function VeiculosPage() {
                   ))}
                 </SelectContent>
               </Select>
+              {errors.centroComando && <p className="text-xs text-destructive">{errors.centroComando}</p>}
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="identificador">Identificador (Placa/Código) *</Label>
+                <Label htmlFor="identificador" className={errors.identificador ? "text-destructive" : ""}>Identificador (Placa/Código) *</Label>
                 <Input
                   id="identificador"
                   value={form.identificador}
                   onChange={(e) => setForm({ ...form, identificador: e.target.value })}
                   placeholder="Ex: ABC-1D23"
-                  className="mono"
+                  className={"mono " + (errors.identificador ? "border-destructive" : "")}
                 />
+                {errors.identificador && <p className="text-xs text-destructive">{errors.identificador}</p>}
               </div>
               {form.tipo === 'TERRESTRE' && (
                 <div className="space-y-2">
-                  <Label htmlFor="prefixo">Prefixo *</Label>
+                  <Label htmlFor="prefixo" className={errors.prefixo ? "text-destructive" : ""}>Prefixo *</Label>
                   <Input
                     id="prefixo"
                     value={form.prefixo}
                     onChange={(e) => setForm({ ...form, prefixo: e.target.value })}
                     placeholder="Ex: VTR-01"
-                    className="mono"
+                    className={"mono " + (errors.prefixo ? "border-destructive" : "")}
                   />
+                  {errors.prefixo && <p className="text-xs text-destructive">{errors.prefixo}</p>}
                 </div>
               )}
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="modelo">Modelo *</Label>
+                <Label htmlFor="modelo" className={errors.modelo ? "text-destructive" : ""}>Modelo *</Label>
                 <Input
                   id="modelo"
                   value={form.modelo}
                   onChange={(e) => setForm({ ...form, modelo: e.target.value })}
                   placeholder="Ex: Caminhão ABTR"
+                  className={errors.modelo ? "border-destructive" : ""}
                 />
+                {errors.modelo && <p className="text-xs text-destructive">{errors.modelo}</p>}
               </div>
               <div className="space-y-2">
-                <Label>Contrato *</Label>
+                <Label className={errors.contrato ? "text-destructive" : ""}>Contrato *</Label>
                 <Select value={form.contrato} onValueChange={(v) => setForm({ ...form, contrato: v as Veiculo['contrato'] })}>
-                  <SelectTrigger>
+                  <SelectTrigger className={errors.contrato ? "border-destructive" : ""}>
                     <SelectValue placeholder="Selecione um contrato" />
                   </SelectTrigger>
                   <SelectContent>
@@ -465,6 +483,7 @@ function VeiculosPage() {
                     <SelectItem value="Órgão de Apoio">Órgão de Apoio</SelectItem>
                   </SelectContent>
                 </Select>
+                {errors.contrato && <p className="text-xs text-destructive">{errors.contrato}</p>}
               </div>
             </div>
             <div className="space-y-2">
