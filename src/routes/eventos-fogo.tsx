@@ -86,6 +86,11 @@ function EventosFogoPage() {
     queryFn: () => fetch(`/api/v1/fire-events?page=${pageIndex}&size=${pageSize}`).then(res => res.json())
   });
 
+  const { data: ordensServico = [] } = useQuery<any[]>({
+    queryKey: ['ordens-servico'],
+    queryFn: () => fetchWithAuth('/operacional/os')
+  });
+
   const eventosData = pageData?.content || [];
   
   const filtered = eventosData.filter((item) => {
@@ -219,13 +224,25 @@ function EventosFogoPage() {
                             <Button variant="ghost" size="sm" onClick={() => setSelectedEvent(item)}>
                               <Eye className="h-4 w-4 mr-1" /> Visualizar
                             </Button>
-                            {canCreateOS && (
-                              <Link to={`/ordens-servico/nova`} search={{ eventoFogoId: item.id }}>
-                                <Button variant="outline" size="sm" className="border-command text-command hover:bg-command hover:text-white">
-                                  <ExternalLink className="h-4 w-4 mr-1" /> Despachar OS
-                                </Button>
-                              </Link>
-                            )}
+                            {canCreateOS && (() => {
+                              const linkedOs = ordensServico.find((os: any) => os.eventoFogoId === item.id);
+                              if (linkedOs) {
+                                return (
+                                  <Link to={`/ordens-servico/${linkedOs.id}`}>
+                                    <Button variant="outline" size="sm" className="border-command/50 text-command hover:bg-command hover:text-white">
+                                      <ExternalLink className="h-4 w-4 mr-1" /> Visualizar OS Vinculada
+                                    </Button>
+                                  </Link>
+                                );
+                              }
+                              return (
+                                <Link to={`/ordens-servico/nova`} search={{ eventoFogoId: item.id }}>
+                                  <Button variant="outline" size="sm" className="border-command text-command hover:bg-command hover:text-white">
+                                    <ExternalLink className="h-4 w-4 mr-1" /> Despachar OS
+                                  </Button>
+                                </Link>
+                              );
+                            })()}
                           </div>
                         </TableCell>
                       </TableRow>

@@ -327,7 +327,7 @@ export default function SituationMapClient({ selectedId, onSelect, onClickMap, a
                     onClick={(e) => {
                       e.stopPropagation();
                       const os = ordensServico.find((os: any) => os.eventoFogoId === popupInfo.properties.id);
-                      navigate({ to: '/ordens-servico', search: { highlightId: os.id } });
+                      navigate({ to: `/ordens-servico/${os.id}` as any });
                     }}
                   >
                     <ExternalLink className="mr-2 h-3 w-3" />
