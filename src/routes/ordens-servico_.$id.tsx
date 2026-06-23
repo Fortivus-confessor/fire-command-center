@@ -123,8 +123,7 @@ function OrdemServicoDetalhePage() {
   }
 
   function openEditDespacho(d: any) {
-    // Para simplificar, poderíamos ter uma rota de edição ou reaproveitar
-    toast.info("Edição de despacho deve ser feita na página apropriada.");
+    navigate({ to: `/ordens-servico/${id}/despacho/${d.id}/editar` as any });
   }
 
   if (loadingOs || !os) {
