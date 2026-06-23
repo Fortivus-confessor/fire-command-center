@@ -53,10 +53,9 @@ function EditarDespachoPage() {
 
   // Pre-fill latitude/longitude if OS has it
   useEffect(() => {
-    if (despachoOriginal && !form.comando) {
+    if (despachoOriginal && form.equipe === '') {
       setForm(prev => ({
         ...prev,
-        comando: 'dummy', // Will be filled later by centro from equipe
         equipe: String(despachoOriginal.escalaId),
         responsavel: String(despachoOriginal.responsavelId),
         categoria: despachoOriginal.categoria,
@@ -125,6 +124,18 @@ function EditarDespachoPage() {
     queryKey: ['todas-escalas'],
     queryFn: () => fetchWithAuth('/operacional/escalas')
   });
+
+  useEffect(() => {
+    if (despachoOriginal && !form.comando && todasEscalas.length > 0 && todasEquipes.length > 0) {
+      const escala = todasEscalas.find((e: any) => String(e.id) === String(despachoOriginal.escalaId));
+      if (escala) {
+        const equipe = todasEquipes.find((eq: any) => String(eq.id) === String(escala.equipeId));
+        if (equipe && equipe.centroComandoId) {
+          setForm(prev => ({ ...prev, comando: String(equipe.centroComandoId) }));
+        }
+      }
+    }
+  }, [despachoOriginal, todasEscalas, todasEquipes, form.comando]);
 
   const { data: todosUsuarios = [] } = useQuery<any[]>({
     queryKey: ['usuarios'],
