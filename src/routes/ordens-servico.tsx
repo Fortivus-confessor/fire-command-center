@@ -1,6 +1,6 @@
 import { createFileRoute, useNavigate } from '@tanstack/react-router';
 import { useState, useEffect } from 'react';
-import { Plus, Search, Pencil, Trash2, FileText, Filter, MapPin, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Plus, Search, Pencil, Trash2, FileText, Filter, MapPin, ChevronLeft, ChevronRight, Eye } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -285,6 +285,8 @@ function OrdensServicoPage() {
   }
 
   // ── Filtered data ──
+  const formatOsId = (id: string | number) => `OS2026${String(id).padStart(8, '0')}`;
+
   const mappedData = ordensServicoDB.map((dbOs: any) => {
     const escala = todasEscalas.find((e: any) => e.id === dbOs.escalaId);
     const equipe = todasEquipes.find((e: any) => e.id === escala?.equipeId);
@@ -298,7 +300,7 @@ function OrdensServicoPage() {
 
     return {
       id: dbOs.id,
-      codigo: String(dbOs.id),
+      codigo: formatOsId(dbOs.id),
       comando: comandoName,
       equipe: equipeName,
       tipoDespacho: dbOs.tipoDespacho || '',
@@ -358,7 +360,7 @@ function OrdensServicoPage() {
       if (dbOs) {
         const item = {
           id: dbOs.id,
-          codigo: String(dbOs.id),
+          codigo: formatOsId(dbOs.id),
           comando: dbOs.comandoId ? String(dbOs.comandoId) : '',
           equipe: dbOs.escalaId ? String(dbOs.escalaId) : '',
           tipoDespacho: dbOs.tipoDespacho || '',
@@ -531,7 +533,7 @@ function OrdensServicoPage() {
           <Table>
             <TableHeader className="bg-secondary/40">
               <TableRow>
-                <TableHead>Código</TableHead>
+                <TableHead>ID</TableHead>
                 <TableHead>Comando / Equipe</TableHead>
                 <TableHead>Tipo Despacho</TableHead>
                 <TableHead>Responsável</TableHead>
@@ -565,6 +567,9 @@ function OrdensServicoPage() {
                     <TableCell className="text-muted-foreground">{item.dataFim}</TableCell>
                     <TableCell className="text-right">
                       <div className="flex justify-end gap-1">
+                        <Button variant="ghost" size="icon" onClick={() => navigate({ to: `/ordens-servico/${item.id}` as any })} className="h-8 w-8 hover:text-primary">
+                          <Eye className="h-4 w-4" />
+                        </Button>
                         <Button variant="ghost" size="icon" onClick={() => openEdit(item)} className="h-8 w-8 hover:text-command">
                           <Pencil className="h-4 w-4" />
                         </Button>
@@ -623,7 +628,7 @@ function OrdensServicoPage() {
             {editingItem && (
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="codigo">Código OS</Label>
+                  <Label htmlFor="codigo">ID da OS</Label>
                   <Input id="codigo" value={form.codigo} readOnly className="mono bg-secondary/30 text-muted-foreground" />
                 </div>
                 <div className="space-y-2 relative">
