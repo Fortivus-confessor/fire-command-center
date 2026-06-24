@@ -56,8 +56,8 @@ const ORIGENS_INCENDIO = [
 const RESULTADOS = [
   { value: 'EM_ANDAMENTO', label: 'Em andamento', desc: 'Combate ativo no momento do preenchimento, sem extinção total.' },
   { value: 'NECESSIDADE_FISCALIZACAO', label: 'Necessidade de equipe de fiscalização', desc: 'Ex: queima controlada ou intencional, fogo já extinto, situação monitorada.' },
-  { value: 'SEM_INTERVENCAO', label: 'Sem necessidade de intervenção', desc: 'Incêndio extinto sozinho ou por terceiros antes da chegada da guarnição.' },
-  { value: 'EXTINTO_RESOLVIDA', label: 'Incêndio extinto / Resolvida', desc: 'Guarnição concluiu o combate e confirmou extinção completa do fogo.' },
+  { value: 'SEM_INTERVENCAO', label: 'Sem necessidade de intervenção', desc: 'Incêndio extinto sozinho ou por terceiros antes da chegada da equipe.' },
+  { value: 'EXTINTO_RESOLVIDA', label: 'Incêndio extinto / Resolvida', desc: 'Equipe concluiu o combate e confirmou extinção completa do fogo.' },
   { value: 'DESPACHO_INCORRETO', label: 'Despacho incorreto', desc: 'Não foi encontrado nenhum incêndio ou queimada nas imediações.' },
   { value: 'OUTRO', label: 'Outro:', desc: '' },
 ];
@@ -436,7 +436,7 @@ export function RelatorioTerrestreForm({
 
       {/* ── Área de Atuação ── */}
       <div className="space-y-3">
-        {sectionHeader('Área de Atuação da Guarnição', false)}
+        {sectionHeader('Área de Atuação da Equipe', false)}
         <div className="relative rounded-lg overflow-hidden border border-border">
           <LocationPickerMap height="300px" />
           <div className="absolute top-4 left-4 z-[400] flex gap-2 pointer-events-none">
@@ -852,7 +852,7 @@ export function RelatorioTerrestreForm({
         {necessidadeReforco && (
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pl-6 border-l-2 border-warning/30">
             {[
-              { value: 'TERRESTRE', label: 'Mais guarnições terrestres' },
+              { value: 'TERRESTRE', label: 'Mais equipes terrestres' },
               { value: 'AEREO', label: 'Apoio aéreo' },
               { value: 'MAQUINARIO', label: 'Maquinário pesado' },
               { value: 'SCI', label: 'Implantação do SCI' },
@@ -941,6 +941,7 @@ export function RelatorioTerrestreForm({
           {sectionHeader('Anexos e Documentação Visual', false)}
           <FileUploader
             label="Anexar Fotos, Relatórios em PDF, Mapas KML ou Documentos"
+            initialUrls={initialData?.anexos?.map((a: any) => a.url) || []}
             onChange={files => onFilesChange && onFilesChange('anexos', files)}
           />
         </div>
