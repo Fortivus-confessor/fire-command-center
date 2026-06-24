@@ -9,7 +9,17 @@ import { LocationPickerMap } from '@/components/fortivus/map/LocationPickerMap';
 import { FileUploader } from '@/components/fortivus/forms/FileUploader';
 import { toast } from 'sonner';
 
-export function RelatorioMaquinarioForm({ onSubmit, onFilesChange }: { onSubmit?: (e: React.FormEvent) => void, onFilesChange?: (key: string, files: File[]) => void }) {
+export function RelatorioMaquinarioForm({ 
+  initialData,
+  onSubmit, 
+  onFilesChange,
+  onFileRemove 
+}: { 
+  initialData?: any,
+  onSubmit?: (e: React.FormEvent) => void, 
+  onFilesChange?: (key: string, files: File[]) => void,
+  onFileRemove?: (url: string) => void
+}) {
   const [reforco, setReforco] = useState(false);
   const [resultado, setResultado] = useState<string>('andamento');
   const [empregoAceiro, setEmpregoAceiro] = useState(false);
@@ -225,7 +235,9 @@ export function RelatorioMaquinarioForm({ onSubmit, onFilesChange }: { onSubmit?
         <h3 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground border-b border-border pb-2">Anexos e Documentação Visual</h3>
         <FileUploader 
           label="Anexar Fotos, Relatórios em PDF, Mapas KML ou Documentos" 
+          initialUrls={initialData?.anexos?.map((a: any) => a.url) || []}
           onChange={(files) => onFilesChange && onFilesChange('anexos', files)}
+          onRemoveInitial={onFileRemove}
         />
       </div>
     </form>

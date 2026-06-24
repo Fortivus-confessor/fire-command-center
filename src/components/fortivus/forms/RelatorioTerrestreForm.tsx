@@ -826,7 +826,7 @@ export function RelatorioTerrestreForm({
             label="Anexar Fotos do local de origem (com coordenadas)"
             maxFiles={1}
             initialUrls={initialData?.origem?.map((a: any) => a.url) || []}
-            accept=".png,.jpg,.jpeg"
+            accept=".png,.jpg,.jpeg,.kml,.kmz"
             onChange={files => onFilesChange && onFilesChange('origem', files)}
             onRemoveInitial={onFileRemove}
           />

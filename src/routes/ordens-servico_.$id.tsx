@@ -19,8 +19,9 @@ export const Route = createFileRoute('/ordens-servico_/$id')({
   component: OrdemServicoDetalhePage,
 });
 
-function formatOsId(id: string | number) {
-  return `OS2026${String(id).padStart(8, '0')}`;
+function getSmartIdOs(os: any) {
+  if (!os) return '--';
+  return os.smartId || `OS${os.id}`;
 }
 
 function formatDateBR(dateStr: string) {
@@ -142,7 +143,7 @@ function OrdemServicoDetalhePage() {
             Detalhes da Ordem de Serviço
           </h1>
           <p className="text-sm text-muted-foreground mono mt-1">
-            {formatOsId(os.id)}
+            {getSmartIdOs(os)}
           </p>
         </div>
       </div>
@@ -235,7 +236,7 @@ function OrdemServicoDetalhePage() {
                 const responsavel = todosUsuarios.find(u => String(u.id) === String(d.responsavelId));
                 return (
                   <TableRow key={d.id}>
-                    <TableCell className="mono">D{d.id}</TableCell>
+                    <TableCell className="mono">{d.smartId || `D${d.id}`}</TableCell>
                     <TableCell>
                       <div className="font-medium">{esc?.equipeNome || 'Equipe Desconhecida'} - {esc?.comandanteNome || 'Comandante Desconhecido'}</div>
                     </TableCell>

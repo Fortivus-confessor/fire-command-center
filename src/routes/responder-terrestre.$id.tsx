@@ -22,6 +22,7 @@ function ResponderTerrestrePage() {
   const despachoId = Number(id);
 
   const selectedFiles = useRef<Record<string, File[]>>({ origem: [], anexos: [] });
+  const deletedFiles = useRef<string[]>([]);
 
   const handleFilesChange = (key: string, files: File[]) => {
     selectedFiles.current[key] = files;
@@ -61,7 +62,7 @@ function ResponderTerrestrePage() {
     queryKey: ['ordem-servico', despachoData?.ordemServicoId],
     queryFn: async () => {
       try {
-        return await fetchWithAuth(`/operacional/ordens-servico/${despachoData.ordemServicoId}`);
+        return await fetchWithAuth(`/operacional/os/${despachoData.ordemServicoId}`);
       } catch (err) {
         return null;
       }
@@ -80,6 +81,7 @@ function ResponderTerrestrePage() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['relatorio-terrestre', despachoId] });
       queryClient.invalidateQueries({ queryKey: ['despacho', id] });
+      queryClient.invalidateQueries({ queryKey: ['attachments', despachoId] });
       toast.success('Relatório Terrestre Salvo!', {
         description: 'O relatório foi registrado com sucesso. O despacho foi marcado como CONCLUÍDO.',
       });
@@ -126,29 +128,43 @@ function ResponderTerrestrePage() {
       await uploadFiles(selectedFiles.current.anexos, 'RELATORIO_TERRESTRE');
     }
 
+    if (deletedFiles.current && deletedFiles.current.length > 0) {
+      toast.info('Aplicando exclusões de anexos...');
+      for (const urlToRemove of deletedFiles.current) {
+        if (!attachments) continue;
+        const attachment = attachments.find((a: any) => {
+          try {
+            const aPath = new URL(a.url).pathname;
+            const urlPath = new URL(urlToRemove).pathname;
+            return aPath === urlPath;
+          } catch {
+            const originalUrl = a.url;
+            const replacedUrl = originalUrl?.replace(/seaweedfs(:\d+)?/, window.location.hostname + '$1');
+            return replacedUrl === urlToRemove || originalUrl === urlToRemove;
+          }
+        });
+        if (attachment) {
+          try {
+            await fetchAttachmentWithAuth(`/api/v1/attachments/${attachment.id}`, { method: 'DELETE' });
+          } catch (e) {
+            console.error("Falha ao remover arquivo", e);
+          }
+        }
+      }
+    }
+
     await mutation.mutateAsync(payload);
   };
 
-  const handleFileRemove = async (url: string) => {
-    if (!attachments) return;
-    const attachment = attachments.find(a => url.includes(a.id) || a.url?.includes(url) || url.includes(a.url));
-    if (attachment) {
-      try {
-        await fetchAttachmentWithAuth(`/api/v1/attachments/${attachment.id}`, { method: 'DELETE' });
-        queryClient.invalidateQueries({ queryKey: ['attachments', despachoId] });
-        toast.success("Anexo removido com sucesso.");
-      } catch (e) {
-        console.error("Falha ao remover arquivo", e);
-        toast.error("Falha ao remover arquivo.");
-      }
-    }
+  const handleFileRemove = (url: string) => {
+    deletedFiles.current.push(url);
   };
 
   // ── Determina o status ──
   const hasRelatorio = !!relatorioExistente;
 
   // ── Busca os anexos do attachment-service ──
-  const { data: attachments } = useQuery<any[]>({
+  const { data: attachments, isLoading: isLoadingAttachments } = useQuery<any[]>({
     queryKey: ['attachments', despachoId],
     queryFn: async () => {
       const idStr = String(despachoId).padStart(12, '0').slice(-12);
@@ -171,11 +187,12 @@ function ResponderTerrestrePage() {
   } : null;
 
   // Se está carregando, mostra spinner
-  if (isLoadingRelatorio) {
+  const isLoadingOsData = !!despachoData?.ordemServicoId && !osData;
+  if (isLoadingRelatorio || (hasRelatorio && isLoadingAttachments) || isLoadingDespacho || isLoadingOsData) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[400px] gap-4">
         <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-        <p className="text-sm text-muted-foreground">Verificando relatório...</p>
+        <p className="text-sm text-muted-foreground">Carregando dados e anexos...</p>
       </div>
     );
   }

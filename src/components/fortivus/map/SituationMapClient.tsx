@@ -129,7 +129,7 @@ export default function SituationMapClient({ selectedId, onSelect, onClickMap, a
     return {
       type: 'FeatureCollection',
       features: focos
-        .filter((e: any) => isolatedEventId ? String(e.id) === isolatedEventId : true)
+        .filter((e: any) => isolatedEventId ? String(e.id) === String(isolatedEventId) : true)
         .map((e: any) => {
           let risco = 'baixo';
           if (e.status === 'ATIVO_SEVERO' || e.frpTotal >= 300) risco = 'extremo';
