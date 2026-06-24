@@ -52,7 +52,7 @@ const NAV_ITEMS: NavItem[] = [
 
 export function Sidebar() {
   const [collapsed, setCollapsed] = useState(false);
-  const { user, role, setMockRole } = useAuth();
+  const { user, role } = useAuth();
   const location = useLocation();
 
   const visibleItems = NAV_ITEMS.filter((item) => {
@@ -129,27 +129,6 @@ export function Sidebar() {
 
       {/* Bottom section: user info + role switcher */}
       <div className="border-t border-border p-3 space-y-3 shrink-0">
-        {/* Role switcher (dev tool) */}
-        {!collapsed && role ? (
-          <div className="space-y-1.5">
-            <label className="text-[10px] uppercase tracking-wider text-muted-foreground mono">
-              Mock Role
-            </label>
-            <Select value={role} onValueChange={(v) => setMockRole(v as UserRole)}>
-              <SelectTrigger className="h-8 text-xs bg-secondary/40 border-border">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {ALL_ROLES.map((r) => (
-                  <SelectItem key={r} value={r} className="text-xs">
-                    {ROLE_LABELS[r]}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-        ) : null}
-
         {/* User info */}
         {user && role && (
           <div className={cn('flex items-center gap-2', collapsed && 'justify-center')}>
@@ -204,7 +183,7 @@ export function MobileSidebar({
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }) {
-  const { user, role, setMockRole } = useAuth();
+  const { user, role } = useAuth();
   const location = useLocation();
 
   const visibleItems = NAV_ITEMS.filter((item) => {
@@ -254,25 +233,6 @@ export function MobileSidebar({
 
         {/* Bottom */}
         <div className="border-t border-border p-3 space-y-3">
-          {role && (
-            <div className="space-y-1.5">
-              <label className="text-[10px] uppercase tracking-wider text-muted-foreground mono">
-                Mock Role
-              </label>
-              <Select value={role} onValueChange={(v) => setMockRole(v as UserRole)}>
-                <SelectTrigger className="h-8 text-xs bg-secondary/40 border-border">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {ALL_ROLES.map((r) => (
-                    <SelectItem key={r} value={r} className="text-xs">
-                      {ROLE_LABELS[r]}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          )}
           {user && role && (
             <div className="flex items-center gap-2">
               <div className="h-8 w-8 rounded-full bg-gradient-to-br from-command to-accent grid place-items-center text-[11px] font-semibold shrink-0">

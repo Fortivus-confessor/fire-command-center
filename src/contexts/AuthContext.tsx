@@ -24,7 +24,6 @@ interface AuthContextType {
   user: User | null;
   role: UserRole | null;
   centroComandoId?: string;
-  setMockRole: (role: UserRole) => void;
   isAuthenticated: boolean;
   isInitialized: boolean;
   logout: () => void;
@@ -99,14 +98,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     kc?.logout();
   };
 
-  // Mantemos o mock setter provisório para a TopBar, mas atualiza o estado local
-  const setMockRole = (r: UserRole) => {
-    if (user) {
-      setUser({ ...user, role: r });
-      setRole(r);
-    }
-  };
-
   // Removed hydration breaking conditional:
   // if (!isInitialized && typeof window !== 'undefined') {
   //   return <div className="flex h-screen items-center justify-center bg-background text-foreground">Carregando autenticação...</div>;
@@ -118,7 +109,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         user,
         role,
         centroComandoId: user?.centroComandoId,
-        setMockRole,
         isAuthenticated,
         isInitialized,
         login,

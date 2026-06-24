@@ -11,6 +11,7 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as VeiculosRouteImport } from './routes/veiculos'
 import { Route as UsuariosRouteImport } from './routes/usuarios'
+import { Route as PerfilRouteImport } from './routes/perfil'
 import { Route as OrdensServicoRouteImport } from './routes/ordens-servico'
 import { Route as EventosFogoRouteImport } from './routes/eventos-fogo'
 import { Route as EscalasRouteImport } from './routes/escalas'
@@ -35,6 +36,11 @@ const VeiculosRoute = VeiculosRouteImport.update({
 const UsuariosRoute = UsuariosRouteImport.update({
   id: '/usuarios',
   path: '/usuarios',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PerfilRoute = PerfilRouteImport.update({
+  id: '/perfil',
+  path: '/perfil',
   getParentRoute: () => rootRouteImport,
 } as any)
 const OrdensServicoRoute = OrdensServicoRouteImport.update({
@@ -123,6 +129,7 @@ export interface FileRoutesByFullPath {
   '/escalas': typeof EscalasRoute
   '/eventos-fogo': typeof EventosFogoRoute
   '/ordens-servico': typeof OrdensServicoRoute
+  '/perfil': typeof PerfilRoute
   '/usuarios': typeof UsuariosRoute
   '/veiculos': typeof VeiculosRoute
   '/ordens-servico/$id': typeof OrdensServicoIdRoute
@@ -142,6 +149,7 @@ export interface FileRoutesByTo {
   '/escalas': typeof EscalasRoute
   '/eventos-fogo': typeof EventosFogoRoute
   '/ordens-servico': typeof OrdensServicoRoute
+  '/perfil': typeof PerfilRoute
   '/usuarios': typeof UsuariosRoute
   '/veiculos': typeof VeiculosRoute
   '/ordens-servico/$id': typeof OrdensServicoIdRoute
@@ -162,6 +170,7 @@ export interface FileRoutesById {
   '/escalas': typeof EscalasRoute
   '/eventos-fogo': typeof EventosFogoRoute
   '/ordens-servico': typeof OrdensServicoRoute
+  '/perfil': typeof PerfilRoute
   '/usuarios': typeof UsuariosRoute
   '/veiculos': typeof VeiculosRoute
   '/ordens-servico_/$id': typeof OrdensServicoIdRoute
@@ -183,6 +192,7 @@ export interface FileRouteTypes {
     | '/escalas'
     | '/eventos-fogo'
     | '/ordens-servico'
+    | '/perfil'
     | '/usuarios'
     | '/veiculos'
     | '/ordens-servico/$id'
@@ -202,6 +212,7 @@ export interface FileRouteTypes {
     | '/escalas'
     | '/eventos-fogo'
     | '/ordens-servico'
+    | '/perfil'
     | '/usuarios'
     | '/veiculos'
     | '/ordens-servico/$id'
@@ -221,6 +232,7 @@ export interface FileRouteTypes {
     | '/escalas'
     | '/eventos-fogo'
     | '/ordens-servico'
+    | '/perfil'
     | '/usuarios'
     | '/veiculos'
     | '/ordens-servico_/$id'
@@ -241,6 +253,7 @@ export interface RootRouteChildren {
   EscalasRoute: typeof EscalasRoute
   EventosFogoRoute: typeof EventosFogoRoute
   OrdensServicoRoute: typeof OrdensServicoRoute
+  PerfilRoute: typeof PerfilRoute
   UsuariosRoute: typeof UsuariosRoute
   VeiculosRoute: typeof VeiculosRoute
   OrdensServicoIdRoute: typeof OrdensServicoIdRoute
@@ -267,6 +280,13 @@ declare module '@tanstack/react-router' {
       path: '/usuarios'
       fullPath: '/usuarios'
       preLoaderRoute: typeof UsuariosRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/perfil': {
+      id: '/perfil'
+      path: '/perfil'
+      fullPath: '/perfil'
+      preLoaderRoute: typeof PerfilRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/ordens-servico': {
@@ -385,6 +405,7 @@ const rootRouteChildren: RootRouteChildren = {
   EscalasRoute: EscalasRoute,
   EventosFogoRoute: EventosFogoRoute,
   OrdensServicoRoute: OrdensServicoRoute,
+  PerfilRoute: PerfilRoute,
   UsuariosRoute: UsuariosRoute,
   VeiculosRoute: VeiculosRoute,
   OrdensServicoIdRoute: OrdensServicoIdRoute,
