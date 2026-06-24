@@ -2,6 +2,7 @@ import { createFileRoute } from '@tanstack/react-router';
 import { useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { ROLE_LABELS } from '../lib/roles';
+import { fetchWithAuth } from '../lib/api';
 import { Save, Key, Camera, Loader2, LogOut } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -37,7 +38,7 @@ function PerfilPage() {
     }
   };
 
-  const handleSave = (e: React.FormEvent) => {
+  const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     setSuccessMsg('');
@@ -56,13 +57,33 @@ function PerfilPage() {
       }
     }
 
-    // Simulate API call
-    setTimeout(() => {
-      setLoading(false);
+    try {
+      const payload = {
+        nome: formData.nome,
+        email: formData.email,
+        senhaAtual: formData.senhaAtual || null,
+        novaSenha: formData.novaSenha || null,
+      };
+
+      await fetchWithAuth('/operacional/usuarios/perfil', {
+        method: 'PUT',
+        body: JSON.stringify(payload)
+      });
+      
+      if (formData.email !== user?.email) {
+        alert('Seu e-mail foi atualizado com sucesso. Por motivos de segurança, você será desconectado e deverá fazer login novamente com o novo e-mail.');
+        logout();
+        return;
+      }
+
       setSuccessMsg('Perfil atualizado com sucesso!');
       setFormData(prev => ({ ...prev, senhaAtual: '', novaSenha: '', confirmarSenha: '' }));
       setTimeout(() => setSuccessMsg(''), 3000);
-    }, 1000);
+    } catch (err: any) {
+      alert(err.message || 'Erro ao atualizar perfil.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
