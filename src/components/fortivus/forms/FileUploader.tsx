@@ -13,14 +13,19 @@ export function FileUploader({
   label = "Anexar Arquivos",
   maxFiles = undefined,
   accept = ".png,.jpg,.jpeg,.pdf,.docx,.doc,.kml,.kmz,.geojson",
-  onChange
+  initialUrls = [],
+  onChange,
+  onRemoveInitial
 }: { 
   label?: string;
   maxFiles?: number;
   accept?: string;
+  initialUrls?: string[];
   onChange?: (files: File[]) => void;
+  onRemoveInitial?: (url: string) => void;
 }) {
   const [attachments, setAttachments] = useState<Attachment[]>([]);
+  const [existingUrls, setExistingUrls] = useState<string[]>(initialUrls);
   const [fullscreenImage, setFullscreenImage] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -95,8 +100,30 @@ export function FileUploader({
         </div>
       )}
 
-      {attachments.length > 0 && (
+      {(attachments.length > 0 || existingUrls.length > 0) && (
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 mt-4">
+          {existingUrls.map((url, i) => (
+            <div key={`existing-${i}`} className="relative group rounded-lg overflow-hidden border border-border bg-card/50">
+              <div 
+                className="w-full h-24 bg-black/20 cursor-pointer" 
+                onClick={() => setFullscreenImage(url)}
+              >
+                <img src={url} alt={`Anexo ${i + 1}`} className="w-full h-full object-cover" />
+              </div>
+              <button 
+                type="button"
+                onClick={(e) => { 
+                  e.stopPropagation(); 
+                  setExistingUrls(prev => prev.filter(u => u !== url));
+                  if (onRemoveInitial) onRemoveInitial(url);
+                }}
+                className="absolute top-1 right-1 bg-black/60 hover:bg-destructive text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"
+              >
+                <X className="h-3 w-3" />
+              </button>
+            </div>
+          ))}
+
           {attachments.map((att) => (
             <div key={att.id} className="relative group rounded-lg overflow-hidden border border-border bg-card/50">
               {att.previewUrl ? (

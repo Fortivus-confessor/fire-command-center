@@ -149,7 +149,7 @@ function RelatorioPdfPage() {
         {/* Cabeçalho */}
         <div className="text-center border-b-2 border-black pb-4 mb-4">
           <h1 className="text-xl font-bold uppercase tracking-wider">
-            Corpo de Bombeiros Militar — Fortivus
+            Sistema Fortivus de Gestão de Desastres
           </h1>
           <h2 className="text-base font-semibold mt-1">Relatório Operacional de Despacho Terrestre</h2>
           <p className="text-xs text-gray-600 mt-1">Emitido em {emitidoEm}</p>
@@ -298,7 +298,7 @@ function RelatorioPdfPage() {
             <p className="font-semibold uppercase text-sm">
               {despacho.responsavelId ? `Responsável ID: ${despacho.responsavelId}` : 'Comandante da Equipe'}
             </p>
-            <p className="text-xs text-gray-500">Assinatura do Responsável pela Guarnição</p>
+            <p className="text-xs text-gray-500">Assinatura do Responsável pela Equipe</p>
             <p className="text-xs text-gray-400 mt-4">
               Documento gerado pelo Sistema Fortivus em {emitidoEm}
             </p>

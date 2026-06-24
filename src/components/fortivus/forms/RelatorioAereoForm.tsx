@@ -88,7 +88,7 @@ export function RelatorioAereoForm({ onSubmit, onFilesChange }: { onSubmit?: (e:
 
       {/* Área de Atuação */}
       <div className="space-y-3">
-        <h3 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground border-b border-border pb-2">Área de Atuação da Guarnição</h3>
+        <h3 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground border-b border-border pb-2">Área de Atuação da Equipe</h3>
         <div className="relative rounded-lg overflow-hidden border border-border">
           <LocationPickerMap height="300px" />
           <div className="absolute top-4 left-4 z-[400] flex gap-2 pointer-events-none">
@@ -201,7 +201,7 @@ export function RelatorioAereoForm({ onSubmit, onFilesChange }: { onSubmit?: (e:
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div className="flex items-center space-x-2">
                 <Checkbox id="ref-ter" />
-                <label htmlFor="ref-ter" className="text-sm leading-none">Mais guarnições terrestres</label>
+                <label htmlFor="ref-ter" className="text-sm leading-none">Mais equipes terrestres</label>
               </div>
               <div className="flex items-center space-x-2">
                 <Checkbox id="ref-aer" />
@@ -241,7 +241,7 @@ export function RelatorioAereoForm({ onSubmit, onFilesChange }: { onSubmit?: (e:
             <div className="flex items-start space-x-2">
               <RadioGroupItem value="extinto" id="res-ext" className="mt-0.5" />
               <Label htmlFor="res-ext" className="leading-tight">
-                Incêndio extinto pelo CBMMT / Resolvida <span className="text-muted-foreground font-normal">(Guarnição concluiu o combate e confirmou extinção completa do fogo.)</span>
+                Incêndio extinto pela agência / Resolvida <span className="text-muted-foreground font-normal">(Equipe concluiu o combate e confirmou extinção completa do fogo.)</span>
               </Label>
             </div>
             <div className="flex items-start space-x-2">

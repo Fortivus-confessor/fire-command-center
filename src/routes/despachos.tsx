@@ -254,7 +254,7 @@ function DespachosPage() {
                     currentData.map((item) => (
                       <TableRow key={item.id} className="hover:bg-muted/30 transition-colors">
                         <TableCell className="font-mono text-sm">{formatId(item.id)}</TableCell>
-                        <TableCell className="font-mono text-sm">{item.ordemServicoId}</TableCell>
+                        <TableCell className="font-mono text-sm">OS{item.ordemServicoId}</TableCell>
                         <TableCell className="font-medium text-foreground">{item.equipeStr}</TableCell>
                         <TableCell>{item.categoria || '--'}</TableCell>
                         <TableCell>{formatDate(item.dataInicio)}</TableCell>
