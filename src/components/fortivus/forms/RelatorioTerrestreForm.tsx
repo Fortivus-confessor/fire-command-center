@@ -801,6 +801,7 @@ export function RelatorioTerrestreForm({
               label="Adicionar imagem do local de origem (com coordenadas)"
               maxFiles={1}
               accept=".png,.jpg,.jpeg"
+              initialUrls={initialData?.origem?.map((a: any) => a.url) || []}
               onChange={files => onFilesChange && onFilesChange('origem', files)}
             />
           )}
