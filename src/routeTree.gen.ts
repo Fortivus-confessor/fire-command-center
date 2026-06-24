@@ -21,6 +21,7 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as ResponderTerrestreIdRouteImport } from './routes/responder-terrestre.$id'
 import { Route as ResponderMaquinarioIdRouteImport } from './routes/responder-maquinario.$id'
 import { Route as ResponderAereoIdRouteImport } from './routes/responder-aereo.$id'
+import { Route as RelatorioPdfIdRouteImport } from './routes/relatorio-pdf.$id'
 import { Route as OrdensServicoNovaRouteImport } from './routes/ordens-servico_.nova'
 import { Route as OrdensServicoIdRouteImport } from './routes/ordens-servico_.$id'
 import { Route as OrdensServicoIdDespachoNovoRouteImport } from './routes/ordens-servico_.$id_.despacho_.novo'
@@ -86,6 +87,11 @@ const ResponderAereoIdRoute = ResponderAereoIdRouteImport.update({
   path: '/responder-aereo/$id',
   getParentRoute: () => rootRouteImport,
 } as any)
+const RelatorioPdfIdRoute = RelatorioPdfIdRouteImport.update({
+  id: '/relatorio-pdf/$id',
+  path: '/relatorio-pdf/$id',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const OrdensServicoNovaRoute = OrdensServicoNovaRouteImport.update({
   id: '/ordens-servico_/nova',
   path: '/ordens-servico/nova',
@@ -121,6 +127,7 @@ export interface FileRoutesByFullPath {
   '/veiculos': typeof VeiculosRoute
   '/ordens-servico/$id': typeof OrdensServicoIdRoute
   '/ordens-servico/nova': typeof OrdensServicoNovaRoute
+  '/relatorio-pdf/$id': typeof RelatorioPdfIdRoute
   '/responder-aereo/$id': typeof ResponderAereoIdRoute
   '/responder-maquinario/$id': typeof ResponderMaquinarioIdRoute
   '/responder-terrestre/$id': typeof ResponderTerrestreIdRoute
@@ -139,6 +146,7 @@ export interface FileRoutesByTo {
   '/veiculos': typeof VeiculosRoute
   '/ordens-servico/$id': typeof OrdensServicoIdRoute
   '/ordens-servico/nova': typeof OrdensServicoNovaRoute
+  '/relatorio-pdf/$id': typeof RelatorioPdfIdRoute
   '/responder-aereo/$id': typeof ResponderAereoIdRoute
   '/responder-maquinario/$id': typeof ResponderMaquinarioIdRoute
   '/responder-terrestre/$id': typeof ResponderTerrestreIdRoute
@@ -158,6 +166,7 @@ export interface FileRoutesById {
   '/veiculos': typeof VeiculosRoute
   '/ordens-servico_/$id': typeof OrdensServicoIdRoute
   '/ordens-servico_/nova': typeof OrdensServicoNovaRoute
+  '/relatorio-pdf/$id': typeof RelatorioPdfIdRoute
   '/responder-aereo/$id': typeof ResponderAereoIdRoute
   '/responder-maquinario/$id': typeof ResponderMaquinarioIdRoute
   '/responder-terrestre/$id': typeof ResponderTerrestreIdRoute
@@ -178,6 +187,7 @@ export interface FileRouteTypes {
     | '/veiculos'
     | '/ordens-servico/$id'
     | '/ordens-servico/nova'
+    | '/relatorio-pdf/$id'
     | '/responder-aereo/$id'
     | '/responder-maquinario/$id'
     | '/responder-terrestre/$id'
@@ -196,6 +206,7 @@ export interface FileRouteTypes {
     | '/veiculos'
     | '/ordens-servico/$id'
     | '/ordens-servico/nova'
+    | '/relatorio-pdf/$id'
     | '/responder-aereo/$id'
     | '/responder-maquinario/$id'
     | '/responder-terrestre/$id'
@@ -214,6 +225,7 @@ export interface FileRouteTypes {
     | '/veiculos'
     | '/ordens-servico_/$id'
     | '/ordens-servico_/nova'
+    | '/relatorio-pdf/$id'
     | '/responder-aereo/$id'
     | '/responder-maquinario/$id'
     | '/responder-terrestre/$id'
@@ -233,6 +245,7 @@ export interface RootRouteChildren {
   VeiculosRoute: typeof VeiculosRoute
   OrdensServicoIdRoute: typeof OrdensServicoIdRoute
   OrdensServicoNovaRoute: typeof OrdensServicoNovaRoute
+  RelatorioPdfIdRoute: typeof RelatorioPdfIdRoute
   ResponderAereoIdRoute: typeof ResponderAereoIdRoute
   ResponderMaquinarioIdRoute: typeof ResponderMaquinarioIdRoute
   ResponderTerrestreIdRoute: typeof ResponderTerrestreIdRoute
@@ -326,6 +339,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ResponderAereoIdRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/relatorio-pdf/$id': {
+      id: '/relatorio-pdf/$id'
+      path: '/relatorio-pdf/$id'
+      fullPath: '/relatorio-pdf/$id'
+      preLoaderRoute: typeof RelatorioPdfIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/ordens-servico_/nova': {
       id: '/ordens-servico_/nova'
       path: '/ordens-servico/nova'
@@ -369,6 +389,7 @@ const rootRouteChildren: RootRouteChildren = {
   VeiculosRoute: VeiculosRoute,
   OrdensServicoIdRoute: OrdensServicoIdRoute,
   OrdensServicoNovaRoute: OrdensServicoNovaRoute,
+  RelatorioPdfIdRoute: RelatorioPdfIdRoute,
   ResponderAereoIdRoute: ResponderAereoIdRoute,
   ResponderMaquinarioIdRoute: ResponderMaquinarioIdRoute,
   ResponderTerrestreIdRoute: ResponderTerrestreIdRoute,

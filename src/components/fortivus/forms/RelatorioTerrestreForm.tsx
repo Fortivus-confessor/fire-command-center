@@ -1,220 +1,569 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Checkbox } from '@/components/ui/checkbox';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
-import { MapPin, Plus, Trash2, Camera } from 'lucide-react';
+import { MapPin, Plus, Trash2, AlertCircle } from 'lucide-react';
 import { LocationPickerMap } from '@/components/fortivus/map/LocationPickerMap';
 import { FileUploader } from '@/components/fortivus/forms/FileUploader';
 import { toast } from 'sonner';
+import { cn } from '@/lib/utils';
 
-export function RelatorioTerrestreForm({ onSubmit, onFilesChange }: { onSubmit?: (e: React.FormEvent) => void, onFilesChange?: (key: string, files: File[]) => void }) {
-  const [agua, setAgua] = useState(false);
-  const [apoioRurais, setApoioRurais] = useState(false);
-  const [recusaRurais, setRecusaRurais] = useState(false);
-  const [necessidadeReforco, setNecessidadeReforco] = useState(false);
-  
-  // States for "Outros" inputs
-  const [outrosOrgaos, setOutrosOrgaos] = useState(false);
-  const [outraOrigem, setOutraOrigem] = useState(false);
-  const [resultado, setResultado] = useState<string>('andamento');
-  const [outroAgua, setOutroAgua] = useState(false);
+// ────────────────────────────────────────────────────
+// Mapeamento dos enums do backend → label exibida
+// ────────────────────────────────────────────────────
 
-  const acoes = [
-    'Reconhecimento e Planejamento', 'Combate a Incêndio florestal direto',
-    'Confecção de aceiro manual', 'Confecção de aceiro mecânico com apoio de terceiros',
-    'Realização de fogo contrafogo', 'Vigilância', 'Rescaldo', 'Nenhuma ação foi executada'
-  ];
+const ACOES_COMBATE = [
+  { value: 'RECONHECIMENTO_PLANEJAMENTO', label: 'Reconhecimento e Planejamento' },
+  { value: 'COMBATE_DIRETO', label: 'Combate a Incêndio florestal direto' },
+  { value: 'ACEIRO_MANUAL', label: 'Confecção de aceiro manual' },
+  { value: 'ACEIRO_MECANICO_APOIO', label: 'Confecção de aceiro mecânico com apoio de terceiros' },
+  { value: 'FOGO_CONTRAFOGO', label: 'Realização de fogo contrafogo' },
+  { value: 'VIGILANCIA', label: 'Vigilância' },
+  { value: 'RESCALDO', label: 'Rescaldo' },
+  { value: 'NENHUMA', label: 'Nenhuma ação foi executada' },
+];
 
-  const orgaos = [
-    'Exército Brasileiro', 'Força Aérea do Brasil', 'Marinha do Brasil', 'Polícia Militar',
-    'ICMBio', 'Ibama', 'SINFRA', 'SEMA', 'Defesa Civil Estadual', 'Prefeitura Municipal',
-    'Outros', 'Nenhum órgão de Apoio'
-  ];
+const ORGAOS_APOIO = [
+  { value: 'EXERCITO', label: 'Exército Brasileiro' },
+  { value: 'FAB', label: 'Força Aérea do Brasil' },
+  { value: 'MARINHA', label: 'Marinha do Brasil' },
+  { value: 'PM', label: 'Polícia Militar' },
+  { value: 'ICMBIO', label: 'ICMBio' },
+  { value: 'IBAMA', label: 'Ibama' },
+  { value: 'SINFRA', label: 'SINFRA' },
+  { value: 'SEMA', label: 'SEMA' },
+  { value: 'DEFESA_CIVIL', label: 'Defesa Civil Estadual' },
+  { value: 'PREFEITURA', label: 'Prefeitura Municipal' },
+  { value: 'OUTROS', label: 'Outros' },
+  { value: 'NENHUM', label: 'Nenhum órgão de Apoio' },
+];
 
-  const materiais = [
-    'Soprador costal', 'Kit Combat', 'Motosserra', 'Mochila costal',
-    'Motobomba', 'Foice', 'Roçadeira', 'Enxada', 'Rastelo', 'Mcleod (enxada + rastelo)',
-    'Gorgui (picareta + enxada + rastelo)', 'Pulaski (machado + enxada)',
-    'Abafador', 'Pinga fogo', 'Drone', 'Nenhum'
-  ];
+const ORIGENS_INCENDIO = [
+  { value: 'RAIO', label: 'Raio (descarga elétrica atmosférica)' },
+  { value: 'QUEIMADA_LIXO', label: 'Queimada ilegal de lixo e folhas' },
+  { value: 'QUEIMA_LENHOSO', label: 'Queima ilegal de material lenhoso enleirado' },
+  { value: 'ACIDENTE_VEICULAR', label: 'Acidente veicular' },
+  { value: 'INTENCIONAL', label: 'Ação intencional (incendiário / criminosa)' },
+  { value: 'EXTRATIVISMO', label: 'Atividade extrativista (carvão, mel, coleta, etc.)' },
+  { value: 'REDE_ELETRICA', label: 'Problemas na rede elétrica (curto circuito, cabo rompido, transformador, etc.)' },
+  { value: 'SEM_INDICIOS', label: 'Sem indícios da possível causa' },
+  { value: 'OUTRO', label: 'Outros' },
+];
 
-  const origens = [
-    'Raio (descarga elétrica atmosférica)', 'Queimada ilegal de lixo e folhas',
-    'Queima ilegal de material lenhoso enleirado', 'Acidente veicular',
-    'Ação intencional (incendiário / criminosa)', 'Atividade extrativista (carvão, mel, coleta, etc.)',
-    'Problemas na rede elétrica (curto circuito, cabo rompido, transformador, etc.)',
-    'Sem indícios da possível causa', 'Outros'
-  ];
+const RESULTADOS = [
+  { value: 'EM_ANDAMENTO', label: 'Em andamento', desc: 'Combate ativo no momento do preenchimento, sem extinção total.' },
+  { value: 'NECESSIDADE_FISCALIZACAO', label: 'Necessidade de equipe de fiscalização', desc: 'Ex: queima controlada ou intencional, fogo já extinto, situação monitorada.' },
+  { value: 'SEM_INTERVENCAO', label: 'Sem necessidade de intervenção', desc: 'Incêndio extinto sozinho ou por terceiros antes da chegada da guarnição.' },
+  { value: 'EXTINTO_RESOLVIDA', label: 'Incêndio extinto / Resolvida', desc: 'Guarnição concluiu o combate e confirmou extinção completa do fogo.' },
+  { value: 'DESPACHO_INCORRETO', label: 'Despacho incorreto', desc: 'Não foi encontrado nenhum incêndio ou queimada nas imediações.' },
+  { value: 'OUTRO', label: 'Outro:', desc: '' },
+];
 
-  const [propriedadesApoio, setPropriedadesApoio] = useState([{ id: 1, maq: false, mao: false, outro: false, mapOpen: false }]);
-  const [propriedadesRecusa, setPropriedadesRecusa] = useState([{ id: 1, outro: false, mapOpen: false }]);
+const ORIGENS_AGUA = [
+  { value: 'NATURAL', label: "Curso d'água natural (rio, lago, represa)" },
+  { value: 'HIDRANTE', label: 'Hidrante' },
+  { value: 'RESERVATORIO_FIXO', label: "Reservatório fixo (cisterna, caixa d'água)" },
+  { value: 'OUTRO', label: 'Outro:' },
+];
 
-  const handleLocalSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+const MOTIVOS_RECUSA = [
+  { value: 'PASSAGEM', label: 'Não autorizou passagem pela propriedade' },
+  { value: 'AGUA', label: 'Recusou fornecimento de água' },
+  { value: 'RECURSOS_NAO_DISPONIBILIZADOS', label: 'Não disponibilizou recursos disponíveis' },
+  { value: 'COMBATE', label: 'Se recusou a combater o incêndio' },
+  { value: 'RECOMENDACOES', label: 'Se recusou a atender as recomendações da agência' },
+  { value: 'CONTRAFOGO_DESORDENADO', label: 'Realizou fogo contrafogo de maneira desordenada' },
+  { value: 'OUTRO', label: 'Outro:' },
+];
+
+// ────────────────────────────────────────────────────
+// Types
+// ────────────────────────────────────────────────────
+
+export interface RelatorioTerrestrePayload {
+  despachoId: number;
+  acoesRealizadas: string[];
+  orgaosApoio: string[];
+  outrosOrgaosDescricao?: string;
+  areaAtuacaoLat?: number;
+  areaAtuacaoLng?: number;
+  houveUsoAgua: boolean;
+  volumeAguaLitros?: number;
+  origensAgua?: string[];
+  outraOrigemAguaDescricao?: string;
+  houveApoioPropriedades: boolean;
+  houveRecusaPropriedades: boolean;
+  propriedades?: PropriedadePayload[];
+  possivelOrigemIncendio: string;
+  outraOrigemDescricao?: string;
+  efetividadeCombate: string;
+  necessidadeReforco: boolean;
+  tiposReforcoNecessarios?: string[];
+  historicoDescritivo: string;
+  resultadoOcorrencia: string;
+  outroResultadoDescricao?: string;
+  kmFinal?: number;
+}
+
+interface PropriedadePayload {
+  nomePropriedade?: string;
+  responsavel?: string;
+  telefone?: string;
+  localizacaoLat?: number;
+  localizacaoLng?: number;
+  tipoRegistro: 'APOIO' | 'RECUSA';
+  tipoApoio?: string;
+  quantidadeApoio?: number;
+  descricaoApoioOutro?: string;
+  motivoRecusa?: string;
+  descricaoRecusaOutro?: string;
+}
+
+interface PropriedadeApoioState {
+  id: number;
+  nome: string;
+  responsavel: string;
+  telefone: string;
+  tipoApoio: string;
+  quantidadeApoio: string;
+  descricaoApoioOutro: string;
+  mapOpen: boolean;
+}
+
+interface PropriedadeRecusaState {
+  id: number;
+  nome: string;
+  responsavel: string;
+  telefone: string;
+  motivoRecusa: string;
+  descricaoRecusaOutro: string;
+  mapOpen: boolean;
+}
+
+interface ValidationErrors {
+  acoes?: string;
+  orgaos?: string;
+  origem?: string;
+  efetividade?: string;
+  historico?: string;
+  resultado?: string;
+  volumeAgua?: string;
+  outrosOrgaos?: string;
+  outraOrigem?: string;
+  outroResultado?: string;
+  propriedadesApoio?: Record<number, { nome?: string; responsavel?: string }>;
+}
+
+interface RelatorioTerrestreFormProps {
+  despachoId: number;
+  readOnly?: boolean;
+  initialData?: any;
+  onSubmit?: (payload: RelatorioTerrestrePayload) => Promise<void>;
+  onFilesChange?: (key: string, files: File[]) => void;
+}
+
+// ────────────────────────────────────────────────────
+// Component
+// ────────────────────────────────────────────────────
+
+export function RelatorioTerrestreForm({
+  despachoId,
+  readOnly = false,
+  initialData,
+  onSubmit,
+  onFilesChange,
+}: RelatorioTerrestreFormProps) {
+  // ── Ações de Combate ──
+  const [acoesRealizadas, setAcoesRealizadas] = useState<string[]>(initialData?.acoesRealizadas ?? []);
+
+  // ── Órgãos de Apoio ──
+  const [orgaosApoio, setOrgaosApoio] = useState<string[]>(initialData?.orgaosApoio ?? []);
+  const [outrosOrgaosDescricao, setOutrosOrgaosDescricao] = useState(initialData?.outrosOrgaosDescricao ?? '');
+
+  // ── Uso de Água ──
+  const [houveUsoAgua, setHouveUsoAgua] = useState<boolean>(initialData?.houveUsoAgua ?? false);
+  const [volumeAguaLitros, setVolumeAguaLitros] = useState(initialData?.volumeAguaLitros?.toString() ?? '');
+  const [origensAgua, setOrigensAgua] = useState<string[]>(initialData?.origensAgua ?? []);
+  const [outraOrigemAguaDescricao, setOutraOrigemAguaDescricao] = useState(initialData?.outraOrigemAguaDescricao ?? '');
+
+  // ── Apoio Rural ──
+  const [houveApoioPropriedades, setHouveApoioPropriedades] = useState<boolean>(initialData?.houveApoioPropriedades ?? false);
+  const [propriedadesApoio, setPropriedadesApoio] = useState<PropriedadeApoioState[]>(
+    initialData?.propriedades
+      ?.filter((p: any) => p.tipoRegistro === 'APOIO')
+      .map((p: any, idx: number) => ({
+        id: idx + 1,
+        nome: p.nomePropriedade ?? '',
+        responsavel: p.responsavel ?? '',
+        telefone: p.telefone ?? '',
+        tipoApoio: p.tipoApoio ?? '',
+        quantidadeApoio: p.quantidadeApoio?.toString() ?? '',
+        descricaoApoioOutro: p.descricaoApoioOutro ?? '',
+        mapOpen: false,
+      })) ?? [{ id: 1, nome: '', responsavel: '', telefone: '', tipoApoio: '', quantidadeApoio: '', descricaoApoioOutro: '', mapOpen: false }]
+  );
+
+  // ── Recusa Rural ──
+  const [houveRecusaPropriedades, setHouveRecusaPropriedades] = useState<boolean>(initialData?.houveRecusaPropriedades ?? false);
+  const [propriedadesRecusa, setPropriedadesRecusa] = useState<PropriedadeRecusaState[]>(
+    initialData?.propriedades
+      ?.filter((p: any) => p.tipoRegistro === 'RECUSA')
+      .map((p: any, idx: number) => ({
+        id: idx + 1,
+        nome: p.nomePropriedade ?? '',
+        responsavel: p.responsavel ?? '',
+        telefone: p.telefone ?? '',
+        motivoRecusa: p.motivoRecusa ?? '',
+        descricaoRecusaOutro: p.descricaoRecusaOutro ?? '',
+        mapOpen: false,
+      })) ?? [{ id: 1, nome: '', responsavel: '', telefone: '', motivoRecusa: '', descricaoRecusaOutro: '', mapOpen: false }]
+  );
+
+  // ── Origem do Incêndio ──
+  const [possivelOrigemIncendio, setPossivelOrigemIncendio] = useState(initialData?.possivelOrigemIncendio ?? '');
+  const [outraOrigemDescricao, setOutraOrigemDescricao] = useState(initialData?.outraOrigemDescricao ?? '');
+
+  // ── Efetividade ──
+  const [efetividadeCombate, setEfetividadeCombate] = useState(initialData?.efetividadeCombate ?? '');
+
+  // ── Reforço ──
+  const [necessidadeReforco, setNecessidadeReforco] = useState<boolean>(initialData?.necessidadeReforco ?? false);
+  const [tiposReforcoNecessarios, setTiposReforcoNecessarios] = useState<string[]>(initialData?.tiposReforcoNecessarios ?? []);
+
+  // ── Histórico e Resultado ──
+  const [historicoDescritivo, setHistoricoDescritivo] = useState(initialData?.historicoDescritivo ?? '');
+  const [resultadoOcorrencia, setResultadoOcorrencia] = useState(initialData?.resultadoOcorrencia ?? '');
+  const [outroResultadoDescricao, setOutroResultadoDescricao] = useState(initialData?.outroResultadoDescricao ?? '');
+  const [kmFinal, setKmFinal] = useState(initialData?.kmFinal?.toString() ?? '');
+
+  // ── Erros de validação ──
+  const [errors, setErrors] = useState<ValidationErrors>({});
+  const [submitted, setSubmitted] = useState(false);
+
+  // ────────────────────────────────────────────────────
+  // Helpers
+  // ────────────────────────────────────────────────────
+
+  const toggleSet = (value: string, current: string[], setter: (v: string[]) => void) => {
+    setter(current.includes(value) ? current.filter(v => v !== value) : [...current, value]);
+  };
+
+  const fieldError = (field: keyof ValidationErrors) =>
+    errors[field] ? (
+      <p className="text-xs text-destructive flex items-center gap-1 mt-1">
+        <AlertCircle className="h-3 w-3" /> {errors[field] as string}
+      </p>
+    ) : null;
+
+  // ────────────────────────────────────────────────────
+  // Validação
+  // ────────────────────────────────────────────────────
+
+  const validate = (): ValidationErrors => {
+    const errs: ValidationErrors = {};
+
+    if (acoesRealizadas.length === 0) errs.acoes = 'Selecione pelo menos uma ação de combate.';
+    if (orgaosApoio.length === 0) errs.orgaos = 'Selecione pelo menos um órgão de apoio.';
+    if (orgaosApoio.includes('OUTROS') && !outrosOrgaosDescricao.trim()) errs.outrosOrgaos = 'Descreva os outros órgãos de apoio.';
+    if (!possivelOrigemIncendio) errs.origem = 'Selecione a possível origem do incêndio.';
+    if (possivelOrigemIncendio === 'OUTRO' && !outraOrigemDescricao.trim()) errs.outraOrigem = 'Descreva a outra origem.';
+    if (!efetividadeCombate) errs.efetividade = 'Informe a efetividade estimada.';
+    if (!historicoDescritivo.trim()) errs.historico = 'O histórico descritivo é obrigatório.';
+    if (historicoDescritivo.trim().length < 20) errs.historico = 'O histórico deve ter pelo menos 20 caracteres.';
+    if (!resultadoOcorrencia) errs.resultado = 'Selecione o resultado da ocorrência.';
+    if (resultadoOcorrencia === 'OUTRO' && !outroResultadoDescricao.trim()) errs.outroResultado = 'Descreva o outro resultado.';
+    if (houveUsoAgua && (!volumeAguaLitros || Number(volumeAguaLitros) <= 0)) errs.volumeAgua = 'Informe o volume de água utilizado.';
+
+    return errs;
+  };
+
+  // ────────────────────────────────────────────────────
+  // Submit
+  // ────────────────────────────────────────────────────
+
+  const handleLocalSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    const form = e.currentTarget;
+    setSubmitted(true);
 
-    const hasAcao = Array.from(form.querySelectorAll('[id^="acao-"]')).some((cb: any) => cb.dataset.state === 'checked');
-    const hasOrgao = Array.from(form.querySelectorAll('[id^="orgao-"]')).some((cb: any) => cb.dataset.state === 'checked');
-    const hasMaterial = Array.from(form.querySelectorAll('[id^="mat-"]')).some((cb: any) => cb.dataset.state === 'checked');
+    const errs = validate();
+    setErrors(errs);
 
-    const errors = [];
-    if (!hasAcao) errors.push('Ações de Combate Realizadas');
-    if (!hasOrgao) errors.push('Órgãos de Apoio');
-    if (!hasMaterial) errors.push('Materiais Utilizados');
-
-    if (errors.length > 0) {
-      toast.error('Campos obrigatórios incompletos', {
-        description: `Selecione pelo menos uma opção nas seguintes categorias: ${errors.join(', ')}`
+    if (Object.keys(errs).length > 0) {
+      toast.error('Formulário incompleto', {
+        description: 'Corrija os campos em vermelho antes de continuar.',
       });
+      // Scroll para o primeiro erro
+      const firstError = document.querySelector('[data-error="true"]');
+      firstError?.scrollIntoView({ behavior: 'smooth', block: 'center' });
       return;
     }
 
-    if (onSubmit) onSubmit(e);
+    const propriedades: PropriedadePayload[] = [];
+
+    if (houveApoioPropriedades) {
+      propriedadesApoio.forEach(p => {
+        propriedades.push({
+          nomePropriedade: p.nome,
+          responsavel: p.responsavel,
+          telefone: p.telefone,
+          tipoRegistro: 'APOIO',
+          tipoApoio: p.tipoApoio || undefined,
+          quantidadeApoio: p.quantidadeApoio ? Number(p.quantidadeApoio) : undefined,
+          descricaoApoioOutro: p.descricaoApoioOutro || undefined,
+        });
+      });
+    }
+
+    if (houveRecusaPropriedades) {
+      propriedadesRecusa.forEach(p => {
+        propriedades.push({
+          nomePropriedade: p.nome,
+          responsavel: p.responsavel,
+          telefone: p.telefone,
+          tipoRegistro: 'RECUSA',
+          motivoRecusa: p.motivoRecusa || undefined,
+          descricaoRecusaOutro: p.descricaoRecusaOutro || undefined,
+        });
+      });
+    }
+
+    const payload: RelatorioTerrestrePayload = {
+      despachoId,
+      acoesRealizadas,
+      orgaosApoio,
+      outrosOrgaosDescricao: orgaosApoio.includes('OUTROS') ? outrosOrgaosDescricao : undefined,
+      houveUsoAgua,
+      volumeAguaLitros: houveUsoAgua && volumeAguaLitros ? Number(volumeAguaLitros) : undefined,
+      origensAgua: houveUsoAgua ? origensAgua : undefined,
+      outraOrigemAguaDescricao: houveUsoAgua && origensAgua.includes('OUTRO') ? outraOrigemAguaDescricao : undefined,
+      houveApoioPropriedades,
+      houveRecusaPropriedades,
+      propriedades: propriedades.length > 0 ? propriedades : undefined,
+      possivelOrigemIncendio,
+      outraOrigemDescricao: possivelOrigemIncendio === 'OUTRO' ? outraOrigemDescricao : undefined,
+      efetividadeCombate,
+      necessidadeReforco,
+      tiposReforcoNecessarios: necessidadeReforco ? tiposReforcoNecessarios : undefined,
+      historicoDescritivo,
+      resultadoOcorrencia,
+      outroResultadoDescricao: resultadoOcorrencia === 'OUTRO' ? outroResultadoDescricao : undefined,
+      kmFinal: kmFinal ? Number(kmFinal) : undefined,
+    };
+
+    if (onSubmit) {
+      await onSubmit(payload);
+    }
   };
 
+  // ────────────────────────────────────────────────────
+  // Render helpers
+  // ────────────────────────────────────────────────────
+
+  const sectionClass = (hasError: boolean) =>
+    cn('space-y-3 p-4 rounded-lg border transition-colors',
+      hasError && submitted ? 'border-destructive/50 bg-destructive/5' : 'border-transparent'
+    );
+
+  const sectionHeader = (title: string, required = true) => (
+    <h3 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground border-b border-border pb-2">
+      {title} {required && <span className="text-destructive">*</span>}
+    </h3>
+  );
+
   return (
-    <form id="form-terrestre" onSubmit={handleLocalSubmit} className="space-y-8 p-1">
-      {/* Ações Realizadas */}
-      <div className="space-y-3">
-        <h3 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground border-b border-border pb-2">Ações de Combate Realizadas <span className="text-destructive">*</span></h3>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-          {acoes.map(a => (
-            <div key={a} className="flex items-start space-x-2">
-              <Checkbox id={`acao-${a}`} />
-              <label htmlFor={`acao-${a}`} className="text-sm leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">{a}</label>
-            </div>
-          ))}
-        </div>
-      </div>
+    <form id="form-terrestre" onSubmit={handleLocalSubmit} className="space-y-6 p-1" noValidate>
 
-      {/* Órgãos de Apoio */}
-      <div className="space-y-3">
-        <h3 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground border-b border-border pb-2">Órgãos de Apoio <span className="text-destructive">*</span></h3>
+      {/* ── Ações de Combate ── */}
+      <div
+        className={sectionClass(!!errors.acoes)}
+        data-error={submitted && !!errors.acoes}
+      >
+        {sectionHeader('Ações de Combate Realizadas')}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-          {orgaos.map(o => (
-            <div key={o} className="flex items-start space-x-2">
-              <Checkbox 
-                id={`orgao-${o}`} 
-                onCheckedChange={(c) => {
-                  if (o === 'Outros') setOutrosOrgaos(!!c);
-                }} 
+          {ACOES_COMBATE.map(a => (
+            <div key={a.value} className="flex items-start space-x-2">
+              <Checkbox
+                id={`acao-${a.value}`}
+                disabled={readOnly}
+                checked={acoesRealizadas.includes(a.value)}
+                onCheckedChange={() => !readOnly && toggleSet(a.value, acoesRealizadas, setAcoesRealizadas)}
               />
-              <label htmlFor={`orgao-${o}`} className="text-sm leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">{o}</label>
+              <label htmlFor={`acao-${a.value}`} className="text-sm leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer">
+                {a.label}
+              </label>
             </div>
           ))}
         </div>
-        {outrosOrgaos && (
-          <Input placeholder="Descreva os outros órgãos..." className="mt-2" required />
-        )}
+        {submitted && fieldError('acoes')}
       </div>
 
-      {/* Mapa de Atuação */}
+      {/* ── Órgãos de Apoio ── */}
+      <div
+        className={sectionClass(!!errors.orgaos || !!errors.outrosOrgaos)}
+        data-error={submitted && (!!errors.orgaos || !!errors.outrosOrgaos)}
+      >
+        {sectionHeader('Órgãos de Apoio')}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          {ORGAOS_APOIO.map(o => (
+            <div key={o.value} className="flex items-start space-x-2">
+              <Checkbox
+                id={`orgao-${o.value}`}
+                disabled={readOnly}
+                checked={orgaosApoio.includes(o.value)}
+                onCheckedChange={() => !readOnly && toggleSet(o.value, orgaosApoio, setOrgaosApoio)}
+              />
+              <label htmlFor={`orgao-${o.value}`} className="text-sm leading-none cursor-pointer">{o.label}</label>
+            </div>
+          ))}
+        </div>
+        {orgaosApoio.includes('OUTROS') && (
+          <div className="mt-2">
+            <Input
+              placeholder="Descreva os outros órgãos..."
+              value={outrosOrgaosDescricao}
+              disabled={readOnly}
+              onChange={e => setOutrosOrgaosDescricao(e.target.value)}
+              className={cn(submitted && errors.outrosOrgaos && 'border-destructive')}
+            />
+            {submitted && fieldError('outrosOrgaos')}
+          </div>
+        )}
+        {submitted && !errors.outrosOrgaos && fieldError('orgaos')}
+      </div>
+
+      {/* ── Área de Atuação ── */}
       <div className="space-y-3">
-        <h3 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground border-b border-border pb-2">Área de Atuação da Guarnição</h3>
+        {sectionHeader('Área de Atuação da Guarnição', false)}
         <div className="relative rounded-lg overflow-hidden border border-border">
           <LocationPickerMap height="300px" />
           <div className="absolute top-4 left-4 z-[400] flex gap-2 pointer-events-none">
             <div className="bg-background/80 backdrop-blur-sm border border-border text-xs px-2 py-1 rounded flex items-center gap-1 shadow-sm">
-              <div className="w-2 h-2 rounded-full bg-command"></div> Despacho Original
+              <div className="w-2 h-2 rounded-full bg-command" /> Despacho Original
             </div>
             <div className="bg-background/80 backdrop-blur-sm border border-border text-xs px-2 py-1 rounded flex items-center gap-1 shadow-sm">
-              <div className="w-2 h-2 rounded-full bg-fire"></div> Local de Atuação
+              <div className="w-2 h-2 rounded-full bg-fire" /> Local de Atuação
             </div>
           </div>
         </div>
       </div>
 
-      {/* Materiais Utilizados */}
-      <div className="space-y-3">
-        <h3 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground border-b border-border pb-2">Materiais Utilizados <span className="text-destructive">*</span></h3>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-          {materiais.map(m => (
-            <div key={m} className="flex items-start space-x-2">
-              <Checkbox id={`mat-${m}`} />
-              <label htmlFor={`mat-${m}`} className="text-sm leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">{m}</label>
-            </div>
-          ))}
-        </div>
-      </div>
-
-      {/* Uso de Água */}
-      <div className="space-y-4">
-        <h3 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground border-b border-border pb-2">Uso de Água na Ocorrência <span className="text-destructive">*</span></h3>
-        <RadioGroup value={agua ? "sim" : "nao"} onValueChange={(v) => setAgua(v === 'sim')} className="flex gap-4" required>
+      {/* ── Uso de Água ── */}
+      <div className={sectionClass(!!errors.volumeAgua)} data-error={submitted && !!errors.volumeAgua}>
+        {sectionHeader('Uso de Água na Ocorrência')}
+        <RadioGroup
+          value={houveUsoAgua ? 'sim' : 'nao'}
+          onValueChange={v => !readOnly && setHouveUsoAgua(v === 'sim')}
+          className="flex gap-4"
+        >
           <div className="flex items-center space-x-2">
-            <RadioGroupItem value="sim" id="agua-sim" />
+            <RadioGroupItem value="sim" id="agua-sim" disabled={readOnly} />
             <Label htmlFor="agua-sim">Sim</Label>
           </div>
           <div className="flex items-center space-x-2">
-            <RadioGroupItem value="nao" id="agua-nao" />
+            <RadioGroupItem value="nao" id="agua-nao" disabled={readOnly} />
             <Label htmlFor="agua-nao">Não</Label>
           </div>
         </RadioGroup>
 
-        {agua && (
-          <div className="grid gap-4 pl-6 border-l-2 border-primary/20">
+        {houveUsoAgua && (
+          <div className="grid gap-4 pl-6 border-l-2 border-primary/20 mt-3">
             <div className="space-y-2">
-              <Label>Quantidade (Litros)</Label>
-              <Input type="number" placeholder="Ex: 5000" required />
+              <Label>Quantidade (Litros) <span className="text-destructive">*</span></Label>
+              <Input
+                type="number"
+                placeholder="Ex: 5000"
+                value={volumeAguaLitros}
+                disabled={readOnly}
+                min={1}
+                onChange={e => setVolumeAguaLitros(e.target.value)}
+                className={cn(submitted && errors.volumeAgua && 'border-destructive')}
+              />
+              {submitted && fieldError('volumeAgua')}
             </div>
             <div className="space-y-2">
               <Label>Origem da Água</Label>
               <div className="flex flex-col gap-2">
-                <div className="flex items-center space-x-2">
-                  <Checkbox id="agua-curso" />
-                  <label htmlFor="agua-curso" className="text-sm font-medium leading-none">Curso d'água natural (rio, lago, represa)</label>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <Checkbox id="agua-hidrante" />
-                  <label htmlFor="agua-hidrante" className="text-sm font-medium leading-none">Hidrante</label>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <Checkbox id="agua-fixo" />
-                  <label htmlFor="agua-fixo" className="text-sm font-medium leading-none">Reservatório fixo (cisterna, caixa d'água)</label>
-                </div>
-                <div className="flex items-center space-x-2 mt-1">
-                  <Checkbox id="agua-outro" onCheckedChange={(c) => setOutroAgua(!!c)} />
-                  <label htmlFor="agua-outro" className="text-sm font-medium leading-none">Outro:</label>
-                  {outroAgua && <Input placeholder="Descreva" className="h-8 ml-2 flex-1 max-w-[200px]" required />}
-                </div>
+                {ORIGENS_AGUA.map(o => (
+                  <div key={o.value} className="flex items-center space-x-2">
+                    <Checkbox
+                      id={`agua-${o.value}`}
+                      disabled={readOnly}
+                      checked={origensAgua.includes(o.value)}
+                      onCheckedChange={() => !readOnly && toggleSet(o.value, origensAgua, setOrigensAgua)}
+                    />
+                    <label htmlFor={`agua-${o.value}`} className="text-sm font-medium leading-none cursor-pointer">{o.label}</label>
+                    {o.value === 'OUTRO' && origensAgua.includes('OUTRO') && (
+                      <Input
+                        placeholder="Descreva"
+                        value={outraOrigemAguaDescricao}
+                        disabled={readOnly}
+                        onChange={e => setOutraOrigemAguaDescricao(e.target.value)}
+                        className="h-8 ml-2 flex-1 max-w-[200px]"
+                      />
+                    )}
+                  </div>
+                ))}
               </div>
             </div>
           </div>
         )}
       </div>
 
-      {/* Apoio Rural */}
+      {/* ── Apoio de Propriedades Rurais ── */}
       <div className="space-y-4">
-        <h3 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground border-b border-border pb-2">Apoio de Propriedades Rurais <span className="text-destructive">*</span></h3>
-        <RadioGroup value={apoioRurais ? "sim" : "nao"} onValueChange={(v) => setApoioRurais(v === 'sim')} className="flex gap-4" required>
+        {sectionHeader('Apoio de Propriedades Rurais')}
+        <RadioGroup
+          value={houveApoioPropriedades ? 'sim' : 'nao'}
+          onValueChange={v => !readOnly && setHouveApoioPropriedades(v === 'sim')}
+          className="flex gap-4"
+        >
           <div className="flex items-center space-x-2">
-            <RadioGroupItem value="sim" id="apoio-sim" />
+            <RadioGroupItem value="sim" id="apoio-sim" disabled={readOnly} />
             <Label htmlFor="apoio-sim">Sim</Label>
           </div>
           <div className="flex items-center space-x-2">
-            <RadioGroupItem value="nao" id="apoio-nao" />
+            <RadioGroupItem value="nao" id="apoio-nao" disabled={readOnly} />
             <Label htmlFor="apoio-nao">Não</Label>
           </div>
         </RadioGroup>
 
-        {apoioRurais && (
+        {houveApoioPropriedades && (
           <div className="space-y-4 pl-6 border-l-2 border-success/30">
-            {propriedadesApoio.map((p, index) => (
+            {propriedadesApoio.map((p) => (
               <div key={p.id} className="glass p-4 rounded-lg space-y-3 relative">
-                {propriedadesApoio.length > 1 && (
-                  <Button variant="ghost" size="icon" className="absolute top-2 right-2 h-6 w-6 text-destructive" onClick={() => setPropriedadesApoio(prev => prev.filter(x => x.id !== p.id))}>
+                {!readOnly && propriedadesApoio.length > 1 && (
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    className="absolute top-2 right-2 h-6 w-6 text-destructive"
+                    onClick={() => setPropriedadesApoio(prev => prev.filter(x => x.id !== p.id))}
+                  >
                     <Trash2 className="h-3 w-3" />
                   </Button>
                 )}
                 <div className="space-y-1">
                   <Label>Nome da propriedade</Label>
-                  <Input placeholder="Fazenda Esperança" required />
+                  <Input
+                    placeholder="Fazenda Esperança"
+                    value={p.nome}
+                    disabled={readOnly}
+                    onChange={e => setPropriedadesApoio(prev => prev.map(x => x.id === p.id ? { ...x, nome: e.target.value } : x))}
+                  />
                 </div>
-                <Button variant="outline" size="sm" className="w-full justify-start text-muted-foreground" onClick={() => setPropriedadesApoio(prev => prev.map(x => x.id === p.id ? { ...x, mapOpen: !x.mapOpen } : x))}>
-                  <MapPin className="h-4 w-4 mr-2" /> {p.mapOpen ? 'Ocultar mapa' : 'Inserir localização no mapa'}
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="w-full justify-start text-muted-foreground"
+                  disabled={readOnly}
+                  onClick={() => setPropriedadesApoio(prev => prev.map(x => x.id === p.id ? { ...x, mapOpen: !x.mapOpen } : x))}
+                >
+                  <MapPin className="h-4 w-4 mr-2" />
+                  {p.mapOpen ? 'Ocultar mapa' : 'Inserir localização no mapa'}
                 </Button>
                 {p.mapOpen && (
                   <div className="mt-2 rounded-lg overflow-hidden border border-border">
@@ -224,72 +573,130 @@ export function RelatorioTerrestreForm({ onSubmit, onFilesChange }: { onSubmit?:
                 <div className="grid grid-cols-2 gap-3">
                   <div className="space-y-1">
                     <Label>Responsável</Label>
-                    <Input required />
+                    <Input
+                      value={p.responsavel}
+                      disabled={readOnly}
+                      onChange={e => setPropriedadesApoio(prev => prev.map(x => x.id === p.id ? { ...x, responsavel: e.target.value } : x))}
+                    />
                   </div>
                   <div className="space-y-1">
                     <Label>Telefone</Label>
-                    <Input placeholder="(XX) XXXXX-XXXX" required />
+                    <Input
+                      placeholder="(XX) XXXXX-XXXX"
+                      value={p.telefone}
+                      disabled={readOnly}
+                      onChange={e => setPropriedadesApoio(prev => prev.map(x => x.id === p.id ? { ...x, telefone: e.target.value } : x))}
+                    />
                   </div>
                 </div>
                 <div className="space-y-2 pt-2">
                   <Label>Tipo de apoio</Label>
                   <div className="space-y-2">
-                    <div className="flex items-center gap-2">
-                      <Checkbox id={`apoio-maq-${p.id}`} checked={p.maq} onCheckedChange={(checked) => setPropriedadesApoio(prev => prev.map(x => x.id === p.id ? { ...x, maq: !!checked } : x))} />
-                      <Label htmlFor={`apoio-maq-${p.id}`}>Maquinário</Label>
-                      {p.maq && <Input placeholder="Qtd." className="h-6 w-20 text-xs ml-auto" />}
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <Checkbox id={`apoio-mao-${p.id}`} checked={p.mao} onCheckedChange={(checked) => setPropriedadesApoio(prev => prev.map(x => x.id === p.id ? { ...x, mao: !!checked } : x))} />
-                      <Label htmlFor={`apoio-mao-${p.id}`}>Mão de obra</Label>
-                      {p.mao && <Input placeholder="Qtd." className="h-6 w-20 text-xs ml-auto" />}
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <Checkbox id={`apoio-outro-${p.id}`} checked={p.outro} onCheckedChange={(checked) => setPropriedadesApoio(prev => prev.map(x => x.id === p.id ? { ...x, outro: !!checked } : x))} />
-                      <Label htmlFor={`apoio-outro-${p.id}`}>Outro</Label>
-                      {p.outro && <Input placeholder="Descreva" className="h-6 flex-1 text-xs ml-2" required />}
-                    </div>
+                    {['MAQUINARIO', 'MAO_DE_OBRA', 'OUTRO'].map(tipo => (
+                      <div key={tipo} className="flex items-center gap-2">
+                        <Checkbox
+                          id={`apoio-tipo-${p.id}-${tipo}`}
+                          disabled={readOnly}
+                          checked={p.tipoApoio === tipo}
+                          onCheckedChange={checked => setPropriedadesApoio(prev => prev.map(x => x.id === p.id ? { ...x, tipoApoio: checked ? tipo : '' } : x))}
+                        />
+                        <Label htmlFor={`apoio-tipo-${p.id}-${tipo}`}>
+                          {tipo === 'MAQUINARIO' ? 'Maquinário' : tipo === 'MAO_DE_OBRA' ? 'Mão de obra' : 'Outro'}
+                        </Label>
+                        {p.tipoApoio === tipo && tipo !== 'OUTRO' && (
+                          <Input
+                            placeholder="Qtd."
+                            className="h-6 w-20 text-xs ml-auto"
+                            value={p.quantidadeApoio}
+                            disabled={readOnly}
+                            onChange={e => setPropriedadesApoio(prev => prev.map(x => x.id === p.id ? { ...x, quantidadeApoio: e.target.value } : x))}
+                          />
+                        )}
+                        {p.tipoApoio === tipo && tipo === 'OUTRO' && (
+                          <Input
+                            placeholder="Descreva"
+                            className="h-6 flex-1 text-xs ml-2"
+                            value={p.descricaoApoioOutro}
+                            disabled={readOnly}
+                            onChange={e => setPropriedadesApoio(prev => prev.map(x => x.id === p.id ? { ...x, descricaoApoioOutro: e.target.value } : x))}
+                          />
+                        )}
+                      </div>
+                    ))}
                   </div>
                 </div>
               </div>
             ))}
-            <Button variant="outline" size="sm" onClick={() => setPropriedadesApoio(prev => [...prev, { id: Date.now(), maq: false, mao: false, outro: false, mapOpen: false }])} className="text-xs">
-              <Plus className="h-3 w-3 mr-1" /> Adicionar outra propriedade
-            </Button>
+            {!readOnly && (
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => setPropriedadesApoio(prev => [...prev, {
+                  id: Date.now(), nome: '', responsavel: '', telefone: '',
+                  tipoApoio: '', quantidadeApoio: '', descricaoApoioOutro: '', mapOpen: false,
+                }])}
+                className="text-xs"
+              >
+                <Plus className="h-3 w-3 mr-1" /> Adicionar outra propriedade
+              </Button>
+            )}
           </div>
         )}
       </div>
 
-      {/* Recusa Rural */}
+      {/* ── Recusa de Colaboração ── */}
       <div className="space-y-4">
-        <h3 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground border-b border-border pb-2">Recusa de Colaboração <span className="text-destructive">*</span></h3>
+        {sectionHeader('Recusa de Colaboração')}
         <p className="text-xs text-muted-foreground">Algum proprietário rural se recusou a colaborar com a operação de combate?</p>
-        <RadioGroup value={recusaRurais ? "sim" : "nao"} onValueChange={(v) => setRecusaRurais(v === 'sim')} className="flex gap-4" required>
+        <RadioGroup
+          value={houveRecusaPropriedades ? 'sim' : 'nao'}
+          onValueChange={v => !readOnly && setHouveRecusaPropriedades(v === 'sim')}
+          className="flex gap-4"
+        >
           <div className="flex items-center space-x-2">
-            <RadioGroupItem value="sim" id="recusa-sim" />
+            <RadioGroupItem value="sim" id="recusa-sim" disabled={readOnly} />
             <Label htmlFor="recusa-sim">Sim</Label>
           </div>
           <div className="flex items-center space-x-2">
-            <RadioGroupItem value="nao" id="recusa-nao" />
+            <RadioGroupItem value="nao" id="recusa-nao" disabled={readOnly} />
             <Label htmlFor="recusa-nao">Não</Label>
           </div>
         </RadioGroup>
 
-        {recusaRurais && (
+        {houveRecusaPropriedades && (
           <div className="space-y-4 pl-6 border-l-2 border-destructive/30">
-            {propriedadesRecusa.map((p, index) => (
+            {propriedadesRecusa.map((p) => (
               <div key={p.id} className="glass p-4 rounded-lg space-y-3 relative">
-                {propriedadesRecusa.length > 1 && (
-                  <Button variant="ghost" size="icon" className="absolute top-2 right-2 h-6 w-6 text-destructive" onClick={() => setPropriedadesRecusa(prev => prev.filter(x => x.id !== p.id))}>
+                {!readOnly && propriedadesRecusa.length > 1 && (
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    className="absolute top-2 right-2 h-6 w-6 text-destructive"
+                    onClick={() => setPropriedadesRecusa(prev => prev.filter(x => x.id !== p.id))}
+                  >
                     <Trash2 className="h-3 w-3" />
                   </Button>
                 )}
                 <div className="space-y-1">
                   <Label>Nome da propriedade</Label>
-                  <Input />
+                  <Input
+                    value={p.nome}
+                    disabled={readOnly}
+                    onChange={e => setPropriedadesRecusa(prev => prev.map(x => x.id === p.id ? { ...x, nome: e.target.value } : x))}
+                  />
                 </div>
-                <Button variant="outline" size="sm" className="w-full justify-start text-muted-foreground" onClick={() => setPropriedadesRecusa(prev => prev.map(x => x.id === p.id ? { ...x, mapOpen: !x.mapOpen } : x))}>
-                  <MapPin className="h-4 w-4 mr-2" /> {p.mapOpen ? 'Ocultar mapa' : 'Inserir localização no mapa'}
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="w-full justify-start text-muted-foreground"
+                  disabled={readOnly}
+                  onClick={() => setPropriedadesRecusa(prev => prev.map(x => x.id === p.id ? { ...x, mapOpen: !x.mapOpen } : x))}
+                >
+                  <MapPin className="h-4 w-4 mr-2" />
+                  {p.mapOpen ? 'Ocultar mapa' : 'Inserir localização no mapa'}
                 </Button>
                 {p.mapOpen && (
                   <div className="mt-2 rounded-lg overflow-hidden border border-border">
@@ -299,186 +706,245 @@ export function RelatorioTerrestreForm({ onSubmit, onFilesChange }: { onSubmit?:
                 <div className="grid grid-cols-2 gap-3">
                   <div className="space-y-1">
                     <Label>Responsável (se conhecido)</Label>
-                    <Input />
+                    <Input
+                      value={p.responsavel}
+                      disabled={readOnly}
+                      onChange={e => setPropriedadesRecusa(prev => prev.map(x => x.id === p.id ? { ...x, responsavel: e.target.value } : x))}
+                    />
                   </div>
                   <div className="space-y-1">
                     <Label>Telefone</Label>
-                    <Input />
+                    <Input
+                      value={p.telefone}
+                      disabled={readOnly}
+                      onChange={e => setPropriedadesRecusa(prev => prev.map(x => x.id === p.id ? { ...x, telefone: e.target.value } : x))}
+                    />
                   </div>
                 </div>
                 <div className="space-y-2 pt-2">
-                  <Label>Descrição da recusa</Label>
+                  <Label>Motivo da recusa</Label>
                   <div className="grid grid-cols-1 gap-2">
-                    {[
-                      'Não autorizou passagem pela propriedade',
-                      'Recusou fornecimento de água',
-                      'Não disponibilizou recursos disponíveis',
-                      'Se recusou a combater o incêndio',
-                      'Se recusou a atender as recomendações da agência',
-                      'Realizou fogo contrafogo de maneira desordenada',
-                    ].map(r => (
-                      <div key={r} className="flex items-start space-x-2">
-                        <Checkbox id={`recusa-tipo-${p.id}-${r}`} />
-                        <label htmlFor={`recusa-tipo-${p.id}-${r}`} className="text-xs leading-none">{r}</label>
+                    {MOTIVOS_RECUSA.map(m => (
+                      <div key={m.value} className="flex items-start space-x-2">
+                        <Checkbox
+                          id={`recusa-motivo-${p.id}-${m.value}`}
+                          disabled={readOnly}
+                          checked={p.motivoRecusa === m.value}
+                          onCheckedChange={checked => setPropriedadesRecusa(prev => prev.map(x => x.id === p.id ? { ...x, motivoRecusa: checked ? m.value : '' } : x))}
+                        />
+                        <label htmlFor={`recusa-motivo-${p.id}-${m.value}`} className="text-xs leading-none cursor-pointer">{m.label}</label>
+                        {m.value === 'OUTRO' && p.motivoRecusa === 'OUTRO' && (
+                          <Input
+                            className="h-6 flex-1 text-xs ml-2"
+                            value={p.descricaoRecusaOutro}
+                            disabled={readOnly}
+                            onChange={e => setPropriedadesRecusa(prev => prev.map(x => x.id === p.id ? { ...x, descricaoRecusaOutro: e.target.value } : x))}
+                          />
+                        )}
                       </div>
                     ))}
-                    <div className="flex items-center space-x-2 mt-1">
-                      <Checkbox id={`recusa-outro-${p.id}`} checked={p.outro} onCheckedChange={(checked) => setPropriedadesRecusa(prev => prev.map(x => x.id === p.id ? { ...x, outro: !!checked } : x))} />
-                      <Label htmlFor={`recusa-outro-${p.id}`} className="text-xs">Outro:</Label>
-                      {p.outro && <Input className="h-6 flex-1 text-xs ml-2" required />}
-                    </div>
                   </div>
                 </div>
               </div>
             ))}
-            <Button variant="outline" size="sm" onClick={() => setPropriedadesRecusa(prev => [...prev, { id: Date.now(), outro: false, mapOpen: false }])} className="text-xs">
-              <Plus className="h-3 w-3 mr-1" /> Adicionar outra propriedade
-            </Button>
+            {!readOnly && (
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => setPropriedadesRecusa(prev => [...prev, {
+                  id: Date.now(), nome: '', responsavel: '', telefone: '',
+                  motivoRecusa: '', descricaoRecusaOutro: '', mapOpen: false,
+                }])}
+                className="text-xs"
+              >
+                <Plus className="h-3 w-3 mr-1" /> Adicionar outra propriedade
+              </Button>
+            )}
           </div>
         )}
       </div>
 
-      {/* Origem e Imagens */}
-      <div className="space-y-4">
-        <h3 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground border-b border-border pb-2">Possível Origem do Incêndio <span className="text-destructive">*</span></h3>
-          <RadioGroup className="grid grid-cols-1 sm:grid-cols-2 gap-3" required onValueChange={(v) => setOutraOrigem(v === 'Outros')}>
-          {origens.map(o => (
-            <div key={o} className="flex items-start space-x-2">
-              <RadioGroupItem value={o} id={`origem-${o}`} className="mt-0.5" />
-              <Label htmlFor={`origem-${o}`} className="text-sm font-normal leading-tight">{o}</Label>
+      {/* ── Origem do Incêndio ── */}
+      <div
+        className={sectionClass(!!errors.origem || !!errors.outraOrigem)}
+        data-error={submitted && (!!errors.origem || !!errors.outraOrigem)}
+      >
+        {sectionHeader('Possível Origem do Incêndio')}
+        <RadioGroup
+          className="grid grid-cols-1 sm:grid-cols-2 gap-3"
+          value={possivelOrigemIncendio}
+          onValueChange={v => !readOnly && setPossivelOrigemIncendio(v)}
+        >
+          {ORIGENS_INCENDIO.map(o => (
+            <div key={o.value} className="flex items-start space-x-2">
+              <RadioGroupItem value={o.value} id={`origem-${o.value}`} className="mt-0.5" disabled={readOnly} />
+              <Label htmlFor={`origem-${o.value}`} className="text-sm font-normal leading-tight cursor-pointer">{o.label}</Label>
             </div>
           ))}
         </RadioGroup>
-        {outraOrigem && (
-          <Input placeholder="Descreva a outra origem..." className="mt-2" required />
+        {possivelOrigemIncendio === 'OUTRO' && (
+          <div className="mt-2">
+            <Input
+              placeholder="Descreva a outra origem..."
+              value={outraOrigemDescricao}
+              disabled={readOnly}
+              onChange={e => setOutraOrigemDescricao(e.target.value)}
+              className={cn(submitted && errors.outraOrigem && 'border-destructive')}
+            />
+            {submitted && fieldError('outraOrigem')}
+          </div>
         )}
         <div className="pt-2">
-          <FileUploader 
-            label="Adicionar imagem do local de origem (com coordenadas)" 
-            maxFiles={1} 
-            accept=".png,.jpg,.jpeg" 
-            onChange={(files) => onFilesChange && onFilesChange('origem', files)}
-          />
+          {!readOnly && (
+            <FileUploader
+              label="Adicionar imagem do local de origem (com coordenadas)"
+              maxFiles={1}
+              accept=".png,.jpg,.jpeg"
+              onChange={files => onFilesChange && onFilesChange('origem', files)}
+            />
+          )}
         </div>
+        {submitted && !errors.outraOrigem && fieldError('origem')}
       </div>
 
-      {/* Efetividade */}
-      <div className="space-y-3">
-        <h3 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground border-b border-border pb-2">Efetividade Estimada <span className="text-destructive">*</span></h3>
-        <RadioGroup className="flex gap-6" required>
-          <div className="flex items-center space-x-2">
-            <RadioGroupItem value="alta" id="efe-alta" />
-            <Label htmlFor="efe-alta">Alta</Label>
-          </div>
-          <div className="flex items-center space-x-2">
-            <RadioGroupItem value="media" id="efe-media" />
-            <Label htmlFor="efe-media">Média</Label>
-          </div>
-          <div className="flex items-center space-x-2">
-            <RadioGroupItem value="baixa" id="efe-baixa" />
-            <Label htmlFor="efe-baixa">Baixa</Label>
-          </div>
+      {/* ── Efetividade ── */}
+      <div
+        className={sectionClass(!!errors.efetividade)}
+        data-error={submitted && !!errors.efetividade}
+      >
+        {sectionHeader('Efetividade Estimada')}
+        <RadioGroup
+          className="flex gap-6"
+          value={efetividadeCombate}
+          onValueChange={v => !readOnly && setEfetividadeCombate(v)}
+        >
+          {['ALTA', 'MEDIA', 'BAIXA'].map(v => (
+            <div key={v} className="flex items-center space-x-2">
+              <RadioGroupItem value={v} id={`efe-${v}`} disabled={readOnly} />
+              <Label htmlFor={`efe-${v}`} className="capitalize cursor-pointer">
+                {v === 'ALTA' ? 'Alta' : v === 'MEDIA' ? 'Média' : 'Baixa'}
+              </Label>
+            </div>
+          ))}
         </RadioGroup>
+        {submitted && fieldError('efetividade')}
       </div>
 
-      {/* Reforço */}
+      {/* ── Necessidade de Reforço ── */}
       <div className="space-y-4">
-        <h3 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground border-b border-border pb-2">Necessidade de Reforço</h3>
-        <RadioGroup value={necessidadeReforco ? "sim" : "nao"} onValueChange={(v) => setNecessidadeReforco(v === 'sim')} className="flex gap-4">
+        {sectionHeader('Necessidade de Reforço', false)}
+        <RadioGroup
+          value={necessidadeReforco ? 'sim' : 'nao'}
+          onValueChange={v => !readOnly && setNecessidadeReforco(v === 'sim')}
+          className="flex gap-4"
+        >
           <div className="flex items-center space-x-2">
-            <RadioGroupItem value="sim" id="ref-sim" />
+            <RadioGroupItem value="sim" id="ref-sim" disabled={readOnly} />
             <Label htmlFor="ref-sim">Sim</Label>
           </div>
           <div className="flex items-center space-x-2">
-            <RadioGroupItem value="nao" id="ref-nao" />
+            <RadioGroupItem value="nao" id="ref-nao" disabled={readOnly} />
             <Label htmlFor="ref-nao">Não</Label>
           </div>
         </RadioGroup>
 
         {necessidadeReforco && (
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pl-6 border-l-2 border-warning/30">
-            <div className="flex items-start space-x-2">
-              <Checkbox id="ref-guarnicoes" />
-              <label htmlFor="ref-guarnicoes" className="text-sm">Mais guarnições terrestres</label>
-            </div>
-            <div className="flex items-start space-x-2">
-              <Checkbox id="ref-aereo" />
-              <label htmlFor="ref-aereo" className="text-sm">Apoio aéreo</label>
-            </div>
-            <div className="flex items-start space-x-2">
-              <Checkbox id="ref-maquinario" />
-              <label htmlFor="ref-maquinario" className="text-sm">Maquinário pesado</label>
-            </div>
-            <div className="flex items-start space-x-2">
-              <Checkbox id="ref-sci" />
-              <label htmlFor="ref-sci" className="text-sm">Implantação do SCI</label>
-            </div>
+            {[
+              { value: 'TERRESTRE', label: 'Mais guarnições terrestres' },
+              { value: 'AEREO', label: 'Apoio aéreo' },
+              { value: 'MAQUINARIO', label: 'Maquinário pesado' },
+              { value: 'SCI', label: 'Implantação do SCI' },
+            ].map(r => (
+              <div key={r.value} className="flex items-start space-x-2">
+                <Checkbox
+                  id={`ref-${r.value}`}
+                  disabled={readOnly}
+                  checked={tiposReforcoNecessarios.includes(r.value)}
+                  onCheckedChange={() => !readOnly && toggleSet(r.value, tiposReforcoNecessarios, setTiposReforcoNecessarios)}
+                />
+                <label htmlFor={`ref-${r.value}`} className="text-sm cursor-pointer">{r.label}</label>
+              </div>
+            ))}
           </div>
         )}
       </div>
 
-      {/* Histórico */}
-      <div className="space-y-3">
-        <h3 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground border-b border-border pb-2">Histórico Descritivo <span className="text-destructive">*</span></h3>
-        <Textarea placeholder="Descreva de forma livre a atuação, dificuldades encontradas e outras informações relevantes..." className="min-h-[120px]" required />
+      {/* ── Histórico Descritivo ── */}
+      <div
+        className={sectionClass(!!errors.historico)}
+        data-error={submitted && !!errors.historico}
+      >
+        {sectionHeader('Histórico Descritivo')}
+        <Textarea
+          placeholder="Descreva de forma livre a atuação, dificuldades encontradas e outras informações relevantes..."
+          className={cn('min-h-[120px]', submitted && errors.historico && 'border-destructive')}
+          value={historicoDescritivo}
+          disabled={readOnly}
+          onChange={e => setHistoricoDescritivo(e.target.value)}
+        />
+        <p className="text-xs text-muted-foreground text-right">{historicoDescritivo.length} caracteres (mín. 20)</p>
+        {submitted && fieldError('historico')}
       </div>
 
-      {/* Resultado Final */}
+      {/* ── KM Final ── */}
       <div className="space-y-3">
-        <h3 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground border-b border-border pb-2">Resultado da Ocorrência <span className="text-destructive">*</span></h3>
-        <RadioGroup value={resultado} onValueChange={setResultado} className="flex flex-col gap-3" required>
-          <div className="flex items-start space-x-2">
-            <RadioGroupItem value="andamento" id="res-andamento" className="mt-1" />
-            <div className="grid gap-1.5 leading-none">
-              <Label htmlFor="res-andamento">Em andamento</Label>
-              <p className="text-xs text-muted-foreground">Combate ativo no momento do preenchimento, sem extinção total.</p>
-            </div>
-          </div>
-          <div className="flex items-start space-x-2">
-            <RadioGroupItem value="fiscalizacao" id="res-fiscalizacao" className="mt-1" />
-            <div className="grid gap-1.5 leading-none">
-              <Label htmlFor="res-fiscalizacao">Necessidade de emprego de equipe de fiscalização</Label>
-              <p className="text-xs text-muted-foreground">Ex: queima controlada ou intencional, fogo já extinto, situação monitorada.</p>
-            </div>
-          </div>
-          <div className="flex items-start space-x-2">
-            <RadioGroupItem value="sem-intervencao" id="res-sem-intervencao" className="mt-1" />
-            <div className="grid gap-1.5 leading-none">
-              <Label htmlFor="res-sem-intervencao">Sem necessidade de intervenção</Label>
-              <p className="text-xs text-muted-foreground">Incêndio extinto sozinho ou por terceiros antes da chegada da guarnição.</p>
-            </div>
-          </div>
-          <div className="flex items-start space-x-2">
-            <RadioGroupItem value="extinto" id="res-extinto" className="mt-1" />
-            <div className="grid gap-1.5 leading-none">
-              <Label htmlFor="res-extinto">Incêndio extinto / Resolvida</Label>
-              <p className="text-xs text-muted-foreground">Guarnição concluiu o combate e confirmou extinção completa do fogo.</p>
-            </div>
-          </div>
-          <div className="flex items-start space-x-2">
-            <RadioGroupItem value="incorreto" id="res-incorreto" className="mt-1" />
-            <div className="grid gap-1.5 leading-none">
-              <Label htmlFor="res-incorreto">Despacho incorreto</Label>
-              <p className="text-xs text-muted-foreground">Não foi encontrado nenhum incêndio ou queimada nas imediações.</p>
-            </div>
-          </div>
-          <div className="flex items-center space-x-2">
-            <RadioGroupItem value="outro" id="res-outro" />
-            <Label htmlFor="res-outro">Outro:</Label>
-            {resultado === 'outro' && <Input className="h-8 flex-1" required />}
-          </div>
-        </RadioGroup>
-      </div>
-
-      {/* Anexos */}
-      <div className="space-y-4">
-        <h3 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground border-b border-border pb-2">Anexos e Documentação Visual</h3>
-        <FileUploader 
-          label="Anexar Fotos, Relatórios em PDF, Mapas KML ou Documentos" 
-          onChange={(files) => onFilesChange && onFilesChange('anexos', files)}
+        {sectionHeader('KM do Veículo ao Retornar', false)}
+        <Input
+          type="number"
+          placeholder="Ex: 123456"
+          value={kmFinal}
+          disabled={readOnly}
+          min={0}
+          onChange={e => setKmFinal(e.target.value)}
+          className="max-w-xs"
         />
       </div>
 
+      {/* ── Resultado Final ── */}
+      <div
+        className={sectionClass(!!errors.resultado || !!errors.outroResultado)}
+        data-error={submitted && (!!errors.resultado || !!errors.outroResultado)}
+      >
+        {sectionHeader('Resultado da Ocorrência')}
+        <RadioGroup
+          value={resultadoOcorrencia}
+          onValueChange={v => !readOnly && setResultadoOcorrencia(v)}
+          className="flex flex-col gap-3"
+        >
+          {RESULTADOS.map(r => (
+            <div key={r.value} className="flex items-start space-x-2">
+              <RadioGroupItem value={r.value} id={`res-${r.value}`} className="mt-1" disabled={readOnly} />
+              <div className="grid gap-1.5 leading-none">
+                <Label htmlFor={`res-${r.value}`} className="cursor-pointer">{r.label}</Label>
+                {r.desc && <p className="text-xs text-muted-foreground">{r.desc}</p>}
+              </div>
+              {r.value === 'OUTRO' && resultadoOcorrencia === 'OUTRO' && (
+                <Input
+                  className={cn('h-8 flex-1 ml-2', submitted && errors.outroResultado && 'border-destructive')}
+                  value={outroResultadoDescricao}
+                  disabled={readOnly}
+                  onChange={e => setOutroResultadoDescricao(e.target.value)}
+                />
+              )}
+            </div>
+          ))}
+        </RadioGroup>
+        {submitted && resultadoOcorrencia === 'OUTRO' && fieldError('outroResultado')}
+        {submitted && !resultadoOcorrencia && fieldError('resultado')}
+      </div>
+
+      {/* ── Anexos ── */}
+      {!readOnly && (
+        <div className="space-y-4">
+          {sectionHeader('Anexos e Documentação Visual', false)}
+          <FileUploader
+            label="Anexar Fotos, Relatórios em PDF, Mapas KML ou Documentos"
+            onChange={files => onFilesChange && onFilesChange('anexos', files)}
+          />
+        </div>
+      )}
     </form>
   );
 }
