@@ -5,7 +5,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Checkbox } from '@/components/ui/checkbox';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
-import { LocationPickerMap } from '@/components/fortivus/map/LocationPickerMap';
+import SituationMapClient from '@/components/fortivus/map/SituationMapClient';
 import { FileUploader } from '@/components/fortivus/forms/FileUploader';
 import { toast } from 'sonner';
 
@@ -16,20 +16,29 @@ export function RelatorioAereoForm({
   onFileRemove 
 }: { 
   initialData?: any,
-  onSubmit?: (e: React.FormEvent) => void, 
+  onSubmit?: (payload: any) => void, 
   onFilesChange?: (key: string, files: File[]) => void,
-  onFileRemove?: (url: string) => void
+  onFileRemove?: (url: string) => void,
+  eventoFogoId?: string,
+  despachoLat?: number,
+  despachoLng?: number
 }) {
-  const [usoAgua, setUsoAgua] = useState(false);
-  const [reforco, setReforco] = useState(false);
-  const [resultado, setResultado] = useState<string>('andamento');
+  const [usoAgua, setUsoAgua] = useState(initialData?.houveUsoAgua || false);
+  const [reforco, setReforco] = useState(initialData?.necessidadeReforco || false);
+  const [resultado, setResultado] = useState<string>(initialData?.resultadoOcorrencia || 'andamento');
   
   // States for "Outros" inputs
-  const [outroAgua, setOutroAgua] = useState(false);
+  const [outroAgua, setOutroAgua] = useState(initialData?.origensAgua?.includes('Outro') || false);
+  const [location, setLocation] = useState<{lat: number, lng: number} | null>(
+    initialData?.areaAtuacaoLat ? {lat: initialData.areaAtuacaoLat, lng: initialData.areaAtuacaoLng} : null
+  );
+
+  const [efetividade, setEfetividade] = useState(initialData?.efetividadeCombate || 'media');
 
   const handleLocalSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const form = e.currentTarget;
+    const data = new FormData(form);
 
     const hasEmp = Array.from(form.querySelectorAll('[id^="emp-"]')).some((cb: any) => cb.dataset.state === 'checked');
     const errors = [];
@@ -53,7 +62,48 @@ export function RelatorioAereoForm({
       return;
     }
 
-    if (onSubmit) onSubmit(e);
+    const tiposEmprego = [];
+    if (form.querySelector('#emp-direto[data-state="checked"]')) tiposEmprego.push('Combate direto');
+    if (form.querySelector('#emp-indireto[data-state="checked"]')) tiposEmprego.push('Combate indireto');
+    if (form.querySelector('#emp-recon[data-state="checked"]')) tiposEmprego.push('Reconhecimento');
+
+    const origensAgua = [];
+    if (usoAgua) {
+      if (form.querySelector('#oagua-curso[data-state="checked"]')) origensAgua.push('Curso d\'água natural');
+      if (form.querySelector('#oagua-hidrante[data-state="checked"]')) origensAgua.push('Hidrante');
+      if (form.querySelector('#oagua-fixo[data-state="checked"]')) origensAgua.push('Reservatório fixo');
+      if (outroAgua) origensAgua.push('Outro');
+    }
+
+    const tiposReforco = [];
+    if (reforco) {
+      if (form.querySelector('#ref-ter[data-state="checked"]')) tiposReforco.push('Mais equipes terrestres');
+      if (form.querySelector('#ref-aer[data-state="checked"]')) tiposReforco.push('Apoio aéreo');
+      if (form.querySelector('#ref-maq[data-state="checked"]')) tiposReforco.push('Maquinário pesado');
+      if (form.querySelector('#ref-sci[data-state="checked"]')) tiposReforco.push('Implantação do SCI');
+    }
+
+    const payload = {
+      horimetroInicial: data.get('horimetroInicial') ? parseFloat(data.get('horimetroInicial') as string) : null,
+      horimetroFinal: data.get('horimetroFinal') ? parseFloat(data.get('horimetroFinal') as string) : null,
+      horasLiquidas: data.get('horasLiquidas') as string,
+      tiposEmprego,
+      areaAtuacaoLat: location?.lat || null,
+      areaAtuacaoLng: location?.lng || null,
+      qtdeLancamentos: data.get('qtdeLancamentos') ? parseInt(data.get('qtdeLancamentos') as string) : null,
+      houveUsoAgua: usoAgua,
+      volumeAguaLitros: usoAgua && data.get('volumeAguaLitros') ? parseInt(data.get('volumeAguaLitros') as string) : null,
+      origensAgua,
+      outraOrigemAguaDescricao: outroAgua ? data.get('outraOrigemAguaDescricao') as string : null,
+      efetividadeCombate: efetividade,
+      necessidadeReforco: reforco,
+      tiposReforcoNecessarios: tiposReforco,
+      historicoDescritivo: data.get('historicoDescritivo') as string,
+      resultadoOcorrencia: resultado,
+      outroResultadoDescricao: resultado === 'outro' ? data.get('outroResultadoDescricao') as string : null,
+    };
+
+    if (onSubmit) onSubmit(payload);
   };
 
   return (
@@ -64,15 +114,15 @@ export function RelatorioAereoForm({
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           <div className="space-y-2">
             <Label>Horímetro Inicial</Label>
-            <Input type="number" placeholder="Ex: 1240.5" />
+            <Input type="number" name="horimetroInicial" placeholder="Ex: 1240.5" defaultValue={initialData?.horimetroInicial} step="0.1" />
           </div>
           <div className="space-y-2">
             <Label>Horímetro Final</Label>
-            <Input type="number" placeholder="Ex: 1243.2" />
+            <Input type="number" name="horimetroFinal" placeholder="Ex: 1243.2" defaultValue={initialData?.horimetroFinal} step="0.1" />
           </div>
           <div className="space-y-2">
             <Label>Horas líquidas (HH:MM)</Label>
-            <Input type="time" />
+            <Input type="time" name="horasLiquidas" defaultValue={initialData?.horasLiquidas} />
           </div>
         </div>
       </div>
@@ -82,15 +132,15 @@ export function RelatorioAereoForm({
         <h3 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground border-b border-border pb-2">Tipo de emprego <span className="text-destructive">*</span></h3>
         <div className="flex flex-wrap gap-4">
           <div className="flex items-center space-x-2">
-            <Checkbox id="emp-direto" />
+            <Checkbox id="emp-direto" defaultChecked={initialData?.tiposEmprego?.includes('Combate direto')} />
             <label htmlFor="emp-direto" className="text-sm font-medium leading-none">Combate direto</label>
           </div>
           <div className="flex items-center space-x-2">
-            <Checkbox id="emp-indireto" />
+            <Checkbox id="emp-indireto" defaultChecked={initialData?.tiposEmprego?.includes('Combate indireto')} />
             <label htmlFor="emp-indireto" className="text-sm font-medium leading-none">Combate indireto</label>
           </div>
           <div className="flex items-center space-x-2">
-            <Checkbox id="emp-recon" />
+            <Checkbox id="emp-recon" defaultChecked={initialData?.tiposEmprego?.includes('Reconhecimento')} />
             <label htmlFor="emp-recon" className="text-sm font-medium leading-none">Reconhecimento</label>
           </div>
         </div>
@@ -99,14 +149,21 @@ export function RelatorioAereoForm({
       {/* Área de Atuação */}
       <div className="space-y-3">
         <h3 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground border-b border-border pb-2">Área de Atuação da Equipe</h3>
-        <div className="relative rounded-lg overflow-hidden border border-border">
-          <LocationPickerMap height="300px" />
-          <div className="absolute top-4 left-4 z-[400] flex gap-2 pointer-events-none">
+        <div className="relative rounded-lg overflow-hidden border border-border h-[350px]">
+          <SituationMapClient 
+             hideEvents={!eventoFogoId}
+             isolatedEventId={eventoFogoId}
+             dispatchPin={despachoLat && despachoLng ? { lat: despachoLat, lng: despachoLng } : null}
+             activePin={location ? { lat: location.lat, lng: location.lng } : null}
+             onClickMap={(lat, lng) => setLocation({lat, lng})}
+             flyTo={despachoLat && despachoLng ? { lat: despachoLat, lng: despachoLng } : null}
+          />
+          <div className="absolute top-4 left-4 z-[400] flex flex-col gap-2 pointer-events-none">
             <div className="bg-background/80 backdrop-blur-sm border border-border text-xs px-2 py-1 rounded flex items-center gap-1 shadow-sm">
-              <div className="w-2 h-2 rounded-full bg-command"></div> Despacho Original
+              <div className="w-2 h-2 rounded-full" style={{ background: '#3b82f6' }} /> Despacho Original
             </div>
             <div className="bg-background/80 backdrop-blur-sm border border-border text-xs px-2 py-1 rounded flex items-center gap-1 shadow-sm">
-              <div className="w-2 h-2 rounded-full bg-fire"></div> Local de Atuação
+              <div className="w-2 h-2 rounded-full bg-red-500" /> Local de Atuação
             </div>
           </div>
         </div>
@@ -118,7 +175,7 @@ export function RelatorioAereoForm({
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div className="space-y-2">
             <Label>Quantidade de alijamentos realizados</Label>
-            <Input type="number" placeholder="Qtd. de lançamentos" />
+            <Input type="number" name="qtdeLancamentos" placeholder="Qtd. de lançamentos" defaultValue={initialData?.qtdeLancamentos} />
           </div>
         </div>
 
@@ -140,28 +197,28 @@ export function RelatorioAereoForm({
           <div className="space-y-4 pl-6 border-l-2 border-primary/30 pt-2">
             <div className="space-y-2 max-w-sm">
               <Label>Quantidade (Litros) <span className="text-destructive">*</span></Label>
-              <Input type="number" placeholder="Ex: 5000" required={usoAgua} />
+              <Input type="number" name="volumeAguaLitros" placeholder="Ex: 5000" required={usoAgua} defaultValue={initialData?.volumeAguaLitros} />
             </div>
 
             <div className="space-y-2 pt-2">
               <Label>Origem da Água <span className="text-destructive">*</span></Label>
               <div className="flex flex-col gap-2">
                 <div className="flex items-center space-x-2">
-                  <Checkbox id="oagua-curso" />
+                  <Checkbox id="oagua-curso" defaultChecked={initialData?.origensAgua?.includes("Curso d'água natural")} />
                   <label htmlFor="oagua-curso" className="text-sm font-medium leading-none">Curso d'água natural (rio, lago, represa)</label>
                 </div>
                 <div className="flex items-center space-x-2">
-                  <Checkbox id="oagua-hidrante" />
+                  <Checkbox id="oagua-hidrante" defaultChecked={initialData?.origensAgua?.includes("Hidrante")} />
                   <label htmlFor="oagua-hidrante" className="text-sm font-medium leading-none">Hidrante</label>
                 </div>
                 <div className="flex items-center space-x-2">
-                  <Checkbox id="oagua-fixo" />
+                  <Checkbox id="oagua-fixo" defaultChecked={initialData?.origensAgua?.includes("Reservatório fixo")} />
                   <label htmlFor="oagua-fixo" className="text-sm font-medium leading-none">Reservatório fixo (cisterna, caixa d'água)</label>
                 </div>
                 <div className="flex items-center space-x-2 mt-1">
-                  <Checkbox id="oagua-outro" onCheckedChange={(c) => setOutroAgua(!!c)} />
+                  <Checkbox id="oagua-outro" checked={outroAgua} onCheckedChange={(c) => setOutroAgua(!!c)} />
                   <label htmlFor="oagua-outro" className="text-sm font-medium leading-none">Outro:</label>
-                  {outroAgua && <Input placeholder="Descreva" className="h-8 ml-2 flex-1 max-w-[250px]" required />}
+                  {outroAgua && <Input name="outraOrigemAguaDescricao" placeholder="Descreva" className="h-8 ml-2 flex-1 max-w-[250px]" required defaultValue={initialData?.outraOrigemAguaDescricao} />}
                 </div>
               </div>
             </div>
@@ -175,7 +232,7 @@ export function RelatorioAereoForm({
         
         <div className="space-y-3">
           <Label>Efetividade estimada</Label>
-          <RadioGroup defaultValue="media" className="flex gap-4">
+          <RadioGroup value={efetividade} onValueChange={setEfetividade} className="flex gap-4">
             <div className="flex items-center space-x-2">
               <RadioGroupItem value="alta" id="ef-alta" />
               <Label htmlFor="ef-alta">Alta</Label>
@@ -210,19 +267,19 @@ export function RelatorioAereoForm({
             <Label className="text-muted-foreground">Selecione os reforços necessários: <span className="text-destructive">*</span></Label>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div className="flex items-center space-x-2">
-                <Checkbox id="ref-ter" />
+                <Checkbox id="ref-ter" defaultChecked={initialData?.tiposReforcoNecessarios?.includes("Mais equipes terrestres")} />
                 <label htmlFor="ref-ter" className="text-sm leading-none">Mais equipes terrestres</label>
               </div>
               <div className="flex items-center space-x-2">
-                <Checkbox id="ref-aer" />
+                <Checkbox id="ref-aer" defaultChecked={initialData?.tiposReforcoNecessarios?.includes("Apoio aéreo")} />
                 <label htmlFor="ref-aer" className="text-sm leading-none">Apoio aéreo</label>
               </div>
               <div className="flex items-center space-x-2">
-                <Checkbox id="ref-maq" />
+                <Checkbox id="ref-maq" defaultChecked={initialData?.tiposReforcoNecessarios?.includes("Maquinário pesado")} />
                 <label htmlFor="ref-maq" className="text-sm leading-none">Maquinário pesado</label>
               </div>
               <div className="flex items-center space-x-2">
-                <Checkbox id="ref-sci" />
+                <Checkbox id="ref-sci" defaultChecked={initialData?.tiposReforcoNecessarios?.includes("Implantação do SCI")} />
                 <label htmlFor="ref-sci" className="text-sm leading-none">Implantação do SCI</label>
               </div>
             </div>
@@ -236,7 +293,7 @@ export function RelatorioAereoForm({
         
         <div className="space-y-2">
           <Label>Histórico descritivo <span className="text-destructive">*</span></Label>
-          <Textarea placeholder="Descreva de forma livre os detalhes da operação aérea..." className="min-h-[120px]" required />
+          <Textarea name="historicoDescritivo" placeholder="Descreva de forma livre os detalhes da operação aérea..." className="min-h-[120px]" required defaultValue={initialData?.historicoDescritivo} />
         </div>
 
         <div className="space-y-3 pt-2">
@@ -257,7 +314,7 @@ export function RelatorioAereoForm({
             <div className="flex items-start space-x-2">
               <RadioGroupItem value="outro" id="res-out" className="mt-0.5" />
               <Label htmlFor="res-out" className="leading-tight whitespace-nowrap">Outro:</Label>
-              {resultado === 'outro' && <Input className="h-7 text-xs flex-1 ml-2 max-w-[300px]" placeholder="Especifique..." required />}
+              {resultado === 'outro' && <Input name="outroResultadoDescricao" className="h-7 text-xs flex-1 ml-2 max-w-[300px]" placeholder="Especifique..." required defaultValue={initialData?.outroResultadoDescricao} />}
             </div>
           </RadioGroup>
         </div>

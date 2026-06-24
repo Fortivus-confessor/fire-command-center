@@ -5,7 +5,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Checkbox } from '@/components/ui/checkbox';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
-import { LocationPickerMap } from '@/components/fortivus/map/LocationPickerMap';
+import SituationMapClient from '@/components/fortivus/map/SituationMapClient';
 import { FileUploader } from '@/components/fortivus/forms/FileUploader';
 import { toast } from 'sonner';
 
@@ -16,18 +16,26 @@ export function RelatorioMaquinarioForm({
   onFileRemove 
 }: { 
   initialData?: any,
-  onSubmit?: (e: React.FormEvent) => void, 
+  onSubmit?: (payload: any) => void, 
   onFilesChange?: (key: string, files: File[]) => void,
-  onFileRemove?: (url: string) => void
+  onFileRemove?: (url: string) => void,
+  eventoFogoId?: string,
+  despachoLat?: number,
+  despachoLng?: number
 }) {
-  const [reforco, setReforco] = useState(false);
-  const [resultado, setResultado] = useState<string>('andamento');
-  const [empregoAceiro, setEmpregoAceiro] = useState(false);
-  const [empregoOutro, setEmpregoOutro] = useState(false);
+  const [reforco, setReforco] = useState(initialData?.necessidadeReforco || false);
+  const [resultado, setResultado] = useState<string>(initialData?.resultadoOcorrencia || 'andamento');
+  const [empregoAceiro, setEmpregoAceiro] = useState(initialData?.tiposEmprego?.includes('Confecção de aceiros') || false);
+  const [empregoOutro, setEmpregoOutro] = useState(initialData?.tiposEmprego?.includes('Outro') || false);
+  const [efetividade, setEfetividade] = useState(initialData?.efetividadeCombate || 'media');
+  const [location, setLocation] = useState<{lat: number, lng: number} | null>(
+    initialData?.areaAtuacaoLat ? {lat: initialData.areaAtuacaoLat, lng: initialData.areaAtuacaoLng} : null
+  );
 
   const handleLocalSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const form = e.currentTarget;
+    const data = new FormData(form);
 
     const hasEmp = Array.from(form.querySelectorAll('[id^="emp-"]')).some((cb: any) => cb.dataset.state === 'checked');
     const errors = [];
@@ -46,7 +54,40 @@ export function RelatorioMaquinarioForm({
       return;
     }
 
-    if (onSubmit) onSubmit(e);
+    const tiposEmprego = [];
+    if (form.querySelector('#emp-direto[data-state="checked"]')) tiposEmprego.push('Combate direto');
+    if (form.querySelector('#emp-aceiros[data-state="checked"]')) tiposEmprego.push('Confecção de aceiros');
+    if (form.querySelector('#emp-fogo[data-state="checked"]')) tiposEmprego.push('Apoio a fogo contrafogo');
+    if (empregoOutro) tiposEmprego.push('Outro');
+
+    const tiposReforco = [];
+    if (reforco) {
+      if (form.querySelector('#ref-ter[data-state="checked"]')) tiposReforco.push('Mais equipes terrestres');
+      if (form.querySelector('#ref-aer[data-state="checked"]')) tiposReforco.push('Apoio aéreo');
+      if (form.querySelector('#ref-maq[data-state="checked"]')) tiposReforco.push('Maquinário pesado');
+      if (form.querySelector('#ref-sci[data-state="checked"]')) tiposReforco.push('Implantação do SCI');
+    }
+
+    const payload = {
+      horimetroInicial: data.get('horimetroInicial') ? parseFloat(data.get('horimetroInicial') as string) : null,
+      horimetroFinal: data.get('horimetroFinal') ? parseFloat(data.get('horimetroFinal') as string) : null,
+      tempoLiquido: data.get('tempoLiquido') as string,
+      horaInicioOperacao: data.get('horaInicioOperacao') ? data.get('horaInicioOperacao') + ":00" : null,
+      horaFimOperacao: data.get('horaFimOperacao') ? data.get('horaFimOperacao') + ":00" : null,
+      tiposEmprego,
+      comprimentoAceiros: empregoAceiro && data.get('comprimentoAceiros') ? parseFloat(data.get('comprimentoAceiros') as string) : null,
+      descricaoOutroEmprego: empregoOutro ? data.get('descricaoOutroEmprego') as string : null,
+      areaAtuacaoLat: location?.lat || null,
+      areaAtuacaoLng: location?.lng || null,
+      efetividadeCombate: efetividade,
+      necessidadeReforco: reforco,
+      tiposReforcoNecessarios: tiposReforco,
+      historicoDescritivo: data.get('historicoDescritivo') as string,
+      resultadoOcorrencia: resultado,
+      outroResultadoDescricao: resultado === 'outro' ? data.get('outroResultadoDescricao') as string : null,
+    };
+
+    if (onSubmit) onSubmit(payload);
   };
 
   return (
@@ -57,25 +98,25 @@ export function RelatorioMaquinarioForm({
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           <div className="space-y-2">
             <Label>Horímetro Inicial</Label>
-            <Input type="number" placeholder="Ex: 5400.5" />
+            <Input type="number" name="horimetroInicial" placeholder="Ex: 5400.5" defaultValue={initialData?.horimetroInicial} step="0.1" />
           </div>
           <div className="space-y-2">
             <Label>Horímetro Final</Label>
-            <Input type="number" placeholder="Ex: 5408.2" />
+            <Input type="number" name="horimetroFinal" placeholder="Ex: 5408.2" defaultValue={initialData?.horimetroFinal} step="0.1" />
           </div>
           <div className="space-y-2">
             <Label>Tempo líquido (HH:MM)</Label>
-            <Input type="time" />
+            <Input type="time" name="tempoLiquido" defaultValue={initialData?.tempoLiquido} />
           </div>
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
           <div className="space-y-2">
             <Label>Horário de início da operação</Label>
-            <Input type="time" />
+            <Input type="time" name="horaInicioOperacao" defaultValue={initialData?.horaInicioOperacao?.substring(0, 5)} />
           </div>
           <div className="space-y-2">
             <Label>Horário final da operação</Label>
-            <Input type="time" />
+            <Input type="time" name="horaFimOperacao" defaultValue={initialData?.horaFimOperacao?.substring(0, 5)} />
           </div>
         </div>
       </div>
@@ -86,7 +127,7 @@ export function RelatorioMaquinarioForm({
         <div className="flex flex-col gap-3">
           <div className="flex flex-wrap gap-4">
             <div className="flex items-center space-x-2">
-              <Checkbox id="emp-direto" />
+              <Checkbox id="emp-direto" defaultChecked={initialData?.tiposEmprego?.includes('Combate direto')} />
               <label htmlFor="emp-direto" className="text-sm font-medium leading-none">Combate direto</label>
             </div>
             <div className="flex items-center space-x-2">
@@ -94,7 +135,7 @@ export function RelatorioMaquinarioForm({
               <label htmlFor="emp-aceiros" className="text-sm font-medium leading-none">Confecção de aceiros</label>
             </div>
             <div className="flex items-center space-x-2">
-              <Checkbox id="emp-fogo" />
+              <Checkbox id="emp-fogo" defaultChecked={initialData?.tiposEmprego?.includes('Apoio a fogo contrafogo')} />
               <label htmlFor="emp-fogo" className="text-sm font-medium leading-none">Apoio a fogo contrafogo</label>
             </div>
             <div className="flex items-center space-x-2">
@@ -107,13 +148,13 @@ export function RelatorioMaquinarioForm({
             {empregoAceiro && (
               <div className="space-y-2 flex-1 max-w-xs">
                 <Label>Comprimento dos aceiros construídos (m) <span className="text-destructive">*</span></Label>
-                <Input type="number" placeholder="Ex: 500" required={empregoAceiro} />
+                <Input type="number" name="comprimentoAceiros" placeholder="Ex: 500" required={empregoAceiro} defaultValue={initialData?.comprimentoAceiros} step="0.1" />
               </div>
             )}
             {empregoOutro && (
               <div className="space-y-2 flex-1 max-w-xs">
                 <Label>Descrição do Outro emprego</Label>
-                <Input placeholder="Descreva..." required />
+                <Input name="descricaoOutroEmprego" placeholder="Descreva..." required defaultValue={initialData?.descricaoOutroEmprego} />
               </div>
             )}
           </div>
@@ -123,14 +164,21 @@ export function RelatorioMaquinarioForm({
       {/* Área de Atuação */}
       <div className="space-y-3">
         <h3 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground border-b border-border pb-2">Área de Atuação da Equipe</h3>
-        <div className="relative rounded-lg overflow-hidden border border-border">
-          <LocationPickerMap height="300px" />
-          <div className="absolute top-4 left-4 z-[400] flex gap-2 pointer-events-none">
+        <div className="relative rounded-lg overflow-hidden border border-border h-[350px]">
+          <SituationMapClient 
+             hideEvents={!eventoFogoId}
+             isolatedEventId={eventoFogoId}
+             dispatchPin={despachoLat && despachoLng ? { lat: despachoLat, lng: despachoLng } : null}
+             activePin={location ? { lat: location.lat, lng: location.lng } : null}
+             onClickMap={(lat, lng) => setLocation({lat, lng})}
+             flyTo={despachoLat && despachoLng ? { lat: despachoLat, lng: despachoLng } : null}
+          />
+          <div className="absolute top-4 left-4 z-[400] flex flex-col gap-2 pointer-events-none">
             <div className="bg-background/80 backdrop-blur-sm border border-border text-xs px-2 py-1 rounded flex items-center gap-1 shadow-sm">
-              <div className="w-2 h-2 rounded-full bg-command"></div> Despacho Original
+              <div className="w-2 h-2 rounded-full" style={{ background: '#3b82f6' }} /> Despacho Original
             </div>
             <div className="bg-background/80 backdrop-blur-sm border border-border text-xs px-2 py-1 rounded flex items-center gap-1 shadow-sm">
-              <div className="w-2 h-2 rounded-full bg-fire"></div> Local de Atuação
+              <div className="w-2 h-2 rounded-full bg-red-500" /> Local de Atuação
             </div>
           </div>
         </div>
@@ -142,7 +190,7 @@ export function RelatorioMaquinarioForm({
         
         <div className="space-y-3">
           <Label>Efetividade estimada</Label>
-          <RadioGroup defaultValue="media" className="flex gap-4">
+          <RadioGroup value={efetividade} onValueChange={setEfetividade} className="flex gap-4">
             <div className="flex items-center space-x-2">
               <RadioGroupItem value="alta" id="ef-alta" />
               <Label htmlFor="ef-alta">Alta</Label>
@@ -177,19 +225,19 @@ export function RelatorioMaquinarioForm({
             <Label className="text-muted-foreground">Selecione os reforços necessários: <span className="text-destructive">*</span></Label>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div className="flex items-center space-x-2">
-                <Checkbox id="ref-ter" />
+                <Checkbox id="ref-ter" defaultChecked={initialData?.tiposReforcoNecessarios?.includes("Mais equipes terrestres")} />
                 <label htmlFor="ref-ter" className="text-sm leading-none">Mais equipes terrestres</label>
               </div>
               <div className="flex items-center space-x-2">
-                <Checkbox id="ref-aer" />
+                <Checkbox id="ref-aer" defaultChecked={initialData?.tiposReforcoNecessarios?.includes("Apoio aéreo")} />
                 <label htmlFor="ref-aer" className="text-sm leading-none">Apoio aéreo</label>
               </div>
               <div className="flex items-center space-x-2">
-                <Checkbox id="ref-maq" />
+                <Checkbox id="ref-maq" defaultChecked={initialData?.tiposReforcoNecessarios?.includes("Maquinário pesado")} />
                 <label htmlFor="ref-maq" className="text-sm leading-none">Maquinário pesado</label>
               </div>
               <div className="flex items-center space-x-2">
-                <Checkbox id="ref-sci" />
+                <Checkbox id="ref-sci" defaultChecked={initialData?.tiposReforcoNecessarios?.includes("Implantação do SCI")} />
                 <label htmlFor="ref-sci" className="text-sm leading-none">Implantação do SCI</label>
               </div>
             </div>
@@ -203,7 +251,7 @@ export function RelatorioMaquinarioForm({
         
         <div className="space-y-2">
           <Label>Histórico descritivo <span className="text-destructive">*</span></Label>
-          <Textarea placeholder="Descreva de forma livre os detalhes da operação com maquinário..." className="min-h-[120px]" required />
+          <Textarea name="historicoDescritivo" placeholder="Descreva de forma livre os detalhes da operação com maquinário..." className="min-h-[120px]" required defaultValue={initialData?.historicoDescritivo} />
         </div>
 
         <div className="space-y-3 pt-2">
@@ -224,7 +272,7 @@ export function RelatorioMaquinarioForm({
             <div className="flex items-start space-x-2">
               <RadioGroupItem value="outro" id="res-out" className="mt-0.5" />
               <Label htmlFor="res-out" className="leading-tight whitespace-nowrap">Outro:</Label>
-              {resultado === 'outro' && <Input className="h-7 text-xs flex-1 ml-2 max-w-[300px]" placeholder="Especifique..." required />}
+              {resultado === 'outro' && <Input name="outroResultadoDescricao" className="h-7 text-xs flex-1 ml-2 max-w-[300px]" placeholder="Especifique..." required defaultValue={initialData?.outroResultadoDescricao} />}
             </div>
           </RadioGroup>
         </div>
