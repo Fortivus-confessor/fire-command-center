@@ -44,6 +44,31 @@ function ResponderTerrestrePage() {
     retry: false,
   });
 
+  // ── Busca os dados do Despacho (para coords e OS associada) ──
+  const { data: despachoData, isLoading: isLoadingDespacho } = useQuery<any>({
+    queryKey: ['despacho', id],
+    queryFn: async () => {
+      try {
+        return await fetchWithAuth(`/operacional/despachos/${id}`);
+      } catch (err) {
+        return null;
+      }
+    }
+  });
+
+  // ── Busca os dados da Ordem de Servico ──
+  const { data: osData } = useQuery<any>({
+    queryKey: ['ordem-servico', despachoData?.ordemServicoId],
+    queryFn: async () => {
+      try {
+        return await fetchWithAuth(`/operacional/ordens-servico/${despachoData.ordemServicoId}`);
+      } catch (err) {
+        return null;
+      }
+    },
+    enabled: !!despachoData?.ordemServicoId
+  });
+
   // ── Mutation para salvar/atualizar ──
   const mutation = useMutation({
     mutationFn: async (payload: RelatorioTerrestrePayload) => {
@@ -76,34 +101,14 @@ function ResponderTerrestrePage() {
 
       for (const file of files) {
         try {
-          // 1. Pedir URL assinada
-          const urlRes = await fetchAttachmentWithAuth(`/api/v1/attachments/upload-url?fileName=${encodeURIComponent(file.name)}&contentType=${encodeURIComponent(file.type)}`);
-          if (!urlRes || !urlRes.url) throw new Error("Não foi possível obter link de upload.");
-          
-          // 2. Upload para o Object Storage (SeaweedFS/S3)
-          const uploadResponse = await fetch(urlRes.url, { 
-            method: 'PUT', 
-            body: file, 
-            headers: { 'Content-Type': file.type } 
-          });
-          
-          if (!uploadResponse.ok) {
-            throw new Error(`Upload storage error: ${uploadResponse.status}`);
-          }
-          
-          // 3. Confirmar upload no attachment-service
-          await fetchAttachmentWithAuth(`/api/v1/attachments/confirm`, {
+          const formData = new FormData();
+          formData.append('file', file);
+          formData.append('entityId', entityIdUuid);
+          formData.append('entityType', entityType);
+
+          await fetchAttachmentWithAuth(`/api/v1/attachments/upload`, {
             method: 'POST',
-            body: JSON.stringify({
-              fileKey: urlRes.fileKey,
-              fileName: file.name,
-              contentType: file.type,
-              sizeBytes: file.size,
-              entityId: entityIdUuid,
-              entityType: entityType,
-              gpsLat: null,
-              gpsLng: null
-            })
+            body: formData
           });
         } catch (e) {
           console.error("Falha ao subir arquivo", file.name, e);
@@ -122,6 +127,21 @@ function ResponderTerrestrePage() {
     }
 
     await mutation.mutateAsync(payload);
+  };
+
+  const handleFileRemove = async (url: string) => {
+    if (!attachments) return;
+    const attachment = attachments.find(a => url.includes(a.id) || a.url?.includes(url) || url.includes(a.url));
+    if (attachment) {
+      try {
+        await fetchAttachmentWithAuth(`/api/v1/attachments/${attachment.id}`, { method: 'DELETE' });
+        queryClient.invalidateQueries({ queryKey: ['attachments', despachoId] });
+        toast.success("Anexo removido com sucesso.");
+      } catch (e) {
+        console.error("Falha ao remover arquivo", e);
+        toast.error("Falha ao remover arquivo.");
+      }
+    }
   };
 
   // ── Determina o status ──
@@ -146,8 +166,8 @@ function ResponderTerrestrePage() {
 
   const relatorioComAnexos = relatorioExistente ? {
     ...relatorioExistente,
-    anexos: attachments?.filter(a => a.entityType === 'RELATORIO_TERRESTRE').map(a => ({ url: a.url })) || [],
-    origem: attachments?.filter(a => a.entityType === 'ORIGEM_INCENDIO').map(a => ({ url: a.url })) || []
+    anexos: attachments?.filter((a: any) => a.entityType === 'RELATORIO_TERRESTRE').map((a: any) => ({ url: a.url?.replace(/seaweedfs(:\d+)?/, window.location.hostname + '$1') })) || [],
+    origem: attachments?.filter((a: any) => a.entityType === 'ORIGEM_INCENDIO').map((a: any) => ({ url: a.url?.replace(/seaweedfs(:\d+)?/, window.location.hostname + '$1') })) || []
   } : null;
 
   // Se está carregando, mostra spinner
@@ -173,7 +193,7 @@ function ResponderTerrestrePage() {
             <Truck className="h-6 w-6 text-command" />
             Relatório de Combate Terrestre
           </h1>
-          <p className="text-sm text-muted-foreground mt-1">
+          <div className="text-sm text-muted-foreground mt-1">
             Despacho #{id}
             {hasRelatorio && (
               <span className="ml-2">
@@ -183,7 +203,7 @@ function ResponderTerrestrePage() {
                 </Badge>
               </span>
             )}
-          </p>
+          </div>
           {hasRelatorio && relatorioExistente?.dataFim && (
             <p className="text-xs text-muted-foreground mt-1">
               Respondido em {format(new Date(relatorioExistente.dataFim), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
@@ -211,6 +231,10 @@ function ResponderTerrestrePage() {
           initialData={relatorioComAnexos}
           onSubmit={handleSubmit}
           onFilesChange={handleFilesChange}
+          onFileRemove={handleFileRemove}
+          despachoLat={despachoData?.latitude}
+          despachoLng={despachoData?.longitude}
+          eventoFogoId={osData?.eventoFogoId}
         />
       </div>
 

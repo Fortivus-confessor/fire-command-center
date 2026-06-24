@@ -7,6 +7,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { MapPin, Plus, Trash2, AlertCircle } from 'lucide-react';
 import { LocationPickerMap } from '@/components/fortivus/map/LocationPickerMap';
+import SituationMapClient from '@/components/fortivus/map/SituationMapClient';
 import { FileUploader } from '@/components/fortivus/forms/FileUploader';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
@@ -105,7 +106,6 @@ export interface RelatorioTerrestrePayload {
   historicoDescritivo: string;
   resultadoOcorrencia: string;
   outroResultadoDescricao?: string;
-  kmFinal?: number;
 }
 
 interface PropriedadePayload {
@@ -163,6 +163,10 @@ interface RelatorioTerrestreFormProps {
   initialData?: any;
   onSubmit?: (payload: RelatorioTerrestrePayload) => Promise<void>;
   onFilesChange?: (key: string, files: File[]) => void;
+  onFileRemove?: (url: string) => void;
+  despachoLat?: number;
+  despachoLng?: number;
+  eventoFogoId?: string;
 }
 
 // ────────────────────────────────────────────────────
@@ -175,7 +179,15 @@ export function RelatorioTerrestreForm({
   initialData,
   onSubmit,
   onFilesChange,
+  onFileRemove,
+  despachoLat,
+  despachoLng,
+  eventoFogoId,
 }: RelatorioTerrestreFormProps) {
+  // ── Área de Atuação ──
+  const [areaAtuacaoLat, setAreaAtuacaoLat] = useState<number | undefined>(initialData?.areaAtuacaoLat);
+  const [areaAtuacaoLng, setAreaAtuacaoLng] = useState<number | undefined>(initialData?.areaAtuacaoLng);
+
   // ── Ações de Combate ──
   const [acoesRealizadas, setAcoesRealizadas] = useState<string[]>(initialData?.acoesRealizadas ?? []);
 
@@ -237,7 +249,6 @@ export function RelatorioTerrestreForm({
   const [historicoDescritivo, setHistoricoDescritivo] = useState(initialData?.historicoDescritivo ?? '');
   const [resultadoOcorrencia, setResultadoOcorrencia] = useState(initialData?.resultadoOcorrencia ?? '');
   const [outroResultadoDescricao, setOutroResultadoDescricao] = useState(initialData?.outroResultadoDescricao ?? '');
-  const [kmFinal, setKmFinal] = useState(initialData?.kmFinal?.toString() ?? '');
 
   // ── Erros de validação ──
   const [errors, setErrors] = useState<ValidationErrors>({});
@@ -276,6 +287,7 @@ export function RelatorioTerrestreForm({
     if (!resultadoOcorrencia) errs.resultado = 'Selecione o resultado da ocorrência.';
     if (resultadoOcorrencia === 'OUTRO' && !outroResultadoDescricao.trim()) errs.outroResultado = 'Descreva o outro resultado.';
     if (houveUsoAgua && (!volumeAguaLitros || Number(volumeAguaLitros) <= 0)) errs.volumeAgua = 'Informe o volume de água utilizado.';
+    if (!areaAtuacaoLat || !areaAtuacaoLng) errs.areaAtuacao = 'Selecione a área de atuação no mapa.';
 
     return errs;
   };
@@ -335,6 +347,8 @@ export function RelatorioTerrestreForm({
       acoesRealizadas,
       orgaosApoio,
       outrosOrgaosDescricao: orgaosApoio.includes('OUTROS') ? outrosOrgaosDescricao : undefined,
+      areaAtuacaoLat,
+      areaAtuacaoLng,
       houveUsoAgua,
       volumeAguaLitros: houveUsoAgua && volumeAguaLitros ? Number(volumeAguaLitros) : undefined,
       origensAgua: houveUsoAgua ? origensAgua : undefined,
@@ -350,7 +364,6 @@ export function RelatorioTerrestreForm({
       historicoDescritivo,
       resultadoOcorrencia,
       outroResultadoDescricao: resultadoOcorrencia === 'OUTRO' ? outroResultadoDescricao : undefined,
-      kmFinal: kmFinal ? Number(kmFinal) : undefined,
     };
 
     if (onSubmit) {
@@ -435,19 +448,32 @@ export function RelatorioTerrestreForm({
       </div>
 
       {/* ── Área de Atuação ── */}
-      <div className="space-y-3">
-        {sectionHeader('Área de Atuação da Equipe', false)}
-        <div className="relative rounded-lg overflow-hidden border border-border">
-          <LocationPickerMap height="300px" />
-          <div className="absolute top-4 left-4 z-[400] flex gap-2 pointer-events-none">
+      <div className={sectionClass(!!errors.areaAtuacao)} data-error={submitted && !!errors.areaAtuacao}>
+        {sectionHeader('Área de Atuação da Equipe')}
+        <div className="relative rounded-lg overflow-hidden border border-border h-[350px]">
+          <SituationMapClient 
+             hideEvents={!eventoFogoId}
+             isolatedEventId={eventoFogoId}
+             dispatchPin={despachoLat && despachoLng ? { lat: despachoLat, lng: despachoLng } : null}
+             activePin={areaAtuacaoLat && areaAtuacaoLng ? { lat: areaAtuacaoLat, lng: areaAtuacaoLng } : null}
+             onClickMap={(lat, lng) => {
+               if (!readOnly) {
+                 setAreaAtuacaoLat(lat);
+                 setAreaAtuacaoLng(lng);
+               }
+             }}
+             flyTo={despachoLat && despachoLng ? { lat: despachoLat, lng: despachoLng } : null}
+          />
+          <div className="absolute top-4 left-4 z-[400] flex flex-col gap-2 pointer-events-none">
             <div className="bg-background/80 backdrop-blur-sm border border-border text-xs px-2 py-1 rounded flex items-center gap-1 shadow-sm">
-              <div className="w-2 h-2 rounded-full bg-command" /> Despacho Original
+              <div className="w-2 h-2 rounded-full" style={{ background: '#3b82f6' }} /> Despacho Original
             </div>
             <div className="bg-background/80 backdrop-blur-sm border border-border text-xs px-2 py-1 rounded flex items-center gap-1 shadow-sm">
-              <div className="w-2 h-2 rounded-full bg-fire" /> Local de Atuação
+              <div className="w-2 h-2 rounded-full bg-red-500" /> Local de Atuação
             </div>
           </div>
         </div>
+        {submitted && fieldError('areaAtuacao')}
       </div>
 
       {/* ── Uso de Água ── */}
@@ -784,7 +810,7 @@ export function RelatorioTerrestreForm({
           ))}
         </RadioGroup>
         {possivelOrigemIncendio === 'OUTRO' && (
-          <div className="mt-2">
+          <div className="mt-4 max-w-xl">
             <Input
               placeholder="Descreva a outra origem..."
               value={outraOrigemDescricao}
@@ -795,16 +821,15 @@ export function RelatorioTerrestreForm({
             {submitted && fieldError('outraOrigem')}
           </div>
         )}
-        <div className="pt-2">
-          {!readOnly && (
-            <FileUploader
-              label="Adicionar imagem do local de origem (com coordenadas)"
-              maxFiles={1}
-              accept=".png,.jpg,.jpeg"
-              initialUrls={initialData?.origem?.map((a: any) => a.url) || []}
-              onChange={files => onFilesChange && onFilesChange('origem', files)}
-            />
-          )}
+        <div className="max-w-2xl mt-4">
+          <FileUploader
+            label="Anexar Fotos do local de origem (com coordenadas)"
+            maxFiles={1}
+            initialUrls={initialData?.origem?.map((a: any) => a.url) || []}
+            accept=".png,.jpg,.jpeg"
+            onChange={files => onFilesChange && onFilesChange('origem', files)}
+            onRemoveInitial={onFileRemove}
+          />
         </div>
         {submitted && !errors.outraOrigem && fieldError('origem')}
       </div>
@@ -888,21 +913,6 @@ export function RelatorioTerrestreForm({
         <p className="text-xs text-muted-foreground text-right">{historicoDescritivo.length} caracteres (mín. 20)</p>
         {submitted && fieldError('historico')}
       </div>
-
-      {/* ── KM Final ── */}
-      <div className="space-y-3">
-        {sectionHeader('KM do Veículo ao Retornar', false)}
-        <Input
-          type="number"
-          placeholder="Ex: 123456"
-          value={kmFinal}
-          disabled={readOnly}
-          min={0}
-          onChange={e => setKmFinal(e.target.value)}
-          className="max-w-xs"
-        />
-      </div>
-
       {/* ── Resultado Final ── */}
       <div
         className={sectionClass(!!errors.resultado || !!errors.outroResultado)}
@@ -944,6 +954,7 @@ export function RelatorioTerrestreForm({
             label="Anexar Fotos, Relatórios em PDF, Mapas KML ou Documentos"
             initialUrls={initialData?.anexos?.map((a: any) => a.url) || []}
             onChange={files => onFilesChange && onFilesChange('anexos', files)}
+            onRemoveInitial={onFileRemove}
           />
         </div>
       )}

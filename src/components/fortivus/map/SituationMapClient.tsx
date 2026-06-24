@@ -59,9 +59,10 @@ interface Props {
   hideEvents?: boolean;
   flyTo?: { lat: number; lng: number } | null;
   isolatedEventId?: string;
+  dispatchPin?: { lat: number; lng: number } | null;
 }
 
-export default function SituationMapClient({ selectedId, onSelect, onClickMap, activePin, hideEvents, flyTo, isolatedEventId }: Props) {
+export default function SituationMapClient({ selectedId, onSelect, onClickMap, activePin, hideEvents, flyTo, isolatedEventId, dispatchPin }: Props) {
   const [coords, setCoords] = useState({ lat: MAP_CENTER.latitude, lng: MAP_CENTER.longitude, zoom: MAP_CENTER.zoom });
   const [showFocos, setShowFocos] = useState(false);
   const [mapStyleKey, setMapStyleKey] = useState<string>('carto_dark');
@@ -353,6 +354,10 @@ export default function SituationMapClient({ selectedId, onSelect, onClickMap, a
 
         {activePin && (
           <Marker longitude={activePin.lng} latitude={activePin.lat} color="red" />
+        )}
+
+        {dispatchPin && (
+          <Marker longitude={dispatchPin.lng} latitude={dispatchPin.lat} color="#3b82f6" />
         )}
 
         {/* Controles de camadas / Base Map */}

@@ -285,7 +285,7 @@ function OrdensServicoPage() {
   }
 
   // ── Filtered data ──
-  const formatOsId = (id: string | number) => `OS2026${String(id).padStart(8, '0')}`;
+  const formatOsId = (id: string | number) => `OS${id}`;
 
   const mappedData = ordensServicoDB.map((dbOs: any) => {
     const escala = todasEscalas.find((e: any) => e.id === dbOs.escalaId);
