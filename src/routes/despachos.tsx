@@ -44,9 +44,9 @@ function statusBadge(s: string) {
   }
 }
 
-function formatId(id: number | string | undefined) {
-  if (!id) return '--';
-  return `D${String(id).padStart(12, '0')}`;
+function getSmartId(item: any) {
+  if (!item) return '--';
+  return item.smartId || (item.id ? `D${String(item.id).padStart(12, '0')}` : '--');
 }
 
 function formatDate(dateStr: string | null | undefined) {
@@ -123,7 +123,7 @@ function DespachosPage() {
     const searchLower = search.toLowerCase();
     const matchSearch =
       !search ||
-      formatId(item.id).toLowerCase().includes(searchLower) ||
+      getSmartId(item).toLowerCase().includes(searchLower) ||
       String(item.ordemServicoId || '').includes(searchLower) ||
       item.equipeStr.toLowerCase().includes(searchLower) ||
       (item.descricaoTarefa || '').toLowerCase().includes(searchLower);
@@ -253,7 +253,7 @@ function DespachosPage() {
                   ) : (
                     currentData.map((item) => (
                       <TableRow key={item.id} className="hover:bg-muted/30 transition-colors">
-                        <TableCell className="font-mono text-sm">{formatId(item.id)}</TableCell>
+                        <TableCell className="font-mono text-sm">{getSmartId(item)}</TableCell>
                         <TableCell className="font-mono text-sm">OS{item.ordemServicoId}</TableCell>
                         <TableCell className="font-medium text-foreground">{item.equipeStr}</TableCell>
                         <TableCell>{item.categoria || '--'}</TableCell>

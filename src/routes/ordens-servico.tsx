@@ -285,7 +285,6 @@ function OrdensServicoPage() {
   }
 
   // ── Filtered data ──
-  const formatOsId = (id: string | number) => `OS${id}`;
 
   const mappedData = ordensServicoDB.map((dbOs: any) => {
     const escala = todasEscalas.find((e: any) => e.id === dbOs.escalaId);
@@ -300,7 +299,7 @@ function OrdensServicoPage() {
 
     return {
       id: dbOs.id,
-      codigo: formatOsId(dbOs.id),
+      codigo: dbOs.smartId || `OS${dbOs.id}`,
       comando: comandoName,
       equipe: equipeName,
       tipoDespacho: dbOs.tipoDespacho || '',
@@ -360,7 +359,7 @@ function OrdensServicoPage() {
       if (dbOs) {
         const item = {
           id: dbOs.id,
-          codigo: formatOsId(dbOs.id),
+          codigo: dbOs.smartId || `OS${dbOs.id}`,
           comando: dbOs.comandoId ? String(dbOs.comandoId) : '',
           equipe: dbOs.escalaId ? String(dbOs.escalaId) : '',
           tipoDespacho: dbOs.tipoDespacho || '',

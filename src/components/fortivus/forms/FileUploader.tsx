@@ -12,7 +12,7 @@ interface Attachment {
 export function FileUploader({ 
   label = "Anexar Arquivos",
   maxFiles = undefined,
-  accept = ".png,.jpg,.jpeg,.pdf,.docx,.doc,.kml,.kmz,.geojson",
+  accept = ".png,.jpg,.jpeg,.pdf,.docx,.doc,.odt,.csv,.kml,.kmz,.geojson",
   initialUrls = [],
   onChange,
   onRemoveInitial
@@ -34,7 +34,7 @@ export function FileUploader({
       const selectedFiles = Array.from(e.target.files);
       
       // Handle max files constraint
-      if (maxFiles && attachments.length + selectedFiles.length > maxFiles) {
+      if (maxFiles && attachments.length + existingUrls.length + selectedFiles.length > maxFiles) {
         alert(`Você só pode anexar no máximo ${maxFiles} arquivo(s) neste campo.`);
         return;
       }
@@ -68,10 +68,47 @@ export function FileUploader({
 
   const getFileIcon = (file: File) => {
     if (file.type.startsWith('image/')) return <ImageIcon className="h-6 w-6 text-blue-400" />;
-    if (file.type === 'application/pdf') return <FileText className="h-6 w-6 text-red-400" />;
+    if (file.type === 'application/pdf' || file.name.endsWith('.pdf')) return <FileText className="h-6 w-6 text-red-400" />;
     if (file.name.endsWith('.kml') || file.name.endsWith('.kmz') || file.name.endsWith('.geojson')) return <Map className="h-6 w-6 text-emerald-400" />;
-    if (file.name.endsWith('.doc') || file.name.endsWith('.docx')) return <FileText className="h-6 w-6 text-blue-500" />;
+    if (file.name.endsWith('.doc') || file.name.endsWith('.docx') || file.name.endsWith('.odt')) return <FileText className="h-6 w-6 text-blue-500" />;
+    if (file.name.endsWith('.csv')) return <FileText className="h-6 w-6 text-green-500" />;
     return <File className="h-6 w-6 text-muted-foreground" />;
+  };
+
+  const isImageUrl = (url: string) => {
+    try {
+      const pathname = new URL(url).pathname.toLowerCase();
+      return pathname.endsWith('.png') || pathname.endsWith('.jpg') || pathname.endsWith('.jpeg') || pathname.endsWith('.gif') || pathname.endsWith('.webp');
+    } catch {
+      const lower = url.toLowerCase();
+      return lower.includes('.png') || lower.includes('.jpg') || lower.includes('.jpeg') || lower.includes('.gif') || lower.includes('.webp');
+    }
+  };
+
+  const getUrlIcon = (url: string) => {
+    let lower = url.toLowerCase();
+    try {
+      lower = new URL(url).pathname.toLowerCase();
+    } catch {}
+    
+    if (lower.endsWith('.pdf')) return <FileText className="h-6 w-6 text-red-400" />;
+    if (lower.endsWith('.kml') || lower.endsWith('.kmz') || lower.endsWith('.geojson')) return <Map className="h-6 w-6 text-emerald-400" />;
+    if (lower.endsWith('.doc') || lower.endsWith('.docx') || lower.endsWith('.odt')) return <FileText className="h-6 w-6 text-blue-500" />;
+    if (lower.endsWith('.csv')) return <FileText className="h-6 w-6 text-green-500" />;
+    return <File className="h-6 w-6 text-muted-foreground" />;
+  };
+
+  const extractFilename = (url: string) => {
+    try {
+      const pathname = new URL(url).pathname;
+      let filename = pathname.substring(pathname.lastIndexOf('/') + 1);
+      if (/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}-/i.test(filename)) {
+        filename = filename.substring(37);
+      }
+      return filename || 'arquivo';
+    } catch {
+      return url.split('/').pop() || 'arquivo';
+    }
   };
 
   return (
@@ -79,7 +116,7 @@ export function FileUploader({
       <Label>{label} <span className="text-xs text-muted-foreground font-normal">(Imagens, PDF, DOCX, KML)</span></Label>
       
       {/* Only show the dropzone if we haven't reached the maxFiles limit */}
-      {(!maxFiles || attachments.length < maxFiles) && (
+      {(!maxFiles || (attachments.length + existingUrls.length) < maxFiles) && (
         <div 
           className="border-2 border-dashed border-border rounded-xl p-6 flex flex-col items-center justify-center bg-secondary/10 hover:bg-secondary/20 transition-colors cursor-pointer text-center"
           onClick={() => fileInputRef.current?.click()}
@@ -87,7 +124,7 @@ export function FileUploader({
           <UploadCloud className="h-8 w-8 text-muted-foreground mb-2" />
           <p className="text-sm font-medium">Clique para selecionar ou arraste os arquivos aqui</p>
           <p className="text-xs text-muted-foreground mt-1">
-            {accept.includes('pdf') ? 'PNG, JPEG, PDF, DOCX, KML suportados' : 'Apenas imagens (PNG, JPEG) suportadas'}
+            {accept.includes('pdf') ? 'Imagens, PDF, DOC, CSV, KML suportados' : 'Apenas imagens suportadas'}
           </p>
           <input 
             type="file" 
@@ -105,10 +142,19 @@ export function FileUploader({
           {existingUrls.map((url, i) => (
             <div key={`existing-${i}`} className="relative group rounded-lg overflow-hidden border border-border bg-card/50">
               <div 
-                className="w-full h-24 bg-black/20 cursor-pointer" 
-                onClick={() => setFullscreenImage(url)}
+                className="w-full h-24 bg-black/20 cursor-pointer flex flex-col items-center justify-center" 
+                onClick={() => isImageUrl(url) ? setFullscreenImage(url) : window.open(url, '_blank')}
               >
-                <img src={url} alt={`Anexo ${i + 1}`} className="w-full h-full object-cover" />
+                {isImageUrl(url) ? (
+                  <img src={url} alt={`Anexo ${i + 1}`} className="w-full h-full object-cover" />
+                ) : (
+                  <>
+                    {getUrlIcon(url)}
+                    <span className="text-[10px] mt-2 font-mono truncate w-full px-2 text-center text-white/80" title={extractFilename(url)}>
+                      {extractFilename(url)}
+                    </span>
+                  </>
+                )}
               </div>
               <button 
                 type="button"

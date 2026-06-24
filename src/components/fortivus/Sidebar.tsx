@@ -64,10 +64,22 @@ export function Sidebar() {
   return (
     <aside
       className={cn(
-        'hidden lg:flex flex-col h-screen glass-strong border-r border-border transition-all duration-300 shrink-0 z-30',
+        'hidden lg:flex flex-col h-screen glass-strong border-r border-border transition-all duration-300 shrink-0 z-30 group relative',
         collapsed ? 'w-[72px]' : 'w-[260px]',
       )}
     >
+      {/* Collapse toggle flutuante */}
+      <button
+        onClick={() => setCollapsed(!collapsed)}
+        className="absolute -right-3 top-6 flex h-6 w-6 items-center justify-center rounded-full border border-border bg-background shadow-md opacity-0 group-hover:opacity-100 transition-opacity z-40 hover:bg-secondary text-muted-foreground hover:text-foreground"
+        aria-label={collapsed ? 'Expandir sidebar' : 'Recolher sidebar'}
+      >
+        {collapsed ? (
+          <ChevronRight className="h-3.5 w-3.5" />
+        ) : (
+          <ChevronLeft className="h-3.5 w-3.5" />
+        )}
+      </button>
       {/* Logo area */}
       <div className="flex items-center gap-3 px-4 h-14 border-b border-border shrink-0">
         <div className="relative h-8 w-8 shrink-0">
@@ -126,44 +138,6 @@ export function Sidebar() {
           })}
         </nav>
       </TooltipProvider>
-
-      {/* Bottom section: user info + role switcher */}
-      <div className="border-t border-border p-3 space-y-3 shrink-0">
-        {/* User info */}
-        {user && role && (
-          <div className={cn('flex items-center gap-2', collapsed && 'justify-center')}>
-            <div className="h-8 w-8 rounded-full bg-gradient-to-br from-command to-accent grid place-items-center text-[11px] font-semibold shrink-0">
-              {user.nome
-                .split(' ')
-                .map((n) => n[0])
-                .join('')
-                .slice(0, 2)
-                .toUpperCase()}
-            </div>
-            {!collapsed && (
-              <div className="min-w-0">
-                <p className="text-xs font-medium truncate">{user.nome}</p>
-                <p className="text-[10px] text-muted-foreground truncate">
-                  {ROLE_LABELS[role]}
-                </p>
-              </div>
-            )}
-          </div>
-        )}
-      </div>
-
-      {/* Collapse toggle */}
-      <button
-        onClick={() => setCollapsed(!collapsed)}
-        className="flex items-center justify-center h-10 border-t border-border text-muted-foreground hover:text-foreground hover:bg-secondary/40 transition-colors"
-        aria-label={collapsed ? 'Expandir sidebar' : 'Recolher sidebar'}
-      >
-        {collapsed ? (
-          <ChevronRight className="h-4 w-4" />
-        ) : (
-          <ChevronLeft className="h-4 w-4" />
-        )}
-      </button>
     </aside>
   );
 }

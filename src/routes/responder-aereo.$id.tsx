@@ -3,8 +3,9 @@ import { ArrowLeft, Plane, CheckCircle2, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { RelatorioAereoForm } from '@/components/fortivus/forms/RelatorioAereoForm';
 import { useState, useRef } from 'react';
-import { uploadFilesToSeaweed } from '@/lib/upload';
 import { toast } from 'sonner';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { fetchAttachmentWithAuth } from '@/lib/api';
 
 export const Route = createFileRoute('/responder-aereo/$id')({
   component: ResponderAereoPage,
@@ -12,14 +13,59 @@ export const Route = createFileRoute('/responder-aereo/$id')({
 
 function ResponderAereoPage() {
   const { id } = Route.useParams();
+  const despachoId = Number(id);
+  const idStr = id.toString().padStart(12, '0');
+  
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
 
   const selectedFiles = useRef<Record<string, File[]>>({ anexos: [] });
+  const deletedFiles = useRef<string[]>([]);
+
+  // ── 1. Fetch Attachments (if any) ──
+  const { data: attachments, isLoading: isLoadingAttachments } = useQuery<any[]>({
+    queryKey: ['attachments', despachoId],
+    queryFn: async () => {
+      const res = await fetchAttachmentWithAuth(`/api/v1/attachments/entity/00000000-0000-0000-0000-${idStr}`);
+      if (res.status === 404) return [];
+      if (!res.ok) throw new Error('Falha ao buscar anexos');
+      return res.json();
+    },
+    retry: false
+  });
+
+  const relatorioComAnexos = {
+    anexos: attachments?.filter((a: any) => a.entityType === 'RELATORIO_AEREO').map((a: any) => ({ url: a.url?.replace(/seaweedfs(:\d+)?/, window.location.hostname + '$1') })) || []
+  };
 
   const handleFilesChange = (key: string, files: File[]) => {
     selectedFiles.current[key] = files;
+  };
+
+  const handleFileRemove = (url: string) => {
+    deletedFiles.current.push(url);
+  };
+
+  const uploadFiles = async (files: File[], entityType: string) => {
+    try {
+      const entityId = `00000000-0000-0000-0000-${idStr}`;
+      for (const file of files) {
+        const formData = new FormData();
+        formData.append('file', file);
+        formData.append('entityId', entityId);
+        formData.append('entityType', entityType);
+        
+        await fetchAttachmentWithAuth(`/api/v1/attachments/upload`, {
+          method: 'POST',
+          body: formData
+        });
+      }
+    } catch (e) {
+      console.error("Upload error:", e);
+      throw e;
+    }
   };
 
   const handleSave = async (e?: React.FormEvent) => {
@@ -31,10 +77,36 @@ function ResponderAereoPage() {
       const allFiles = [...selectedFiles.current.anexos];
       
       if (allFiles.length > 0) {
-        await uploadFilesToSeaweed(allFiles, id as string, 'RELATORIO_AEREO', (progress) => {
-          setUploadProgress(progress);
-        });
+        toast.info('Fazendo upload dos anexos...');
+        await uploadFiles(allFiles, 'RELATORIO_AEREO');
       }
+
+      if (deletedFiles.current && deletedFiles.current.length > 0) {
+        toast.info('Aplicando exclusões de anexos...');
+        for (const urlToRemove of deletedFiles.current) {
+          if (!attachments) continue;
+          const attachment = attachments.find((a: any) => {
+            try {
+              const aPath = new URL(a.url).pathname;
+              const urlPath = new URL(urlToRemove).pathname;
+              return aPath === urlPath;
+            } catch {
+              const originalUrl = a.url;
+              const replacedUrl = originalUrl?.replace(/seaweedfs(:\d+)?/, window.location.hostname + '$1');
+              return replacedUrl === urlToRemove || originalUrl === urlToRemove;
+            }
+          });
+          if (attachment) {
+            try {
+              await fetchAttachmentWithAuth(`/api/v1/attachments/${attachment.id}`, { method: 'DELETE' });
+            } catch (e) {
+              console.error("Falha ao remover arquivo", e);
+            }
+          }
+        }
+      }
+      
+      queryClient.invalidateQueries({ queryKey: ['attachments', despachoId] });
       
       toast.success('Relatório Aéreo Finalizado', {
         description: 'Os dados do relatório aéreo e as evidências foram enviados com sucesso.',
@@ -70,7 +142,18 @@ function ResponderAereoPage() {
       </div>
 
       <div className="glass-strong rounded-xl border border-border p-4 sm:p-6">
-        <RelatorioAereoForm onSubmit={handleSave} onFilesChange={handleFilesChange} />
+        {isLoadingAttachments ? (
+          <div className="flex justify-center p-8">
+            <Loader2 className="h-8 w-8 animate-spin text-command" />
+          </div>
+        ) : (
+          <RelatorioAereoForm 
+            initialData={relatorioComAnexos}
+            onSubmit={handleSave} 
+            onFilesChange={handleFilesChange}
+            onFileRemove={handleFileRemove} 
+          />
+        )}
       </div>
 
       <div className="flex flex-col items-end gap-3 pt-4 border-t border-border mt-6">
