@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { RelatorioTerrestreForm, RelatorioTerrestrePayload } from '@/components/fortivus/forms/RelatorioTerrestreForm';
 import { useState, useRef } from 'react';
 import { toast } from 'sonner';
-import { fetchWithAuth } from '@/lib/api';
+import { fetchWithAuth, fetchAttachmentWithAuth } from '@/lib/api';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Badge } from '@/components/ui/badge';
 import { format } from 'date-fns';
@@ -69,11 +69,86 @@ function ResponderTerrestrePage() {
   });
 
   const handleSubmit = async (payload: RelatorioTerrestrePayload) => {
+    const uploadFiles = async (files: File[], entityType: string) => {
+      // Cria um fake UUID a partir do despachoId
+      const idStr = String(despachoId).padStart(12, '0').slice(-12);
+      const entityIdUuid = `00000000-0000-0000-0000-${idStr}`;
+
+      for (const file of files) {
+        try {
+          // 1. Pedir URL assinada
+          const urlRes = await fetchAttachmentWithAuth(`/api/v1/attachments/upload-url?fileName=${encodeURIComponent(file.name)}&contentType=${encodeURIComponent(file.type)}`);
+          if (!urlRes || !urlRes.url) throw new Error("Não foi possível obter link de upload.");
+          
+          // 2. Upload para o Object Storage (SeaweedFS/S3)
+          const uploadResponse = await fetch(urlRes.url, { 
+            method: 'PUT', 
+            body: file, 
+            headers: { 'Content-Type': file.type } 
+          });
+          
+          if (!uploadResponse.ok) {
+            throw new Error(`Upload storage error: ${uploadResponse.status}`);
+          }
+          
+          // 3. Confirmar upload no attachment-service
+          await fetchAttachmentWithAuth(`/api/v1/attachments/confirm`, {
+            method: 'POST',
+            body: JSON.stringify({
+              fileKey: urlRes.fileKey,
+              fileName: file.name,
+              contentType: file.type,
+              sizeBytes: file.size,
+              entityId: entityIdUuid,
+              entityType: entityType,
+              gpsLat: null,
+              gpsLng: null
+            })
+          });
+        } catch (e) {
+          console.error("Falha ao subir arquivo", file.name, e);
+          toast.error(`Falha ao anexar ${file.name}`);
+        }
+      }
+    };
+
+    if (selectedFiles.current.origem && selectedFiles.current.origem.length > 0) {
+      toast.info('Fazendo upload da imagem de origem...');
+      await uploadFiles(selectedFiles.current.origem, 'ORIGEM_INCENDIO');
+    }
+    if (selectedFiles.current.anexos && selectedFiles.current.anexos.length > 0) {
+      toast.info('Fazendo upload dos anexos...');
+      await uploadFiles(selectedFiles.current.anexos, 'RELATORIO_TERRESTRE');
+    }
+
     await mutation.mutateAsync(payload);
   };
 
   // ── Determina o status ──
   const hasRelatorio = !!relatorioExistente;
+
+  // ── Busca os anexos do attachment-service ──
+  const { data: attachments } = useQuery<any[]>({
+    queryKey: ['attachments', despachoId],
+    queryFn: async () => {
+      const idStr = String(despachoId).padStart(12, '0').slice(-12);
+      const entityIdUuid = `00000000-0000-0000-0000-${idStr}`;
+      try {
+        return await fetchAttachmentWithAuth(`/api/v1/attachments/entity/${entityIdUuid}`);
+      } catch (err) {
+        console.error('Erro ao buscar anexos', err);
+        return [];
+      }
+    },
+    enabled: hasRelatorio,
+    retry: false
+  });
+
+  const relatorioComAnexos = relatorioExistente ? {
+    ...relatorioExistente,
+    anexos: attachments?.filter(a => a.entityType === 'RELATORIO_TERRESTRE').map(a => ({ url: a.url })) || [],
+    origem: attachments?.filter(a => a.entityType === 'ORIGEM_INCENDIO').map(a => ({ url: a.url })) || []
+  } : null;
 
   // Se está carregando, mostra spinner
   if (isLoadingRelatorio) {
@@ -87,7 +162,6 @@ function ResponderTerrestrePage() {
 
   return (
     <div className="p-4 sm:p-6 max-w-4xl mx-auto space-y-6 pb-20">
-      {/* ── Cabeçalho ── */}
       <div className="flex items-center gap-4">
         <Link to="/despachos">
           <Button variant="outline" size="icon" className="h-8 w-8" disabled={mutation.isPending}>
@@ -118,12 +192,11 @@ function ResponderTerrestrePage() {
         </div>
       </div>
 
-      {/* ── Formulário (Novo ou Edição) ── */}
       <div className="glass-strong rounded-xl border border-command/30 p-4 sm:p-6 space-y-4">
         <div className="flex items-center justify-between pb-4 border-b border-border">
           <div className="flex items-center gap-3">
             <div className="h-10 w-10 rounded-full bg-command/20 flex items-center justify-center">
-              {hasRelatorio ? <FileText className="h-5 w-5 text-command" /> : <FileText className="h-5 w-5 text-command" />}
+              <FileText className="h-5 w-5 text-command" />
             </div>
             <div>
               <h2 className="font-semibold">{hasRelatorio ? 'Editando Relatório' : 'Preencher Relatório'}</h2>
@@ -131,16 +204,16 @@ function ResponderTerrestrePage() {
                 {hasRelatorio ? 'Alterações sobrescrevem o relatório existente.' : 'Este despacho ainda não possui relatório de resposta.'}
               </p>
             </div>
+          </div>
         </div>
         <RelatorioTerrestreForm
           despachoId={despachoId}
-          initialData={relatorioExistente}
+          initialData={relatorioComAnexos}
           onSubmit={handleSubmit}
           onFilesChange={handleFilesChange}
         />
       </div>
 
-      {/* ── Barra de Ações do Formulário (Novo ou Edição) ── */}
       <div className="flex flex-col items-end gap-3 pt-4 border-t border-border mt-6">
         {mutation.isPending && (
           <div className="w-full max-w-xs mb-2">
@@ -167,10 +240,7 @@ function ResponderTerrestrePage() {
             className="bg-fire hover:bg-fire/90 text-white gap-2"
             disabled={mutation.isPending}
           >
-            {mutation.isPending
-              ? <><Loader2 className="h-4 w-4 animate-spin" /> Salvando...</>
-              : <><CheckCircle2 className="h-4 w-4" /> {hasRelatorio ? 'Salvar Alterações' : 'Finalizar Relatório'}</>
-            }
+            {mutation.isPending ? 'Salvando...' : (hasRelatorio ? 'Salvar Alterações' : 'Finalizar Relatório')}
           </Button>
         </div>
       </div>
