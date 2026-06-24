@@ -1,7 +1,7 @@
 import 'maplibre-gl/dist/maplibre-gl.css';
 
-import { useCallback, useEffect, useState, useMemo } from 'react';
-import Map, { Source, Layer, NavigationControl, Marker, Popup } from 'react-map-gl/maplibre';
+import { useCallback, useEffect, useState, useMemo, useRef } from 'react';
+import Map, { Source, Layer, NavigationControl, Marker, Popup, MapRef } from 'react-map-gl/maplibre';
 import { useQuery } from '@tanstack/react-query';
 import { useNavigate } from '@tanstack/react-router';
 import { Button } from '@/components/ui/button';
@@ -60,9 +60,11 @@ interface Props {
   flyTo?: { lat: number; lng: number } | null;
   isolatedEventId?: string;
   dispatchPin?: { lat: number; lng: number } | null;
+  extraMarkers?: { lat: number; lng: number; color?: string; tooltip?: string }[];
 }
 
-export default function SituationMapClient({ selectedId, onSelect, onClickMap, activePin, hideEvents, flyTo, isolatedEventId, dispatchPin }: Props) {
+export default function SituationMapClient({ selectedId, onSelect, onClickMap, activePin, hideEvents, flyTo, isolatedEventId, dispatchPin, extraMarkers }: Props) {
+  const mapRef = useRef<MapRef>(null);
   const [coords, setCoords] = useState({ lat: MAP_CENTER.latitude, lng: MAP_CENTER.longitude, zoom: MAP_CENTER.zoom });
   const [showFocos, setShowFocos] = useState(false);
   const [mapStyleKey, setMapStyleKey] = useState<string>('carto_dark');
@@ -91,6 +93,12 @@ export default function SituationMapClient({ selectedId, onSelect, onClickMap, a
       .then(data => setGeoData(data))
       .catch(console.error);
   }, []);
+
+  useEffect(() => {
+    if (flyTo && mapRef.current) {
+      mapRef.current.flyTo({ center: [flyTo.lng, flyTo.lat], zoom: 12, duration: 1500 });
+    }
+  }, [flyTo]);
 
   const handleMove = useCallback((evt: any) => {
     setCoords({
@@ -155,6 +163,7 @@ export default function SituationMapClient({ selectedId, onSelect, onClickMap, a
   return (
     <div className="relative h-full w-full overflow-hidden rounded-xl border border-border">
       <Map
+        ref={mapRef}
         initialViewState={MAP_CENTER}
         mapStyle={MAP_STYLES[mapStyleKey]}
         onMove={handleMove}
@@ -359,6 +368,10 @@ export default function SituationMapClient({ selectedId, onSelect, onClickMap, a
         {dispatchPin && (
           <Marker longitude={dispatchPin.lng} latitude={dispatchPin.lat} color="#3b82f6" />
         )}
+
+        {extraMarkers?.map((marker, i) => (
+          <Marker key={i} longitude={marker.lng} latitude={marker.lat} color={marker.color || '#f59e0b'} />
+        ))}
 
         {/* Controles de camadas / Base Map */}
         <div style={{ position: 'absolute', top: 12, left: 12, zIndex: 10 }} className="flex flex-col gap-2">

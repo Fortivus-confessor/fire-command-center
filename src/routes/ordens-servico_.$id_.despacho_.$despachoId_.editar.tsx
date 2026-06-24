@@ -331,7 +331,7 @@ function EditarDespachoPage() {
                   selectedId={os?.eventoFogoId} 
                   isolatedEventId={os?.eventoFogoId || 'NONE_ISOLATED'}
                   onClickMap={handleMapClick}
-                  center={flyTo}
+                  flyTo={flyTo}
                   activePin={hasValidPin ? { lat: parsedLat, lng: parsedLng } : null}
                   extraMarkers={[
                     ...(os?.latitude ? [{ lat: os.latitude, lng: os.longitude, color: '#f59e0b', tooltip: 'Local Inicial da OS' }] : [])

@@ -36,7 +36,29 @@ function ResponderMaquinarioPage() {
     retry: false
   });
 
+  const { data: relatorioData, isLoading: isLoadingRelatorio } = useQuery<any>({
+    queryKey: ['relatorio-maquinario', despachoId],
+    queryFn: async () => {
+      const res = await fetchAttachmentWithAuth(`/api/v1/operacional/despachos/${despachoId}/relatorio-maquinario`);
+      if (res.status === 404) return null;
+      if (!res.ok) throw new Error('Falha ao buscar relatório maquinário');
+      return res.json();
+    },
+    retry: false
+  });
+
+  const { data: despachoData, isLoading: isLoadingDespacho } = useQuery<any>({
+    queryKey: ['despacho', despachoId],
+    queryFn: async () => {
+      const res = await fetchAttachmentWithAuth(`/api/v1/operacional/despachos/${despachoId}`);
+      if (!res.ok) throw new Error('Falha ao buscar despacho');
+      return res.json();
+    },
+    retry: false
+  });
+
   const relatorioComAnexos = {
+    ...relatorioData,
     anexos: attachments?.filter((a: any) => a.entityType === 'RELATORIO_MAQUINARIO').map((a: any) => ({ url: a.url?.replace(/seaweedfs(:\d+)?/, window.location.hostname + '$1') })) || []
   };
 
@@ -68,12 +90,30 @@ function ResponderMaquinarioPage() {
     }
   };
 
-  const handleSave = async (e?: React.FormEvent) => {
-    if (e) e.preventDefault();
+  const handleSave = async (payload: any) => {
     setIsSubmitting(true);
     setUploadProgress(0);
 
     try {
+      // 1. Submit RelatorioMaquinario
+      const finalPayload = {
+        ...payload,
+        despachoId: despachoId
+      };
+
+      const res = await fetchAttachmentWithAuth(`/api/v1/operacional/despachos/finalizar-maquinario`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(finalPayload),
+      });
+
+      if (!res.ok) {
+        throw new Error('Falha ao salvar relatório maquinário');
+      }
+
+      // 2. Upload Anexos
       const allFiles = [...selectedFiles.current.anexos];
       
       if (allFiles.length > 0) {
@@ -142,7 +182,7 @@ function ResponderMaquinarioPage() {
       </div>
 
       <div className="glass-strong rounded-xl border border-border p-4 sm:p-6">
-        {isLoadingAttachments ? (
+        {(isLoadingAttachments || isLoadingRelatorio || isLoadingDespacho) ? (
           <div className="flex justify-center p-8">
             <Loader2 className="h-8 w-8 animate-spin text-command" />
           </div>
@@ -152,6 +192,9 @@ function ResponderMaquinarioPage() {
             onSubmit={handleSave} 
             onFilesChange={handleFilesChange}
             onFileRemove={handleFileRemove} 
+            eventoFogoId={despachoData?.eventoFogoId}
+            despachoLat={despachoData?.localizacaoLat}
+            despachoLng={despachoData?.localizacaoLng}
           />
         )}
       </div>
