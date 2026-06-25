@@ -9,12 +9,15 @@ import SituationMapClient from '@/components/fortivus/map/SituationMapClient';
 import { FileUploader } from '@/components/fortivus/forms/FileUploader';
 import { toast } from 'sonner';
 
-export function RelatorioMaquinarioForm({ 
+export function RelatorioMaquinarioForm({
   initialData,
-  onSubmit, 
+  onSubmit,
   onFilesChange,
-  onFileRemove 
-}: { 
+  onFileRemove,
+  eventoFogoId,
+  despachoLat,
+  despachoLng
+}: {
   initialData?: any,
   onSubmit?: (payload: any) => void, 
   onFilesChange?: (key: string, files: File[]) => void,

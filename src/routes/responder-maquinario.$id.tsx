@@ -5,7 +5,7 @@ import { RelatorioMaquinarioForm } from '@/components/fortivus/forms/RelatorioMa
 import { useState, useRef } from 'react';
 import { toast } from 'sonner';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { fetchAttachmentWithAuth } from '@/lib/api';
+import { fetchAttachmentWithAuth, fetchWithAuth } from '@/lib/api';
 
 export const Route = createFileRoute('/responder-maquinario/$id')({
   component: ResponderMaquinarioPage,
@@ -39,7 +39,7 @@ function ResponderMaquinarioPage() {
   const { data: relatorioData, isLoading: isLoadingRelatorio } = useQuery<any>({
     queryKey: ['relatorio-maquinario', despachoId],
     queryFn: async () => {
-      const res = await fetchAttachmentWithAuth(`/api/v1/operacional/despachos/${despachoId}/relatorio-maquinario`);
+      const res = await fetchWithAuth(`/api/v1/operacional/despachos/${despachoId}/relatorio-maquinario`);
       if (res.status === 404) return null;
       if (!res.ok) throw new Error('Falha ao buscar relatório maquinário');
       return res.json();
@@ -50,7 +50,7 @@ function ResponderMaquinarioPage() {
   const { data: despachoData, isLoading: isLoadingDespacho } = useQuery<any>({
     queryKey: ['despacho', despachoId],
     queryFn: async () => {
-      const res = await fetchAttachmentWithAuth(`/api/v1/operacional/despachos/${despachoId}`);
+      const res = await fetchWithAuth(`/api/v1/operacional/despachos/${despachoId}`);
       if (!res.ok) throw new Error('Falha ao buscar despacho');
       return res.json();
     },
@@ -101,7 +101,7 @@ function ResponderMaquinarioPage() {
         despachoId: despachoId
       };
 
-      const res = await fetchAttachmentWithAuth(`/api/v1/operacional/despachos/finalizar-maquinario`, {
+      const res = await fetchWithAuth(`/api/v1/operacional/despachos/finalizar-maquinario`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
