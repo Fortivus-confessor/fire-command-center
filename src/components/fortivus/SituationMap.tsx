@@ -103,9 +103,7 @@ export function SituationMap({ selectedId, onSelect }: Props) {
         <div className="flex items-center gap-2"><span className="h-2 w-2 rounded-full" style={{ background: "var(--success)" }} />Baixo</div>
       </div>
 
-      <div className="absolute bottom-3 right-3 glass rounded-lg px-2.5 py-1.5 text-[10px] mono text-muted-foreground">
-        Fonte: BDQueimadas / INPE · t-00:02:14
-      </div>
+      
     </div>
   );
 }

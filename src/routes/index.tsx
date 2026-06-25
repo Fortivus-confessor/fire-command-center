@@ -13,7 +13,7 @@ export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
       { title: "FORTIVUS — Sala de Situação · Incêndios Florestais" },
-      { name: "description", content: "Mission Control FORTIVUS: monitore focos do BDQueimadas/INPE, planeje OS e despache brigadas, helitack e maquinário em tempo real." },
+      { name: "description", content: "Mission Control FORTIVUS: monitore focos do NASA/FIRMS, planeje OS e despache brigadas, helitack e maquinário em tempo real." },
     ],
   }),
   component: MissionControl,
