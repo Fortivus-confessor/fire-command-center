@@ -370,7 +370,7 @@ function VeiculosPage() {
                         {item.fotoUrl && (
                           <div 
                             className="w-8 h-8 rounded-full overflow-hidden border border-border cursor-pointer hover:ring-2 hover:ring-primary transition shrink-0"
-                            onClick={() => openImageModal(item.fotoUrl)}
+                            onClick={() => openImageModal(item.fotoUrl as string)}
                             title="Ver imagem grande"
                           >
                             <img src={item.fotoUrl} alt="Foto" className="w-full h-full object-cover" />
