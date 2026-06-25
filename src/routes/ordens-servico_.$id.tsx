@@ -14,6 +14,18 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { toast } from 'sonner';
+import { useAuth } from '@/contexts/AuthContext';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
+import { useCanAccess } from '@/hooks/useCanAccess';
 
 export const Route = createFileRoute('/ordens-servico_/$id')({
   component: OrdemServicoDetalhePage,
@@ -81,6 +93,11 @@ function OrdemServicoDetalhePage() {
   const { id } = Route.useParams();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const { role, user } = useAuth();
+  const canManage = useCanAccess('ordens-servico', 'edit');
+
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
 
   const { data: os, isLoading: loadingOs } = useQuery<any>({
     queryKey: ['os', id],
@@ -117,7 +134,19 @@ function OrdemServicoDetalhePage() {
     queryFn: () => fetchWithAuth('/admin/usuarios'),
   });
 
+  const currentUser = usuariosDB.find(u => u.email === user?.email);
+  const myCentroComandoId = currentUser?.centroComandoId ? String(currentUser.centroComandoId) : '';
+  const isCentroComando = role === 'CENTRO_COMANDO';
+
   const despachos = despachosDB.filter(d => String(d.ordemServicoId) === String(id));
+
+  const deleteMutation = useMutation({
+    mutationFn: (despachoId: string) => fetchWithAuth(`/operacional/despachos/${despachoId}`, { method: 'DELETE' }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['despachos'] });
+      toast.success("Despacho excluído com sucesso.");
+    }
+  });
 
   function openNewDespacho() {
     navigate({ to: `/ordens-servico/${id}/despacho/novo` as any });
@@ -125,6 +154,19 @@ function OrdemServicoDetalhePage() {
 
   function openEditDespacho(d: any) {
     navigate({ to: `/ordens-servico/${id}/despacho/${d.id}/editar` as any });
+  }
+
+  function confirmDelete(id: string) {
+    setDeletingId(id);
+    setDeleteDialogOpen(true);
+  }
+
+  function handleDelete() {
+    if (deletingId) {
+      deleteMutation.mutate(deletingId);
+    }
+    setDeleteDialogOpen(false);
+    setDeletingId(null);
   }
 
   if (loadingOs || !os) {
@@ -202,10 +244,12 @@ function OrdemServicoDetalhePage() {
           <Truck className="h-5 w-5 text-warning" />
           Despachos Relacionados
         </h2>
+        {(canManage || isCentroComando) && (
         <Button onClick={openNewDespacho} size="lg" className="bg-fire hover:bg-fire/90 text-white font-semibold">
           <Plus className="h-5 w-5 mr-2" />
           Adicionar Despacho
         </Button>
+        )}
       </div>
 
       <div className="rounded-xl glass border border-border overflow-hidden">
@@ -245,9 +289,19 @@ function OrdemServicoDetalhePage() {
                     <TableCell>{statusBadge(d.status)}</TableCell>
                     <TableCell>{formatDateBR(d.dataInicio)}</TableCell>
                     <TableCell className="text-right">
-                      <Button variant="ghost" size="icon" onClick={() => openEditDespacho(d)} className="hover:text-command">
-                        <Pencil className="h-4 w-4" />
-                      </Button>
+                      <div className="flex justify-end gap-1">
+                        {/* A pessoa responsável, um centro de comando ou um admin podem editar */}
+                        {(canManage || isCentroComando || String(d.responsavelId) === String(currentUser?.id)) && (
+                        <Button variant="ghost" size="icon" onClick={() => openEditDespacho(d)} className="hover:text-command">
+                          <Pencil className="h-4 w-4" />
+                        </Button>
+                        )}
+                        {(canManage || isCentroComando) && (
+                        <Button variant="ghost" size="icon" onClick={() => confirmDelete(d.id)} className="hover:text-destructive">
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                        )}
+                      </div>
                     </TableCell>
                   </TableRow>
                 );
@@ -258,6 +312,23 @@ function OrdemServicoDetalhePage() {
           </div>
         </div>
       </div>
+
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent className="glass-strong">
+          <AlertDialogHeader>
+            <AlertDialogTitle>Confirmar Exclusão</AlertDialogTitle>
+            <AlertDialogDescription>
+              Tem certeza que deseja excluir este despacho? Esta ação não pode ser desfeita.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDelete} className="bg-destructive hover:bg-destructive/90">
+              Excluir
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
