@@ -398,6 +398,19 @@ function OrdensServicoPage() {
         lng = parseFloat(latLngStr.split(',')[1]);
       }
 
+      if (form.eventoFogoId) {
+        const hasExistingOS = ordensServicoDB.some((os: any) => 
+          String(os.eventoFogoId) === String(form.eventoFogoId) && 
+          (!editingItem || String(os.id) !== String(editingItem.id))
+        );
+        if (hasExistingOS) {
+          import('sonner').then(({ toast }) => {
+            toast.error("Este Evento de Fogo já possui uma Ordem de Serviço vinculada.");
+          });
+          return;
+        }
+      }
+
       const payload = {
         descricaoTarefa: form.descricao,
         eventoFogoId: form.eventoFogoId || null,
