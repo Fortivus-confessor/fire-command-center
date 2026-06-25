@@ -10,6 +10,7 @@ import SituationMapClient from '../components/fortivus/map/SituationMapClient';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from 'sonner';
+import { useAuth } from '@/contexts/AuthContext';
 
 export const Route = createFileRoute('/ordens-servico_/$id_/despacho_/novo')({
   component: NovoDespachoPage,
@@ -28,6 +29,7 @@ function NovoDespachoPage() {
   const { id: osId } = Route.useParams();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const { role, user } = useAuth();
   const [form, setForm] = useState(emptyForm);
   const [errors, setErrors] = useState<Record<string, string>>({});
 
@@ -134,6 +136,16 @@ function NovoDespachoPage() {
     queryKey: ['despachos'],
     queryFn: () => fetchWithAuth('/operacional/despachos')
   });
+
+  const currentUser = todosUsuarios.find((u: any) => u.email === user?.email);
+  const myCentroComandoId = currentUser?.centroComandoId ? String(currentUser.centroComandoId) : '';
+  const isCentroComando = role === 'CENTRO_COMANDO';
+
+  useEffect(() => {
+    if (isCentroComando && myCentroComandoId && !form.comando) {
+      setForm(prev => ({ ...prev, comando: myCentroComandoId }));
+    }
+  }, [isCentroComando, myCentroComandoId, form.comando]);
 
   // Check if selected scale is already working
   const isEscalaWorking = form.equipe ? todosDespachos.some(d => 
@@ -331,7 +343,7 @@ function NovoDespachoPage() {
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label className={errors.comando ? "text-red-500" : ""}>Centro de Comando *</Label>
-                <Select value={form.comando} onValueChange={(v) => { setForm({ ...form, comando: v, equipe: '', responsavel: '' }); setErrors({...errors, comando: ''}); }}>
+                <Select disabled={isCentroComando} value={form.comando} onValueChange={(v) => { setForm({ ...form, comando: v, equipe: '', responsavel: '' }); setErrors({...errors, comando: ''}); }}>
                   <SelectTrigger className={errors.comando ? "border-red-500" : ""}>
                     <SelectValue placeholder="Selecione o centro..." />
                   </SelectTrigger>

@@ -179,7 +179,7 @@ function VeiculosPage() {
     queryFn: () => fetchWithAuth('/admin/usuarios')
   });
 
-  const currentUser = todosUsuarios.find((u: any) => String(u.id) === String(user?.id));
+  const currentUser = todosUsuarios.find((u: any) => u.email === user?.email);
   const myCentroComandoId = currentUser?.centroComandoId ? String(currentUser.centroComandoId) : '';
   const isCentroComando = role === 'CENTRO_COMANDO';
 
