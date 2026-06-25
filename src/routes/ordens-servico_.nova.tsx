@@ -114,6 +114,11 @@ function NovaOrdemServicoPage() {
     queryFn: () => fetchWithAuth('/operacional/escalas')
   });
 
+  const { data: ordensServicoDB = [] } = useQuery<any[]>({
+    queryKey: ['ordens-servico'],
+    queryFn: () => fetchWithAuth('/operacional/os'),
+  });
+
   const { data: todosDespachos = [] } = useQuery<any[]>({
     queryKey: ['despachos'],
     queryFn: () => fetchWithAuth('/operacional/despachos')
@@ -157,6 +162,14 @@ function NovaOrdemServicoPage() {
       }
       setErrors({});
       
+      if (form.eventoFogoId) {
+        const hasExistingOS = ordensServicoDB.some((os: any) => String(os.eventoFogoId) === String(form.eventoFogoId));
+        if (hasExistingOS) {
+          toast.error("Este Evento de Fogo já possui uma Ordem de Serviço vinculada.");
+          return;
+        }
+      }
+
       const latDD = parseCoordinateToDD(latInput);
       const lngDD = parseCoordinateToDD(lngInput);
       
