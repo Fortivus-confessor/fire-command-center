@@ -291,7 +291,7 @@ function VeiculosPage() {
             Gerencie a frota de veículos, aeronaves e maquinários
           </p>
         </div>
-        {canManage && (
+        {(canManage || isCentroComando) && (
         <Button onClick={openNew} className="bg-fire hover:bg-fire/90 text-white">
           <Plus className="h-4 w-4 mr-2" />
           Novo Veículo
@@ -390,7 +390,7 @@ function VeiculosPage() {
                         <Button variant="ghost" size="icon" onClick={() => openView(item)} className="h-8 w-8 hover:text-primary">
                           <Eye className="h-4 w-4" />
                         </Button>
-                        {canManage && (
+                        {(canManage || (isCentroComando && String(item.centroComandoId) === myCentroComandoId)) && (
                         <>
                         <Button variant="ghost" size="icon" onClick={() => openEdit(item)} className="h-8 w-8 hover:text-command">
                           <Pencil className="h-4 w-4" />
