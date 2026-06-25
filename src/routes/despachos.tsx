@@ -24,6 +24,7 @@ import {
 } from '@/components/ui/alert-dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useCanAccess } from '@/hooks/useCanAccess';
+import { useAuth } from '@/contexts/AuthContext';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { fetchWithAuth } from '@/lib/api';
 import { format } from 'date-fns';
@@ -57,8 +58,13 @@ function formatDate(dateStr: string | null | undefined) {
 function DespachosPage() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const canRespond = useCanAccess('despachos', 'edit');
-  const canDelete = useCanAccess('despachos', 'delete');
+  const { role, user } = useAuth();
+  const canRespondBase = useCanAccess('despachos', 'edit');
+  const canDeleteBase = useCanAccess('despachos', 'delete');
+  const isCentroComando = role === 'CENTRO_COMANDO';
+  
+  const canRespond = canRespondBase || isCentroComando;
+  const canDelete = canDeleteBase || isCentroComando;
 
   const [pageIndex, setPageIndex] = useState(0);
   const [listAll, setListAll] = useState(false);
@@ -119,7 +125,19 @@ function DespachosPage() {
   }, [despachos, escalas, equipes, usuarios]);
 
   // Filters
+  const currentUser = usuarios.find((u: any) => u.email === user?.email);
+  const myCentroComandoId = currentUser?.centroComandoId ? String(currentUser.centroComandoId) : '';
+
   const filtered = enrichedDespachos.filter((item) => {
+    // Restrição para CENTRO_COMANDO: só vê despachos das equipes do seu CC
+    if (isCentroComando) {
+      const escala = escalas.find(e => e.id === item.escalaId);
+      const equipe = escala ? equipes.find(eq => eq.id === escala.equipeId) : null;
+      if (!equipe || String(equipe.centroComandoId) !== myCentroComandoId) {
+        return false;
+      }
+    }
+
     const searchLower = search.toLowerCase();
     const matchSearch =
       !search ||
