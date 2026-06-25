@@ -198,7 +198,7 @@ function EscalasPage() {
     return matchSearch;
   });
 
-  const currentUser = usuariosDB.find(u => String(u.id) === String(user?.id));
+  const currentUser = usuariosDB.find(u => u.email === user?.email);
   const myCentroComandoId = currentUser?.centroComandoId ? String(currentUser.centroComandoId) : '';
   const isCentroComando = role === 'CENTRO_COMANDO';
 
