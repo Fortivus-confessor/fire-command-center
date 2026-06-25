@@ -389,10 +389,7 @@ export default function SituationMapClient({
         </div>
       )}
 
-      {/* Footer */}
-      <div className="absolute bottom-3 right-3 z-[1000] glass rounded-lg px-2.5 py-1.5 text-[10px] mono text-muted-foreground pointer-events-none">
-        Fonte: Leaflet / INPE · t-00:02:14
-      </div>
+    
     </div>
   );
 }

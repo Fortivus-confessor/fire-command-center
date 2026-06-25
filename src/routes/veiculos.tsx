@@ -50,7 +50,10 @@ interface Veiculo {
   prefixo: string;
   modelo: string;
   tipo: 'TERRESTRE' | 'AEREO' | 'MAQUINARIO' | 'AQUATICO';
+  categoria?: 'TERRESTRE' | 'AEREO' | 'MAQUINARIO' | 'AQUATICO';
   contrato: 'Locado' | 'Órgão de Apoio' | 'Próprio';
+  fotoUrl?: string;
+  centroComandoId?: string;
 }
 
 // ── Mock Data ──────────────────────────────────────────
