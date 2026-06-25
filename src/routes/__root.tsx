@@ -103,7 +103,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       {
         rel: "icon",
         type: "image/png",
-        href: "/fortivus-logo.png",
+        href: "/icone_fortivus_oficial.png",
       },
       {
         rel: "stylesheet",
