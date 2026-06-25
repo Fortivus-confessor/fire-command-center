@@ -155,6 +155,10 @@ interface ValidationErrors {
   outraOrigem?: string;
   outroResultado?: string;
   propriedadesApoio?: Record<number, { nome?: string; responsavel?: string }>;
+  usoAgua?: string;
+  areaAtuacao?: string;
+  necessidadeReforco?: string;
+  reforcos?: string;
 }
 
 interface RelatorioTerrestreFormProps {
@@ -167,6 +171,8 @@ interface RelatorioTerrestreFormProps {
   despachoLat?: number;
   despachoLng?: number;
   eventoFogoId?: string;
+  fireEventLat?: number;
+  fireEventLng?: number;
 }
 
 // ────────────────────────────────────────────────────
@@ -183,6 +189,8 @@ export function RelatorioTerrestreForm({
   despachoLat,
   despachoLng,
   eventoFogoId,
+  fireEventLat,
+  fireEventLng,
 }: RelatorioTerrestreFormProps) {
   // ── Área de Atuação ──
   const [areaAtuacaoLat, setAreaAtuacaoLat] = useState<number | undefined>(initialData?.areaAtuacaoLat);
@@ -195,8 +203,7 @@ export function RelatorioTerrestreForm({
   const [orgaosApoio, setOrgaosApoio] = useState<string[]>(initialData?.orgaosApoio ?? []);
   const [outrosOrgaosDescricao, setOutrosOrgaosDescricao] = useState(initialData?.outrosOrgaosDescricao ?? '');
 
-  // ── Uso de Água ──
-  const [houveUsoAgua, setHouveUsoAgua] = useState<boolean>(initialData?.houveUsoAgua ?? false);
+  const [houveUsoAgua, setHouveUsoAgua] = useState<boolean | undefined>(initialData?.houveUsoAgua !== undefined ? initialData?.houveUsoAgua : undefined);
   const [volumeAguaLitros, setVolumeAguaLitros] = useState(initialData?.volumeAguaLitros?.toString() ?? '');
   const [origensAgua, setOrigensAgua] = useState<string[]>(initialData?.origensAgua ?? []);
   const [outraOrigemAguaDescricao, setOutraOrigemAguaDescricao] = useState(initialData?.outraOrigemAguaDescricao ?? '');
@@ -242,7 +249,7 @@ export function RelatorioTerrestreForm({
   const [efetividadeCombate, setEfetividadeCombate] = useState(initialData?.efetividadeCombate ?? '');
 
   // ── Reforço ──
-  const [necessidadeReforco, setNecessidadeReforco] = useState<boolean>(initialData?.necessidadeReforco ?? false);
+  const [necessidadeReforco, setNecessidadeReforco] = useState<boolean | undefined>(initialData?.necessidadeReforco !== undefined ? initialData?.necessidadeReforco : undefined);
   const [tiposReforcoNecessarios, setTiposReforcoNecessarios] = useState<string[]>(initialData?.tiposReforcoNecessarios ?? []);
 
   // ── Histórico e Resultado ──
@@ -285,9 +292,11 @@ export function RelatorioTerrestreForm({
     if (!historicoDescritivo.trim()) errs.historico = 'O histórico descritivo é obrigatório.';
     if (historicoDescritivo.trim().length < 20) errs.historico = 'O histórico deve ter pelo menos 20 caracteres.';
     if (!resultadoOcorrencia) errs.resultado = 'Selecione o resultado da ocorrência.';
-    if (resultadoOcorrencia === 'OUTRO' && !outroResultadoDescricao.trim()) errs.outroResultado = 'Descreva o outro resultado.';
-    if (houveUsoAgua && (!volumeAguaLitros || Number(volumeAguaLitros) <= 0)) errs.volumeAgua = 'Informe o volume de água utilizado.';
+    if (houveUsoAgua === undefined) errs.usoAgua = 'Selecione se houve uso de água.';
+    if (houveUsoAgua === true && (!volumeAguaLitros || Number(volumeAguaLitros) <= 0)) errs.volumeAgua = 'Informe o volume de água utilizado.';
     if (!areaAtuacaoLat || !areaAtuacaoLng) errs.areaAtuacao = 'Selecione a área de atuação no mapa.';
+    if (necessidadeReforco === undefined) errs.necessidadeReforco = 'Selecione se há necessidade de reforço.';
+    if (necessidadeReforco === true && tiposReforcoNecessarios.length === 0) errs.reforcos = 'Selecione pelo menos um tipo de reforço.';
 
     return errs;
   };
@@ -349,18 +358,18 @@ export function RelatorioTerrestreForm({
       outrosOrgaosDescricao: orgaosApoio.includes('OUTROS') ? outrosOrgaosDescricao : undefined,
       areaAtuacaoLat,
       areaAtuacaoLng,
-      houveUsoAgua,
-      volumeAguaLitros: houveUsoAgua && volumeAguaLitros ? Number(volumeAguaLitros) : undefined,
-      origensAgua: houveUsoAgua ? origensAgua : undefined,
-      outraOrigemAguaDescricao: houveUsoAgua && origensAgua.includes('OUTRO') ? outraOrigemAguaDescricao : undefined,
+      houveUsoAgua: houveUsoAgua === true,
+      volumeAguaLitros: houveUsoAgua === true && volumeAguaLitros ? Number(volumeAguaLitros) : undefined,
+      origensAgua: houveUsoAgua === true ? origensAgua : undefined,
+      outraOrigemAguaDescricao: houveUsoAgua === true && origensAgua.includes('OUTRO') ? outraOrigemAguaDescricao : undefined,
       houveApoioPropriedades,
       houveRecusaPropriedades,
       propriedades: propriedades.length > 0 ? propriedades : undefined,
       possivelOrigemIncendio,
       outraOrigemDescricao: possivelOrigemIncendio === 'OUTRO' ? outraOrigemDescricao : undefined,
       efetividadeCombate,
-      necessidadeReforco,
-      tiposReforcoNecessarios: necessidadeReforco ? tiposReforcoNecessarios : undefined,
+      necessidadeReforco: necessidadeReforco === true,
+      tiposReforcoNecessarios: necessidadeReforco === true ? tiposReforcoNecessarios : undefined,
       historicoDescritivo,
       resultadoOcorrencia,
       outroResultadoDescricao: resultadoOcorrencia === 'OUTRO' ? outroResultadoDescricao : undefined,
@@ -452,7 +461,7 @@ export function RelatorioTerrestreForm({
         {sectionHeader('Área de Atuação da Equipe')}
         <div className="relative rounded-lg overflow-hidden border border-border h-[350px]">
           <SituationMapClient 
-             hideEvents={!eventoFogoId}
+             hideEvents={true}
              isolatedEventId={eventoFogoId}
              dispatchPin={despachoLat && despachoLng ? { lat: despachoLat, lng: despachoLng } : null}
              activePin={areaAtuacaoLat && areaAtuacaoLng ? { lat: areaAtuacaoLat, lng: areaAtuacaoLng } : null}
@@ -463,6 +472,7 @@ export function RelatorioTerrestreForm({
                }
              }}
              flyTo={despachoLat && despachoLng ? { lat: despachoLat, lng: despachoLng } : null}
+             extraMarkers={fireEventLat && fireEventLng ? [{ lat: fireEventLat, lng: fireEventLng, color: '#f97316', tooltip: 'Evento de Fogo' }] : []}
           />
           <div className="absolute top-4 left-4 z-[400] flex flex-col gap-2 pointer-events-none">
             <div className="bg-background/80 backdrop-blur-sm border border-border text-xs px-2 py-1 rounded flex items-center gap-1 shadow-sm">
@@ -471,16 +481,21 @@ export function RelatorioTerrestreForm({
             <div className="bg-background/80 backdrop-blur-sm border border-border text-xs px-2 py-1 rounded flex items-center gap-1 shadow-sm">
               <div className="w-2 h-2 rounded-full bg-red-500" /> Local de Atuação
             </div>
+            {fireEventLat && fireEventLng && (
+              <div className="bg-background/80 backdrop-blur-sm border border-border text-xs px-2 py-1 rounded flex items-center gap-1 shadow-sm">
+                <div className="w-2 h-2 rounded-full" style={{ background: '#f97316' }} /> Evento de Fogo
+              </div>
+            )}
           </div>
         </div>
         {submitted && fieldError('areaAtuacao')}
       </div>
 
       {/* ── Uso de Água ── */}
-      <div className={sectionClass(!!errors.volumeAgua)} data-error={submitted && !!errors.volumeAgua}>
+      <div className={sectionClass(!!errors.usoAgua || !!errors.volumeAgua)} data-error={submitted && (!!errors.usoAgua || !!errors.volumeAgua)}>
         {sectionHeader('Uso de Água na Ocorrência')}
         <RadioGroup
-          value={houveUsoAgua ? 'sim' : 'nao'}
+          value={houveUsoAgua !== undefined ? (houveUsoAgua ? 'sim' : 'nao') : undefined}
           onValueChange={v => !readOnly && setHouveUsoAgua(v === 'sim')}
           className="flex gap-4"
         >
@@ -493,6 +508,7 @@ export function RelatorioTerrestreForm({
             <Label htmlFor="agua-nao">Não</Label>
           </div>
         </RadioGroup>
+        {submitted && !errors.volumeAgua && fieldError('usoAgua')}
 
         {houveUsoAgua && (
           <div className="grid gap-4 pl-6 border-l-2 border-primary/20 mt-3">
@@ -858,10 +874,10 @@ export function RelatorioTerrestreForm({
       </div>
 
       {/* ── Necessidade de Reforço ── */}
-      <div className="space-y-4">
-        {sectionHeader('Necessidade de Reforço', false)}
+      <div className={sectionClass(!!errors.necessidadeReforco)} data-error={submitted && !!errors.necessidadeReforco}>
+        {sectionHeader('Necessidade de Reforço', true)}
         <RadioGroup
-          value={necessidadeReforco ? 'sim' : 'nao'}
+          value={necessidadeReforco !== undefined ? (necessidadeReforco ? 'sim' : 'nao') : undefined}
           onValueChange={v => !readOnly && setNecessidadeReforco(v === 'sim')}
           className="flex gap-4"
         >
@@ -874,9 +890,10 @@ export function RelatorioTerrestreForm({
             <Label htmlFor="ref-nao">Não</Label>
           </div>
         </RadioGroup>
+        {submitted && !errors.reforcos && fieldError('necessidadeReforco')}
 
         {necessidadeReforco && (
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pl-6 border-l-2 border-warning/30">
+          <div className={cn("grid grid-cols-1 sm:grid-cols-2 gap-3 pl-6 border-l-2 border-warning/30 pt-2", submitted && !!errors.reforcos && 'border-destructive/50 bg-destructive/5 p-2 rounded')} data-error={submitted && !!errors.reforcos}>
             {[
               { value: 'TERRESTRE', label: 'Mais equipes terrestres' },
               { value: 'AEREO', label: 'Apoio aéreo' },
@@ -893,6 +910,7 @@ export function RelatorioTerrestreForm({
                 <label htmlFor={`ref-${r.value}`} className="text-sm cursor-pointer">{r.label}</label>
               </div>
             ))}
+            {submitted && fieldError('reforcos')}
           </div>
         )}
       </div>

@@ -16,7 +16,9 @@ export function RelatorioMaquinarioForm({
   onFileRemove,
   eventoFogoId,
   despachoLat,
-  despachoLng
+  despachoLng,
+  fireEventLat,
+  fireEventLng
 }: {
   initialData?: any,
   onSubmit?: (payload: any) => void, 
@@ -24,7 +26,9 @@ export function RelatorioMaquinarioForm({
   onFileRemove?: (url: string) => void,
   eventoFogoId?: string,
   despachoLat?: number,
-  despachoLng?: number
+  despachoLng?: number,
+  fireEventLat?: number,
+  fireEventLng?: number
 }) {
   const [reforco, setReforco] = useState(initialData?.necessidadeReforco || false);
   const [resultado, setResultado] = useState<string>(initialData?.resultadoOcorrencia || 'andamento');
@@ -169,12 +173,13 @@ export function RelatorioMaquinarioForm({
         <h3 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground border-b border-border pb-2">Área de Atuação da Equipe</h3>
         <div className="relative rounded-lg overflow-hidden border border-border h-[350px]">
           <SituationMapClient 
-             hideEvents={!eventoFogoId}
+             hideEvents={true}
              isolatedEventId={eventoFogoId}
              dispatchPin={despachoLat && despachoLng ? { lat: despachoLat, lng: despachoLng } : null}
              activePin={location ? { lat: location.lat, lng: location.lng } : null}
              onClickMap={(lat, lng) => setLocation({lat, lng})}
              flyTo={despachoLat && despachoLng ? { lat: despachoLat, lng: despachoLng } : null}
+             extraMarkers={fireEventLat && fireEventLng ? [{ lat: fireEventLat, lng: fireEventLng, color: '#f97316', tooltip: 'Evento de Fogo' }] : []}
           />
           <div className="absolute top-4 left-4 z-[400] flex flex-col gap-2 pointer-events-none">
             <div className="bg-background/80 backdrop-blur-sm border border-border text-xs px-2 py-1 rounded flex items-center gap-1 shadow-sm">
@@ -183,6 +188,11 @@ export function RelatorioMaquinarioForm({
             <div className="bg-background/80 backdrop-blur-sm border border-border text-xs px-2 py-1 rounded flex items-center gap-1 shadow-sm">
               <div className="w-2 h-2 rounded-full bg-red-500" /> Local de Atuação
             </div>
+            {fireEventLat && fireEventLng && (
+              <div className="bg-background/80 backdrop-blur-sm border border-border text-xs px-2 py-1 rounded flex items-center gap-1 shadow-sm">
+                <div className="w-2 h-2 rounded-full" style={{ background: '#f97316' }} /> Evento de Fogo
+              </div>
+            )}
           </div>
         </div>
       </div>

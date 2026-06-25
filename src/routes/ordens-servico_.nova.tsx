@@ -37,6 +37,7 @@ function NovaOrdemServicoPage() {
   const navigate = useNavigate();
   const eventoFogoId = searchParams.eventoFogoId;
   const [form, setForm] = useState({ ...emptyForm, eventoFogoId: eventoFogoId || '' });
+  const [errors, setErrors] = useState<Record<string, string>>({});
 
   const [isDms, setIsDms] = useState(false);
   const [latInput, setLatInput] = useState('');
@@ -99,12 +100,48 @@ function NovaOrdemServicoPage() {
     queryFn: () => fetchWithAuth('/operacional/escalas')
   });
 
+  const { data: todosDespachos = [] } = useQuery<any[]>({
+    queryKey: ['despachos'],
+    queryFn: () => fetchWithAuth('/operacional/despachos')
+  });
+
+  const { data: eventoFogo } = useQuery<any>({
+    queryKey: ['fireEvent', eventoFogoId],
+    queryFn: async () => {
+      if (!eventoFogoId) return null;
+      try {
+        const res = await fetch(`/api/v1/fire-events/buscar?q=${eventoFogoId}`);
+        const data = await res.json();
+        return data && data.length > 0 ? data[0] : null;
+      } catch (e: any) {
+        return null;
+      }
+    },
+    enabled: !!eventoFogoId,
+    retry: false
+  });
+
+  const isEscalaWorking = form.equipe ? todosDespachos.some(d => 
+    String(d.escalaId) === form.equipe && 
+    !['CONCLUIDA', 'CANCELADA'].includes(d.status)
+  ) : false;
+
   async function save() {
     try {
-      if (!form.tipoDespacho || !form.comando || !form.equipe || !form.responsavel || !form.prioridade) {
-         toast.error("Preencha todos os campos obrigatórios");
-         return;
+      const newErrors: Record<string, string> = {};
+      if (!form.tipoDespacho) newErrors.tipoDespacho = 'Obrigatório';
+      if (!form.prioridade) newErrors.prioridade = 'Obrigatório';
+      if (!form.comando) newErrors.comando = 'Obrigatório';
+      if (!form.equipe) newErrors.equipe = 'Obrigatório';
+      if (!form.responsavel) newErrors.responsavel = 'Obrigatório';
+      if (!form.descricao) newErrors.descricao = 'Obrigatório';
+
+      if (Object.keys(newErrors).length > 0) {
+        setErrors(newErrors);
+        toast.error("Por favor, preencha todos os campos obrigatórios");
+        return;
       }
+      setErrors({});
       
       const latDD = parseCoordinateToDD(latInput);
       const lngDD = parseCoordinateToDD(lngInput);
@@ -250,6 +287,8 @@ function NovaOrdemServicoPage() {
                onClickMap={handleMapClick}
                activePin={form.latLng ? { lat: parseFloat(form.latLng.split(',')[0]), lng: parseFloat(form.latLng.split(',')[1]) } : null}
                center={flyTo}
+               hideEvents={true}
+               extraMarkers={eventoFogo?.latitude && eventoFogo?.longitude ? [{ lat: eventoFogo.latitude, lng: eventoFogo.longitude, color: '#f97316', tooltip: 'Evento de Fogo' }] : []}
             />
           </div>
         </div>
@@ -268,9 +307,9 @@ function NovaOrdemServicoPage() {
             
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label>Tipo de Despacho *</Label>
-                <Select value={form.tipoDespacho} onValueChange={(v) => setForm({ ...form, tipoDespacho: v as any })}>
-                  <SelectTrigger>
+                <Label className={errors.tipoDespacho ? "text-red-500" : ""}>Tipo de Despacho *</Label>
+                <Select value={form.tipoDespacho} onValueChange={(v) => { setForm({ ...form, tipoDespacho: v as any }); setErrors({...errors, tipoDespacho: ''}); }}>
+                  <SelectTrigger className={errors.tipoDespacho ? "border-red-500" : ""}>
                     <SelectValue placeholder="Selecione o tipo" />
                   </SelectTrigger>
                   <SelectContent>
@@ -279,11 +318,12 @@ function NovaOrdemServicoPage() {
                     <SelectItem value="MAQUINARIO">Combate Incêndio Maquinário</SelectItem>
                   </SelectContent>
                 </Select>
+                {errors.tipoDespacho && <p className="text-xs text-red-500">{errors.tipoDespacho}</p>}
               </div>
               <div className="space-y-2">
-                <Label>Prioridade *</Label>
-                <Select value={form.prioridade} onValueChange={(v: any) => setForm({ ...form, prioridade: v })}>
-                  <SelectTrigger>
+                <Label className={errors.prioridade ? "text-red-500" : ""}>Prioridade *</Label>
+                <Select value={form.prioridade} onValueChange={(v: any) => { setForm({ ...form, prioridade: v }); setErrors({...errors, prioridade: ''}); }}>
+                  <SelectTrigger className={errors.prioridade ? "border-red-500" : ""}>
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -292,25 +332,27 @@ function NovaOrdemServicoPage() {
                     <SelectItem value="P3">P3 - Normal</SelectItem>
                   </SelectContent>
                 </Select>
+                {errors.prioridade && <p className="text-xs text-red-500">{errors.prioridade}</p>}
               </div>
             </div>
 
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label>Comando (Centro) *</Label>
-                <Select value={form.comando || ''} onValueChange={(v) => setForm({ ...form, comando: v, equipe: '', responsavel: '' })}>
-                  <SelectTrigger>
+                <Label className={errors.comando ? "text-red-500" : ""}>Comando (Centro) *</Label>
+                <Select value={form.comando || ''} onValueChange={(v) => { setForm({ ...form, comando: v, equipe: '', responsavel: '' }); setErrors({...errors, comando: ''}); }}>
+                  <SelectTrigger className={errors.comando ? "border-red-500" : ""}>
                     <SelectValue placeholder="Selecione o comando" />
                   </SelectTrigger>
                   <SelectContent>
                     {centrosDeComandoDB.map((cc: any) => <SelectItem key={cc.id} value={String(cc.id)}>{cc.nome}</SelectItem>)}
                   </SelectContent>
                 </Select>
+                {errors.comando && <p className="text-xs text-red-500">{errors.comando}</p>}
               </div>
               <div className="space-y-2">
-                <Label>Equipe *</Label>
-                <Select disabled={!form.comando} value={form.equipe || ''} onValueChange={(v) => setForm({ ...form, equipe: v, responsavel: '' })}>
-                  <SelectTrigger>
+                <Label className={errors.equipe ? "text-red-500" : ""}>Equipe *</Label>
+                <Select disabled={!form.comando} value={form.equipe || ''} onValueChange={(v) => { setForm({ ...form, equipe: v, responsavel: '' }); setErrors({...errors, equipe: ''}); }}>
+                  <SelectTrigger className={errors.equipe ? "border-red-500" : ""}>
                     <SelectValue placeholder="Selecione a escala/equipe" />
                   </SelectTrigger>
                   <SelectContent>
@@ -319,13 +361,19 @@ function NovaOrdemServicoPage() {
                     })}
                   </SelectContent>
                 </Select>
+                {errors.equipe && <p className="text-xs text-red-500">{errors.equipe}</p>}
+                {isEscalaWorking && (
+                  <div className="text-xs text-warning bg-warning/10 p-1.5 rounded border border-warning/20 mt-2">
+                    Aviso: A escala selecionada possui despachos em andamento.
+                  </div>
+                )}
               </div>
             </div>
 
             <div className="space-y-2">
-              <Label>Usuário Responsável *</Label>
-              <Select disabled={!form.equipe} value={form.responsavel || ''} onValueChange={(v) => setForm({ ...form, responsavel: v })}>
-                <SelectTrigger>
+              <Label className={errors.responsavel ? "text-red-500" : ""}>Usuário Responsável *</Label>
+              <Select disabled={!form.equipe} value={form.responsavel || ''} onValueChange={(v) => { setForm({ ...form, responsavel: v }); setErrors({...errors, responsavel: ''}); }}>
+                <SelectTrigger className={errors.responsavel ? "border-red-500" : ""}>
                   <SelectValue placeholder="Selecione o responsável" />
                 </SelectTrigger>
                 <SelectContent>
@@ -337,6 +385,7 @@ function NovaOrdemServicoPage() {
                   }).map((u: any) => <SelectItem key={u.id} value={String(u.id)}>{u.nome}</SelectItem>)}
                 </SelectContent>
               </Select>
+              {errors.responsavel && <p className="text-xs text-red-500">{errors.responsavel}</p>}
             </div>
 
             <div className="space-y-3">
@@ -376,13 +425,14 @@ function NovaOrdemServicoPage() {
             </div>
 
             <div className="space-y-2">
-              <Label>Diretrizes da Missão</Label>
+              <Label className={errors.descricao ? "text-red-500" : ""}>Diretrizes da Missão *</Label>
               <Textarea 
                 placeholder="Descreva as instruções operacionais para a equipe..." 
-                className="resize-none h-24"
+                className={`resize-none h-24 ${errors.descricao ? "border-red-500" : ""}`}
                 value={form.descricao}
-                onChange={(e) => setForm({ ...form, descricao: e.target.value })}
+                onChange={(e) => { setForm({ ...form, descricao: e.target.value }); setErrors({...errors, descricao: ''}); }}
               />
+              {errors.descricao && <p className="text-xs text-red-500">{errors.descricao}</p>}
             </div>
             
             <div className="pt-4 flex justify-end gap-3 border-t border-border">

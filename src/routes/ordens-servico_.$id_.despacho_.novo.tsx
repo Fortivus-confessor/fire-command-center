@@ -46,6 +46,22 @@ function NovoDespachoPage() {
     enabled: !!osId
   });
 
+  const { data: eventoFogo } = useQuery<any>({
+    queryKey: ['fireEvent', os?.eventoFogoId],
+    queryFn: async () => {
+      if (!os?.eventoFogoId) return null;
+      try {
+        const res = await fetch(`/api/v1/fire-events/buscar?q=${os.eventoFogoId}`);
+        const data = await res.json();
+        return data && data.length > 0 ? data[0] : null;
+      } catch (e: any) {
+        return null;
+      }
+    },
+    enabled: !!os?.eventoFogoId,
+    retry: false
+  });
+
   // Pre-fill latitude/longitude if OS has it
   useEffect(() => {
     if (os && os.latitude && os.longitude && !form.latLng) {
@@ -293,8 +309,10 @@ function NovoDespachoPage() {
                   onClickMap={handleMapClick}
                   flyTo={flyTo}
                   activePin={hasValidPin ? { lat: parsedLat, lng: parsedLng } : null}
+                  hideEvents={true}
                   extraMarkers={[
-                    ...(os?.latitude ? [{ lat: os.latitude, lng: os.longitude, color: '#f59e0b', tooltip: 'Local Inicial da OS' }] : [])
+                    ...(os?.latitude && os?.longitude ? [{ lat: os.latitude, lng: os.longitude, color: '#f59e0b', tooltip: 'Local Inicial da OS' }] : []),
+                    ...(eventoFogo?.latitude && eventoFogo?.longitude ? [{ lat: eventoFogo.latitude, lng: eventoFogo.longitude, color: '#f97316', tooltip: 'Evento de Fogo' }] : [])
                   ]}
                 />
               );

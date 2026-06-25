@@ -70,6 +70,22 @@ function ResponderTerrestrePage() {
     enabled: !!despachoData?.ordemServicoId
   });
 
+  const { data: fireEventData, isLoading: isLoadingFireEvent } = useQuery<any>({
+    queryKey: ['fireEvent', osData?.eventoFogoId],
+    queryFn: async () => {
+      if (!osData?.eventoFogoId) return null;
+      try {
+        const res = await fetch(`/api/v1/fire-events/buscar?q=${osData.eventoFogoId}`);
+        const data = await res.json();
+        return data && data.length > 0 ? data[0] : null;
+      } catch (e: any) {
+        return null;
+      }
+    },
+    enabled: !!osData?.eventoFogoId,
+    retry: false
+  });
+
   // ── Mutation para salvar/atualizar ──
   const mutation = useMutation({
     mutationFn: async (payload: RelatorioTerrestrePayload) => {
@@ -188,7 +204,7 @@ function ResponderTerrestrePage() {
 
   // Se está carregando, mostra spinner
   const isLoadingOsData = !!despachoData?.ordemServicoId && !osData;
-  if (isLoadingRelatorio || (hasRelatorio && isLoadingAttachments) || isLoadingDespacho || isLoadingOsData) {
+  if (isLoadingRelatorio || (hasRelatorio && isLoadingAttachments) || isLoadingDespacho || isLoadingOsData || isLoadingFireEvent) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[400px] gap-4">
         <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
@@ -249,9 +265,11 @@ function ResponderTerrestrePage() {
           onSubmit={handleSubmit}
           onFilesChange={handleFilesChange}
           onFileRemove={handleFileRemove}
-          despachoLat={despachoData?.latitude}
-          despachoLng={despachoData?.longitude}
+          despachoLat={despachoData?.latitude || osData?.latitude}
+          despachoLng={despachoData?.longitude || osData?.longitude}
           eventoFogoId={osData?.eventoFogoId}
+          fireEventLat={fireEventData?.latitude}
+          fireEventLng={fireEventData?.longitude}
         />
       </div>
 
