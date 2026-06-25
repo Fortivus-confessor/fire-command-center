@@ -4,6 +4,7 @@ import {
   Link,
   createRootRouteWithContext,
   useRouter,
+  useRouterState,
   HeadContent,
   Scripts,
 } from "@tanstack/react-router";
@@ -152,6 +153,17 @@ function AuthWrapper() {
 
   if (!isAuthenticated) {
     return <LandingPage />;
+  }
+
+  const routerState = useRouterState();
+  const isPrintPdf = routerState.location.pathname.includes('/relatorio-pdf');
+
+  if (isPrintPdf) {
+    return (
+      <main className="min-h-screen bg-background">
+        <Outlet />
+      </main>
+    );
   }
 
   return (

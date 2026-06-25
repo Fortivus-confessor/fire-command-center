@@ -35,10 +35,6 @@ export function TopBar() {
           </div>
 
           <div className="flex items-center gap-2 sm:gap-3">
-            <button className="relative h-9 w-9 grid place-items-center rounded-md border border-border bg-secondary/60 hover:bg-secondary transition">
-              <Bell className="h-4 w-4" />
-              <span className="absolute top-1.5 right-1.5 h-1.5 w-1.5 rounded-full bg-fire" />
-            </button>
 
             {/* User avatar */}
             {isAuthenticated && user && role ? (
