@@ -8,12 +8,34 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import SituationMapClient from '@/components/fortivus/map/SituationMapClient';
 import { FileUploader } from '@/components/fortivus/forms/FileUploader';
 import { toast } from 'sonner';
+import { AlertCircle } from 'lucide-react';
+import { cn } from '@/lib/utils';
+
+interface ValidationErrors {
+  horimetroIni?: string;
+  horimetroFim?: string;
+  horasLiq?: string;
+  emprego?: string;
+  usoAgua?: string;
+  volumeAgua?: string;
+  origemAgua?: string;
+  efetividade?: string;
+  necessidadeReforco?: string;
+  reforcos?: string;
+  historico?: string;
+  resultado?: string;
+}
 
 export function RelatorioAereoForm({ 
   initialData,
   onSubmit, 
   onFilesChange,
-  onFileRemove 
+  onFileRemove,
+  eventoFogoId,
+  despachoLat,
+  despachoLng,
+  fireEventLat,
+  fireEventLng
 }: { 
   initialData?: any,
   onSubmit?: (payload: any) => void, 
@@ -21,44 +43,79 @@ export function RelatorioAereoForm({
   onFileRemove?: (url: string) => void,
   eventoFogoId?: string,
   despachoLat?: number,
-  despachoLng?: number
+  despachoLng?: number,
+  fireEventLat?: number,
+  fireEventLng?: number
 }) {
-  const [usoAgua, setUsoAgua] = useState(initialData?.houveUsoAgua || false);
-  const [reforco, setReforco] = useState(initialData?.necessidadeReforco || false);
-  const [resultado, setResultado] = useState<string>(initialData?.resultadoOcorrencia || 'andamento');
+  const [horInicial, setHorInicial] = useState<string>(initialData?.horimetroInicial?.toString() || '');
+  const [horFinal, setHorFinal] = useState<string>(initialData?.horimetroFinal?.toString() || '');
+  const [horasLiquidas, setHorasLiquidas] = useState<string>(initialData?.horasLiquidas || '');
   
+  const [usoAgua, setUsoAgua] = useState<boolean | undefined>(initialData?.houveUsoAgua !== undefined ? initialData?.houveUsoAgua : undefined);
+  const [reforco, setReforco] = useState<boolean | undefined>(initialData?.necessidadeReforco !== undefined ? initialData?.necessidadeReforco : undefined);
+  const [resultado, setResultado] = useState<string>(initialData?.resultadoOcorrencia || '');
+  const [efetividade, setEfetividade] = useState<string>(initialData?.efetividadeCombate || '');
+
   // States for "Outros" inputs
   const [outroAgua, setOutroAgua] = useState(initialData?.origensAgua?.includes('Outro') || false);
   const [location, setLocation] = useState<{lat: number, lng: number} | null>(
     initialData?.areaAtuacaoLat ? {lat: initialData.areaAtuacaoLat, lng: initialData.areaAtuacaoLng} : null
   );
 
-  const [efetividade, setEfetividade] = useState(initialData?.efetividadeCombate || 'media');
+  const [errors, setErrors] = useState<ValidationErrors>({});
+  const [submitted, setSubmitted] = useState(false);
+
+  const fieldError = (field: keyof ValidationErrors) =>
+    errors[field] ? (
+      <p className="text-xs text-destructive flex items-center gap-1 mt-1">
+        <AlertCircle className="h-3 w-3" /> {errors[field]}
+      </p>
+    ) : null;
 
   const handleLocalSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    setSubmitted(true);
     const form = e.currentTarget;
     const data = new FormData(form);
 
     const hasEmp = Array.from(form.querySelectorAll('[id^="emp-"]')).some((cb: any) => cb.dataset.state === 'checked');
-    const errors = [];
+    const errs: ValidationErrors = {};
     
-    if (!hasEmp) errors.push('Tipo de emprego');
+    if (!horInicial) errs.horimetroIni = 'Obrigatório.';
+    if (!horFinal) errs.horimetroFim = 'Obrigatório.';
+    if (horInicial && horFinal && parseFloat(horFinal) < parseFloat(horInicial)) {
+        errs.horimetroFim = 'Final não pode ser menor que o Inicial.';
+    }
+    if (!horasLiquidas) errs.horasLiq = 'Obrigatório.';
+    if (!hasEmp) errs.emprego = 'Selecione pelo menos um tipo de emprego.';
 
-    if (usoAgua) {
+    if (usoAgua === undefined) errs.usoAgua = 'Selecione se houve uso de água.';
+    if (usoAgua === true) {
+      if (!data.get('volumeAguaLitros')) errs.volumeAgua = 'Obrigatório.';
       const hasOrigem = Array.from(form.querySelectorAll('[id^="oagua-"]')).some((cb: any) => cb.dataset.state === 'checked');
-      if (!hasOrigem) errors.push('Origem da Água');
+      if (!hasOrigem) errs.origemAgua = 'Selecione a origem da água.';
     }
 
-    if (reforco) {
+    if (!efetividade) errs.efetividade = 'Obrigatório.';
+    if (reforco === undefined) errs.necessidadeReforco = 'Selecione se houve necessidade de reforço.';
+    if (reforco === true) {
       const hasRef = Array.from(form.querySelectorAll('[id^="ref-"]')).some((cb: any) => cb.dataset.state === 'checked');
-      if (!hasRef) errors.push('Reforços Necessários');
+      if (!hasRef) errs.reforcos = 'Selecione pelo menos um reforço.';
     }
 
-    if (errors.length > 0) {
-      toast.error('Campos obrigatórios incompletos', {
-        description: `Selecione pelo menos uma opção nas seguintes categorias: ${errors.join(', ')}`
+    const hist = data.get('historicoDescritivo') as string;
+    if (!hist || hist.trim().length < 10) errs.historico = 'Mínimo de 10 caracteres.';
+
+    if (!resultado) errs.resultado = 'Obrigatório.';
+
+    setErrors(errs);
+
+    if (Object.keys(errs).length > 0) {
+      toast.error('Formulário incompleto', {
+        description: 'Corrija os campos em vermelho antes de continuar.'
       });
+      const firstError = document.querySelector('[data-error="true"]');
+      firstError?.scrollIntoView({ behavior: 'smooth', block: 'center' });
       return;
     }
 
@@ -84,9 +141,9 @@ export function RelatorioAereoForm({
     }
 
     const payload = {
-      horimetroInicial: data.get('horimetroInicial') ? parseFloat(data.get('horimetroInicial') as string) : null,
-      horimetroFinal: data.get('horimetroFinal') ? parseFloat(data.get('horimetroFinal') as string) : null,
-      horasLiquidas: data.get('horasLiquidas') as string,
+      horimetroInicial: parseFloat(horInicial),
+      horimetroFinal: parseFloat(horFinal),
+      horasLiquidas,
       tiposEmprego,
       areaAtuacaoLat: location?.lat || null,
       areaAtuacaoLng: location?.lng || null,
@@ -98,7 +155,7 @@ export function RelatorioAereoForm({
       efetividadeCombate: efetividade,
       necessidadeReforco: reforco,
       tiposReforcoNecessarios: tiposReforco,
-      historicoDescritivo: data.get('historicoDescritivo') as string,
+      historicoDescritivo: hist,
       resultadoOcorrencia: resultado,
       outroResultadoDescricao: resultado === 'outro' ? data.get('outroResultadoDescricao') as string : null,
     };
@@ -106,29 +163,35 @@ export function RelatorioAereoForm({
     if (onSubmit) onSubmit(payload);
   };
 
+  const sectionClass = (hasError: boolean) =>
+    cn('space-y-4', hasError && submitted ? 'p-4 rounded-lg border border-destructive/50 bg-destructive/5' : '');
+
   return (
-    <form id="form-aereo" onSubmit={handleLocalSubmit} className="space-y-8 p-1">
+    <form id="form-aereo" onSubmit={handleLocalSubmit} className="space-y-8 p-1" noValidate>
       {/* Tempo de Operação */}
       <div className="space-y-4">
         <h3 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground border-b border-border pb-2">Tempo de Operação</h3>
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-          <div className="space-y-2">
-            <Label>Horímetro Inicial</Label>
-            <Input type="number" name="horimetroInicial" placeholder="Ex: 1240.5" defaultValue={initialData?.horimetroInicial} step="0.1" />
+          <div className="space-y-2" data-error={submitted && !!errors.horimetroIni}>
+            <Label>Horímetro Inicial <span className="text-destructive">*</span></Label>
+            <Input type="number" name="horimetroInicial" placeholder="Ex: 1240.5" value={horInicial} onChange={e => setHorInicial(e.target.value)} step="0.1" className={cn(submitted && errors.horimetroIni && 'border-destructive')} />
+            {submitted && fieldError('horimetroIni')}
           </div>
-          <div className="space-y-2">
-            <Label>Horímetro Final</Label>
-            <Input type="number" name="horimetroFinal" placeholder="Ex: 1243.2" defaultValue={initialData?.horimetroFinal} step="0.1" />
+          <div className="space-y-2" data-error={submitted && !!errors.horimetroFim}>
+            <Label>Horímetro Final <span className="text-destructive">*</span></Label>
+            <Input type="number" name="horimetroFinal" placeholder="Ex: 1243.2" value={horFinal} onChange={e => setHorFinal(e.target.value)} step="0.1" className={cn(submitted && errors.horimetroFim && 'border-destructive')} />
+            {submitted && fieldError('horimetroFim')}
           </div>
-          <div className="space-y-2">
-            <Label>Horas líquidas (HH:MM)</Label>
-            <Input type="time" name="horasLiquidas" defaultValue={initialData?.horasLiquidas} />
+          <div className="space-y-2" data-error={submitted && !!errors.horasLiq}>
+            <Label>Horas líquidas (HH:MM) <span className="text-destructive">*</span></Label>
+            <Input type="time" name="horasLiquidas" value={horasLiquidas} onChange={e => setHorasLiquidas(e.target.value)} className={cn(submitted && errors.horasLiq && 'border-destructive')} />
+            {submitted && fieldError('horasLiq')}
           </div>
         </div>
       </div>
 
       {/* Tipo de Emprego */}
-      <div className="space-y-4">
+      <div className={sectionClass(!!errors.emprego)} data-error={submitted && !!errors.emprego}>
         <h3 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground border-b border-border pb-2">Tipo de emprego <span className="text-destructive">*</span></h3>
         <div className="flex flex-wrap gap-4">
           <div className="flex items-center space-x-2">
@@ -144,6 +207,7 @@ export function RelatorioAereoForm({
             <label htmlFor="emp-recon" className="text-sm font-medium leading-none">Reconhecimento</label>
           </div>
         </div>
+        {submitted && fieldError('emprego')}
       </div>
 
       {/* Área de Atuação */}
@@ -151,12 +215,13 @@ export function RelatorioAereoForm({
         <h3 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground border-b border-border pb-2">Área de Atuação da Equipe</h3>
         <div className="relative rounded-lg overflow-hidden border border-border h-[350px]">
           <SituationMapClient 
-             hideEvents={!eventoFogoId}
+             hideEvents={true}
              isolatedEventId={eventoFogoId}
              dispatchPin={despachoLat && despachoLng ? { lat: despachoLat, lng: despachoLng } : null}
              activePin={location ? { lat: location.lat, lng: location.lng } : null}
              onClickMap={(lat, lng) => setLocation({lat, lng})}
              flyTo={despachoLat && despachoLng ? { lat: despachoLat, lng: despachoLng } : null}
+             extraMarkers={fireEventLat && fireEventLng ? [{ lat: fireEventLat, lng: fireEventLng, color: '#f97316', tooltip: 'Evento de Fogo' }] : []}
           />
           <div className="absolute top-4 left-4 z-[400] flex flex-col gap-2 pointer-events-none">
             <div className="bg-background/80 backdrop-blur-sm border border-border text-xs px-2 py-1 rounded flex items-center gap-1 shadow-sm">
@@ -165,6 +230,11 @@ export function RelatorioAereoForm({
             <div className="bg-background/80 backdrop-blur-sm border border-border text-xs px-2 py-1 rounded flex items-center gap-1 shadow-sm">
               <div className="w-2 h-2 rounded-full bg-red-500" /> Local de Atuação
             </div>
+            {fireEventLat && fireEventLng && (
+              <div className="bg-background/80 backdrop-blur-sm border border-border text-xs px-2 py-1 rounded flex items-center gap-1 shadow-sm">
+                <div className="w-2 h-2 rounded-full" style={{ background: '#f97316' }} /> Evento de Fogo
+              </div>
+            )}
           </div>
         </div>
       </div>
@@ -179,9 +249,9 @@ export function RelatorioAereoForm({
           </div>
         </div>
 
-        <div className="space-y-4 pt-2">
-          <Label>Houve uso de água na ocorrência?</Label>
-          <RadioGroup value={usoAgua ? "sim" : "nao"} onValueChange={(v) => setUsoAgua(v === 'sim')} className="flex gap-4">
+        <div className={sectionClass(!!errors.usoAgua)} data-error={submitted && !!errors.usoAgua}>
+          <Label>Houve uso de água na ocorrência? <span className="text-destructive">*</span></Label>
+          <RadioGroup value={usoAgua !== undefined ? (usoAgua ? "sim" : "nao") : undefined} onValueChange={(v) => setUsoAgua(v === 'sim')} className="flex gap-4">
             <div className="flex items-center space-x-2">
               <RadioGroupItem value="sim" id="agua-sim" />
               <Label htmlFor="agua-sim">Sim</Label>
@@ -191,16 +261,18 @@ export function RelatorioAereoForm({
               <Label htmlFor="agua-nao">Não</Label>
             </div>
           </RadioGroup>
+          {submitted && fieldError('usoAgua')}
         </div>
 
         {usoAgua && (
           <div className="space-y-4 pl-6 border-l-2 border-primary/30 pt-2">
-            <div className="space-y-2 max-w-sm">
+            <div className="space-y-2 max-w-sm" data-error={submitted && !!errors.volumeAgua}>
               <Label>Quantidade (Litros) <span className="text-destructive">*</span></Label>
-              <Input type="number" name="volumeAguaLitros" placeholder="Ex: 5000" required={usoAgua} defaultValue={initialData?.volumeAguaLitros} />
+              <Input type="number" name="volumeAguaLitros" placeholder="Ex: 5000" defaultValue={initialData?.volumeAguaLitros} className={cn(submitted && errors.volumeAgua && 'border-destructive')} />
+              {submitted && fieldError('volumeAgua')}
             </div>
 
-            <div className="space-y-2 pt-2">
+            <div className="space-y-2 pt-2" data-error={submitted && !!errors.origemAgua}>
               <Label>Origem da Água <span className="text-destructive">*</span></Label>
               <div className="flex flex-col gap-2">
                 <div className="flex items-center space-x-2">
@@ -221,6 +293,7 @@ export function RelatorioAereoForm({
                   {outroAgua && <Input name="outraOrigemAguaDescricao" placeholder="Descreva" className="h-8 ml-2 flex-1 max-w-[250px]" required defaultValue={initialData?.outraOrigemAguaDescricao} />}
                 </div>
               </div>
+              {submitted && fieldError('origemAgua')}
             </div>
           </div>
         )}
@@ -230,8 +303,8 @@ export function RelatorioAereoForm({
       <div className="space-y-4">
         <h3 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground border-b border-border pb-2">Avaliação e Necessidades</h3>
         
-        <div className="space-y-3">
-          <Label>Efetividade estimada</Label>
+        <div className={sectionClass(!!errors.efetividade)} data-error={submitted && !!errors.efetividade}>
+          <Label>Efetividade estimada <span className="text-destructive">*</span></Label>
           <RadioGroup value={efetividade} onValueChange={setEfetividade} className="flex gap-4">
             <div className="flex items-center space-x-2">
               <RadioGroupItem value="alta" id="ef-alta" />
@@ -246,11 +319,12 @@ export function RelatorioAereoForm({
               <Label htmlFor="ef-baixa">Baixa</Label>
             </div>
           </RadioGroup>
+          {submitted && fieldError('efetividade')}
         </div>
 
-        <div className="space-y-3 pt-4">
-          <Label>Necessidade de reforço?</Label>
-          <RadioGroup value={reforco ? "sim" : "nao"} onValueChange={(v) => setReforco(v === 'sim')} className="flex gap-4">
+        <div className={sectionClass(!!errors.necessidadeReforco)} data-error={submitted && !!errors.necessidadeReforco}>
+          <Label>Necessidade de reforço? <span className="text-destructive">*</span></Label>
+          <RadioGroup value={reforco !== undefined ? (reforco ? "sim" : "nao") : undefined} onValueChange={(v) => setReforco(v === 'sim')} className="flex gap-4">
             <div className="flex items-center space-x-2">
               <RadioGroupItem value="sim" id="ref-sim" />
               <Label htmlFor="ref-sim">Sim</Label>
@@ -260,10 +334,11 @@ export function RelatorioAereoForm({
               <Label htmlFor="ref-nao">Não</Label>
             </div>
           </RadioGroup>
+          {submitted && fieldError('necessidadeReforco')}
         </div>
 
         {reforco && (
-          <div className="space-y-3 pl-6 border-l-2 border-warning/30 pt-2">
+          <div className={cn("pl-6 border-l-2 border-warning/30 pt-2 space-y-3", submitted && !!errors.reforcos && 'border-destructive/50 bg-destructive/5 p-2 rounded')} data-error={submitted && !!errors.reforcos}>
             <Label className="text-muted-foreground">Selecione os reforços necessários: <span className="text-destructive">*</span></Label>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div className="flex items-center space-x-2">
@@ -283,6 +358,7 @@ export function RelatorioAereoForm({
                 <label htmlFor="ref-sci" className="text-sm leading-none">Implantação do SCI</label>
               </div>
             </div>
+            {submitted && fieldError('reforcos')}
           </div>
         )}
       </div>
@@ -291,13 +367,14 @@ export function RelatorioAereoForm({
       <div className="space-y-4">
         <h3 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground border-b border-border pb-2">Histórico e Resultado</h3>
         
-        <div className="space-y-2">
+        <div className="space-y-2" data-error={submitted && !!errors.historico}>
           <Label>Histórico descritivo <span className="text-destructive">*</span></Label>
-          <Textarea name="historicoDescritivo" placeholder="Descreva de forma livre os detalhes da operação aérea..." className="min-h-[120px]" required defaultValue={initialData?.historicoDescritivo} />
+          <Textarea name="historicoDescritivo" placeholder="Descreva de forma livre os detalhes da operação aérea..." className={cn("min-h-[120px]", submitted && errors.historico && 'border-destructive')} defaultValue={initialData?.historicoDescritivo} />
+          {submitted && fieldError('historico')}
         </div>
 
-        <div className="space-y-3 pt-2">
-          <Label>Resultado da ocorrência</Label>
+        <div className={sectionClass(!!errors.resultado)} data-error={submitted && !!errors.resultado}>
+          <Label>Resultado da ocorrência <span className="text-destructive">*</span></Label>
           <RadioGroup value={resultado} onValueChange={setResultado} className="space-y-3">
             <div className="flex items-start space-x-2">
               <RadioGroupItem value="andamento" id="res-and" className="mt-0.5" />
@@ -317,6 +394,7 @@ export function RelatorioAereoForm({
               {resultado === 'outro' && <Input name="outroResultadoDescricao" className="h-7 text-xs flex-1 ml-2 max-w-[300px]" placeholder="Especifique..." required defaultValue={initialData?.outroResultadoDescricao} />}
             </div>
           </RadioGroup>
+          {submitted && fieldError('resultado')}
         </div>
       </div>
       

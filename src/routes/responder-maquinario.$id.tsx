@@ -24,14 +24,14 @@ function ResponderMaquinarioPage() {
   const selectedFiles = useRef<Record<string, File[]>>({ anexos: [] });
   const deletedFiles = useRef<string[]>([]);
 
-  // ── 1. Fetch Attachments (if any) ──
   const { data: attachments, isLoading: isLoadingAttachments } = useQuery<any[]>({
     queryKey: ['attachments', despachoId],
     queryFn: async () => {
-      const res = await fetchAttachmentWithAuth(`/api/v1/attachments/entity/00000000-0000-0000-0000-${idStr}`);
-      if (res.status === 404) return [];
-      if (!res.ok) throw new Error('Falha ao buscar anexos');
-      return res.json();
+      try {
+        return await fetchAttachmentWithAuth(`/api/v1/attachments/entity/00000000-0000-0000-0000-${idStr}`);
+      } catch {
+        return [];
+      }
     },
     retry: false
   });
@@ -39,10 +39,14 @@ function ResponderMaquinarioPage() {
   const { data: relatorioData, isLoading: isLoadingRelatorio } = useQuery<any>({
     queryKey: ['relatorio-maquinario', despachoId],
     queryFn: async () => {
-      const res = await fetchWithAuth(`/api/v1/operacional/despachos/${despachoId}/relatorio-maquinario`);
-      if (res.status === 404) return null;
-      if (!res.ok) throw new Error('Falha ao buscar relatório maquinário');
-      return res.json();
+      try {
+        return await fetchWithAuth(`/operacional/despachos/${despachoId}/relatorio-maquinario`);
+      } catch (err: any) {
+        if (err?.message?.includes('404') || err?.message?.includes('API Error: 404')) {
+          return null;
+        }
+        throw err;
+      }
     },
     retry: false
   });
@@ -50,10 +54,39 @@ function ResponderMaquinarioPage() {
   const { data: despachoData, isLoading: isLoadingDespacho } = useQuery<any>({
     queryKey: ['despacho', despachoId],
     queryFn: async () => {
-      const res = await fetchWithAuth(`/api/v1/operacional/despachos/${despachoId}`);
-      if (!res.ok) throw new Error('Falha ao buscar despacho');
-      return res.json();
+      try {
+        return await fetchWithAuth(`/operacional/despachos/${despachoId}`);
+      } catch {
+        return null;
+      }
+    }
+  });
+
+  const { data: osData } = useQuery<any>({
+    queryKey: ['ordem-servico', despachoData?.ordemServicoId],
+    queryFn: async () => {
+      try {
+        return await fetchWithAuth(`/operacional/os/${despachoData.ordemServicoId}`);
+      } catch {
+        return null;
+      }
     },
+    enabled: !!despachoData?.ordemServicoId
+  });
+
+  const { data: fireEventData, isLoading: isLoadingFireEvent } = useQuery<any>({
+    queryKey: ['fireEvent', osData?.eventoFogoId],
+    queryFn: async () => {
+      if (!osData?.eventoFogoId) return null;
+      try {
+        const res = await fetch(`/api/v1/fire-events/buscar?q=${osData.eventoFogoId}`);
+        const data = await res.json();
+        return data && data.length > 0 ? data[0] : null;
+      } catch (e: any) {
+        return null;
+      }
+    },
+    enabled: !!osData?.eventoFogoId,
     retry: false
   });
 
@@ -71,22 +104,16 @@ function ResponderMaquinarioPage() {
   };
 
   const uploadFiles = async (files: File[], entityType: string) => {
-    try {
-      const entityId = `00000000-0000-0000-0000-${idStr}`;
-      for (const file of files) {
-        const formData = new FormData();
-        formData.append('file', file);
-        formData.append('entityId', entityId);
-        formData.append('entityType', entityType);
-        
-        await fetchAttachmentWithAuth(`/api/v1/attachments/upload`, {
-          method: 'POST',
-          body: formData
-        });
-      }
-    } catch (e) {
-      console.error("Upload error:", e);
-      throw e;
+    const entityId = `00000000-0000-0000-0000-${idStr}`;
+    for (const file of files) {
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('entityId', entityId);
+      formData.append('entityType', entityType);
+      await fetchAttachmentWithAuth(`/api/v1/attachments/upload`, {
+        method: 'POST',
+        body: formData
+      });
     }
   };
 
@@ -95,27 +122,12 @@ function ResponderMaquinarioPage() {
     setUploadProgress(0);
 
     try {
-      // 1. Submit RelatorioMaquinario
-      const finalPayload = {
-        ...payload,
-        despachoId: despachoId
-      };
-
-      const res = await fetchWithAuth(`/api/v1/operacional/despachos/finalizar-maquinario`, {
+      await fetchWithAuth(`/operacional/despachos/finalizar-maquinario`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(finalPayload),
+        body: JSON.stringify({ ...payload, despachoId }),
       });
 
-      if (!res.ok) {
-        throw new Error('Falha ao salvar relatório maquinário');
-      }
-
-      // 2. Upload Anexos
       const allFiles = [...selectedFiles.current.anexos];
-      
       if (allFiles.length > 0) {
         toast.info('Fazendo upload dos anexos...');
         await uploadFiles(allFiles, 'RELATORIO_MAQUINARIO');
@@ -145,9 +157,10 @@ function ResponderMaquinarioPage() {
           }
         }
       }
-      
+
       queryClient.invalidateQueries({ queryKey: ['attachments', despachoId] });
-      
+      queryClient.invalidateQueries({ queryKey: ['relatorio-maquinario', despachoId] });
+      queryClient.invalidateQueries({ queryKey: ['despacho', despachoId] });
       toast.success('Relatório de Maquinário Finalizado', {
         description: 'Os dados e evidências foram enviados com sucesso.',
       });
@@ -161,6 +174,8 @@ function ResponderMaquinarioPage() {
       setIsSubmitting(false);
     }
   };
+
+  const isLoadingOsData = !!despachoData?.ordemServicoId && !osData;
 
   return (
     <div className="p-4 sm:p-6 max-w-4xl mx-auto space-y-6 pb-20">
@@ -182,19 +197,21 @@ function ResponderMaquinarioPage() {
       </div>
 
       <div className="glass-strong rounded-xl border border-border p-4 sm:p-6">
-        {(isLoadingAttachments || isLoadingRelatorio || isLoadingDespacho) ? (
+        {(isLoadingAttachments || isLoadingRelatorio || isLoadingDespacho || isLoadingOsData || isLoadingFireEvent) ? (
           <div className="flex justify-center p-8">
             <Loader2 className="h-8 w-8 animate-spin text-command" />
           </div>
         ) : (
-          <RelatorioMaquinarioForm 
+          <RelatorioMaquinarioForm
             initialData={relatorioComAnexos}
-            onSubmit={handleSave} 
+            onSubmit={handleSave}
             onFilesChange={handleFilesChange}
-            onFileRemove={handleFileRemove} 
-            eventoFogoId={despachoData?.eventoFogoId}
-            despachoLat={despachoData?.localizacaoLat}
-            despachoLng={despachoData?.localizacaoLng}
+            onFileRemove={handleFileRemove}
+            eventoFogoId={osData?.eventoFogoId}
+            despachoLat={despachoData?.latitude || osData?.latitude}
+            despachoLng={despachoData?.longitude || osData?.longitude}
+            fireEventLat={fireEventData?.latitude}
+            fireEventLng={fireEventData?.longitude}
           />
         )}
       </div>
@@ -215,9 +232,9 @@ function ResponderMaquinarioPage() {
           <Link to="/despachos">
             <Button variant="outline" type="button" disabled={isSubmitting}>Cancelar</Button>
           </Link>
-          <Button 
-            type="submit" 
-            form="form-maquinario" 
+          <Button
+            type="submit"
+            form="form-maquinario"
             className="bg-fire hover:bg-fire/90 text-white gap-2"
             disabled={isSubmitting}
           >
