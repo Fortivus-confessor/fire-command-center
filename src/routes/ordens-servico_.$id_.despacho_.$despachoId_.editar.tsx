@@ -10,6 +10,7 @@ import SituationMapClient from '../components/fortivus/map/SituationMapClient';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from 'sonner';
+import { useAuth } from '@/contexts/AuthContext';
 
 export const Route = createFileRoute('/ordens-servico_/$id_/despacho_/$despachoId_/editar')({
   component: EditarDespachoPage,
@@ -31,6 +32,7 @@ function EditarDespachoPage() {
   const { id: osId, despachoId } = Route.useParams();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const { role, user } = useAuth();
   const [form, setForm] = useState(emptyForm);
   const [errors, setErrors] = useState<Record<string, string>>({});
 
@@ -164,6 +166,10 @@ function EditarDespachoPage() {
     queryKey: ['usuarios'],
     queryFn: () => fetchWithAuth('/admin/usuarios')
   });
+
+  const currentUser = todosUsuarios.find((u: any) => String(u.id) === String(user?.id));
+  const myCentroComandoId = currentUser?.centroComandoId ? String(currentUser.centroComandoId) : '';
+  const isCentroComando = role === 'CENTRO_COMANDO';
 
   const { data: todosDespachos = [] } = useQuery<any[]>({
     queryKey: ['despachos'],
@@ -372,7 +378,7 @@ function EditarDespachoPage() {
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label className={errors.comando ? "text-red-500" : ""}>Centro de Comando *</Label>
-                <Select value={form.comando} onValueChange={(v) => { setForm({ ...form, comando: v, equipe: '', responsavel: '' }); setErrors({...errors, comando: ''}); }}>
+                <Select disabled={isCentroComando} value={form.comando} onValueChange={(v) => { setForm({ ...form, comando: v, equipe: '', responsavel: '' }); setErrors({...errors, comando: ''}); }}>
                   <SelectTrigger className={errors.comando ? "border-red-500" : ""}>
                     <SelectValue placeholder="Selecione o centro..." />
                   </SelectTrigger>

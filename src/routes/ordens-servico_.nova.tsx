@@ -7,6 +7,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { useQuery } from '@tanstack/react-query';
 import { fetchWithAuth } from '@/lib/api';
 import SituationMapClient from '../components/fortivus/map/SituationMapClient';
+import { useAuth } from '@/contexts/AuthContext';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from 'sonner';
@@ -35,8 +36,8 @@ const emptyForm = {
 function NovaOrdemServicoPage() {
   const searchParams = Route.useSearch();
   const navigate = useNavigate();
+  const { role, user } = useAuth();
   const eventoFogoId = searchParams.eventoFogoId;
-  const [form, setForm] = useState({ ...emptyForm, eventoFogoId: eventoFogoId || '' });
   const [errors, setErrors] = useState<Record<string, string>>({});
 
   const [isDms, setIsDms] = useState(false);
@@ -88,6 +89,19 @@ function NovaOrdemServicoPage() {
     queryKey: ['usuarios'],
     queryFn: () => fetchWithAuth('/admin/usuarios'),
   });
+
+  const currentUser = usuariosDB.find(u => String(u.id) === String(user?.id));
+  const myCentroComandoId = currentUser?.centroComandoId ? String(currentUser.centroComandoId) : '';
+  const isCentroComando = role === 'CENTRO_COMANDO';
+
+  // We initialize the form conditionally but since we need data from query, we do it in a useEffect or lazily
+  const [form, setForm] = useState({ ...emptyForm, eventoFogoId: eventoFogoId || '' });
+
+  useEffect(() => {
+    if (isCentroComando && myCentroComandoId && !form.comando) {
+      setForm(prev => ({ ...prev, comando: myCentroComandoId }));
+    }
+  }, [isCentroComando, myCentroComandoId, form.comando]);
 
   const { data: escalasAtivas = [] } = useQuery<any[]>({
     queryKey: ['escalas-ativas', form.comando],
@@ -339,7 +353,7 @@ function NovaOrdemServicoPage() {
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label className={errors.comando ? "text-red-500" : ""}>Comando (Centro) *</Label>
-                <Select value={form.comando || ''} onValueChange={(v) => { setForm({ ...form, comando: v, equipe: '', responsavel: '' }); setErrors({...errors, comando: ''}); }}>
+                <Select disabled={isCentroComando} value={form.comando || ''} onValueChange={(v) => { setForm({ ...form, comando: v, equipe: '', responsavel: '' }); setErrors({...errors, comando: ''}); }}>
                   <SelectTrigger className={errors.comando ? "border-red-500" : ""}>
                     <SelectValue placeholder="Selecione o comando" />
                   </SelectTrigger>

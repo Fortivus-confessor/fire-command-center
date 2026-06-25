@@ -95,11 +95,13 @@ function contratoBadge(c: string) {
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { fetchWithAuth } from '../lib/api';
 import { useCanAccess } from '../hooks/useCanAccess';
+import { useAuth } from '../contexts/AuthContext';
 
 // ── Page Component ─────────────────────────────────────
 function VeiculosPage() {
   const queryClient = useQueryClient();
   const canManage = useCanAccess('veiculos', 'edit');
+  const { role, user } = useAuth();
 
   const { data: veiculosData = [], isLoading } = useQuery<Veiculo[]>({
     queryKey: ['veiculos'],
@@ -172,7 +174,20 @@ function VeiculosPage() {
     setImageModalOpen(true);
   }
 
+  const { data: todosUsuarios = [] } = useQuery<any[]>({
+    queryKey: ['usuarios'],
+    queryFn: () => fetchWithAuth('/admin/usuarios')
+  });
+
+  const currentUser = todosUsuarios.find((u: any) => String(u.id) === String(user?.id));
+  const myCentroComandoId = currentUser?.centroComandoId ? String(currentUser.centroComandoId) : '';
+  const isCentroComando = role === 'CENTRO_COMANDO';
+
   const filtered = veiculosData.filter((item: any) => {
+    // CC restriction
+    if (isCentroComando && String(item.centroComandoId) !== myCentroComandoId) {
+      return false;
+    }
     // Adapter do backend (categoria -> tipo)
     const tipoItem = item.categoria || item.tipo;
     const contratoItem = item.contrato || 'Próprio';
@@ -193,7 +208,7 @@ function VeiculosPage() {
 
   function openNew() {
     setEditingItem(null);
-    setForm({ ...emptyForm });
+    setForm({ ...emptyForm, centroComando: isCentroComando ? myCentroComandoId : '' });
     setPreviewUrl(null);
     setRemoveExistingPhoto(false);
     setFormError(null);
@@ -423,7 +438,7 @@ function VeiculosPage() {
             </div>
             <div className="space-y-2">
               <Label className={errors.centroComando ? "text-destructive" : ""}>Centro de Comando *</Label>
-              <Select value={form.centroComando} onValueChange={(v) => setForm({ ...form, centroComando: v })}>
+              <Select disabled={isCentroComando} value={form.centroComando} onValueChange={(v) => setForm({ ...form, centroComando: v })}>
                 <SelectTrigger className={errors.centroComando ? "border-destructive" : ""}>
                   <SelectValue placeholder="Selecione um centro" />
                 </SelectTrigger>
