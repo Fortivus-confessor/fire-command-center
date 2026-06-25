@@ -294,7 +294,7 @@ function OrdensServicoPage() {
     const centro = centrosDeComandoDB.find((c: any) => c.id === centroId);
     const comandoName = centro?.nome || 'Centro Desconhecido';
     
-    const resp = usuariosDB.find((u: any) => u.id === dbOs.relatorId);
+    const resp = usuariosDB.find((u: any) => String(u.id) === String(dbOs.relatorId));
     const responsavelName = resp?.nome || dbOs.relatorId || 'Desconhecido';
 
     return {

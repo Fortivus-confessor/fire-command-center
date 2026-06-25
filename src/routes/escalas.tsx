@@ -42,6 +42,7 @@ import { cn } from '@/lib/utils';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { fetchWithAuth } from '@/lib/api';
 import { useCanAccess } from '@/hooks/useCanAccess';
+import { useAuth } from '@/contexts/AuthContext';
 
 export const Route = createFileRoute('/escalas')({
   component: EscalasPage,
@@ -80,6 +81,7 @@ function getActiveVehicles(data: any[], ignoreEscalaId?: string) {
 function EscalasPage() {
   const queryClient = useQueryClient();
   const canManage = useCanAccess('escalas', 'edit');
+  const { role, user } = useAuth();
   const { data: centrosDeComandoDB = [] } = useQuery<any[]>({
     queryKey: ['centros-comando'],
     queryFn: () => fetchWithAuth('/admin/centros'),
@@ -196,9 +198,13 @@ function EscalasPage() {
     return matchSearch;
   });
 
+  const currentUser = usuariosDB.find(u => String(u.id) === String(user?.id));
+  const myCentroComandoId = currentUser?.centroComandoId ? String(currentUser.centroComandoId) : '';
+  const isCentroComando = role === 'CENTRO_COMANDO';
+
   function openNew() {
     setEditingItem(null);
-    setForm({ ...emptyForm });
+    setForm({ ...emptyForm, centroComando: isCentroComando ? myCentroComandoId : '' });
     setErrorMsg('');
     setErrors({});
     setSelectedLeft([]);
@@ -518,7 +524,11 @@ function EscalasPage() {
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label className={errors.centroComando ? "text-destructive" : ""}>Centro de Comando</Label>
-                  <Select value={form.centroComando || ""} onValueChange={(v) => setForm({ ...form, centroComando: v, equipeId: '', veiculoId: 'Nenhum', integranteIds: [], comandanteId: '' })}>
+                  <Select 
+                    disabled={isCentroComando}
+                    value={form.centroComando || ""} 
+                    onValueChange={(v) => setForm({ ...form, centroComando: v, equipeId: '', veiculoId: 'Nenhum', integranteIds: [], comandanteId: '' })}
+                  >
                     <SelectTrigger className={errors.centroComando ? "border-destructive" : ""}>
                       <SelectValue placeholder="Selecione o centro" />
                     </SelectTrigger>
