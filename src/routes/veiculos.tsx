@@ -56,15 +56,6 @@ interface Veiculo {
   centroComandoId?: string;
 }
 
-// ── Mock Data ──────────────────────────────────────────
-const initialData: Veiculo[] = [
-  { id: '1', identificador: 'ABC-1234', prefixo: 'VTR-01', modelo: 'Caminhão ABTR', tipo: 'TERRESTRE', contrato: 'Próprio' },
-  { id: '2', identificador: 'PR-HFB', prefixo: '', modelo: 'Helicóptero AS350', tipo: 'AEREO', contrato: 'Locado' },
-  { id: '3', identificador: 'PAR-8B55', prefixo: 'VTR-02', modelo: 'Viatura L200', tipo: 'TERRESTRE', contrato: 'Próprio' },
-  { id: '4', identificador: 'MQN-0012', prefixo: '', modelo: 'Trator de esteira D6', tipo: 'MAQUINARIO', contrato: 'Órgão de Apoio' },
-  { id: '5', identificador: 'TOC-3C47', prefixo: 'VTR-05', modelo: 'Caminhão Pipa', tipo: 'TERRESTRE', contrato: 'Locado' },
-];
-
 const emptyForm = {
   identificador: '',
   prefixo: '',
