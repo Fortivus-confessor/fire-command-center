@@ -7,5 +7,6 @@ RUN bun install
 
 COPY . .
 
-# Usamos o host 0.0.0.0 para expor a porta fora do container
-CMD ["bun", "run", "dev", "--host", "0.0.0.0"]
+EXPOSE 5173
+
+CMD ["bun", "run", "dev", "--host", "0.0.0.0", "--port", "5173"]

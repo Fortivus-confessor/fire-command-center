@@ -10,7 +10,7 @@ async function getKeycloak() {
   if (!keycloakInstance) {
     const { default: Keycloak } = await import('keycloak-js');
     keycloakInstance = new Keycloak({
-      url: 'http://localhost:9000',
+      url: import.meta.env.VITE_KEYCLOAK_URL || 'http://localhost:9000',
       realm: 'fortivus',
       clientId: 'fortivus-web'
     });
