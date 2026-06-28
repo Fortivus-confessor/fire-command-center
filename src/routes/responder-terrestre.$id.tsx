@@ -121,7 +121,7 @@ function ResponderTerrestrePage() {
         try {
           const formData = new FormData();
           formData.append('file', file);
-          formData.append('entityId', entityIdUuid);
+          formData.append('despachoId', String(despachoId));
           formData.append('entityType', entityType);
 
           await fetchAttachmentWithAuth(`/api/v1/attachments/upload`, {
@@ -183,10 +183,8 @@ function ResponderTerrestrePage() {
   const { data: attachments, isLoading: isLoadingAttachments } = useQuery<any[]>({
     queryKey: ['attachments', despachoId],
     queryFn: async () => {
-      const idStr = String(despachoId).padStart(12, '0').slice(-12);
-      const entityIdUuid = `00000000-0000-0000-0000-${idStr}`;
       try {
-        return await fetchAttachmentWithAuth(`/api/v1/attachments/entity/${entityIdUuid}`);
+        return await fetchAttachmentWithAuth(`/api/v1/attachments/despacho/${despachoId}`);
       } catch (err) {
         console.error('Erro ao buscar anexos', err);
         return [];

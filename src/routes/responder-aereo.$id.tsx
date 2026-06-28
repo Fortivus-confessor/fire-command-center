@@ -29,7 +29,7 @@ function ResponderAereoPage() {
     queryKey: ['attachments', despachoId],
     queryFn: async () => {
       try {
-        return await fetchAttachmentWithAuth(`/api/v1/attachments/entity/00000000-0000-0000-0000-${idStr}`);
+        return await fetchAttachmentWithAuth(`/api/v1/attachments/despacho/${despachoId}`);
       } catch (e: any) {
         if (e?.message?.includes('404')) return [];
         throw e;
@@ -114,7 +114,7 @@ function ResponderAereoPage() {
       for (const file of files) {
         const formData = new FormData();
         formData.append('file', file);
-        formData.append('entityId', entityId);
+        formData.append('despachoId', String(despachoId));
         formData.append('entityType', entityType);
         
         await fetchAttachmentWithAuth(`/api/v1/attachments/upload`, {
