@@ -43,54 +43,57 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const kc = await getKeycloak();
       if (!kc) return; // SSR
 
-      if (!isInitialized) {
-        if (!initPromise) {
-          initPromise = kc.init({ 
-            onLoad: 'check-sso', 
-            silentCheckSsoRedirectUri: typeof window !== 'undefined' ? window.location.origin + '/silent-check-sso.html' : ''
-          });
-        }
-        initPromise!.then((authenticated: boolean) => {
-          setIsAuthenticated(authenticated);
-          if (authenticated && kc.tokenParsed) {
-            const realmRoles = kc.tokenParsed.realm_access?.roles || [];
-            let primaryRole: UserRole = 'COMBATENTE';
-            if (realmRoles.includes('ROLE_ADMIN')) primaryRole = 'ADMIN';
-            else if (realmRoles.includes('ROLE_CENTRO_COMANDO_CENTRAL')) primaryRole = 'CENTRO_COMANDO_CENTRAL';
-            else if (realmRoles.includes('ROLE_CENTRO_COMANDO')) primaryRole = 'CENTRO_COMANDO';
+      if (!initPromise) {
+        initPromise = kc.init({
+          onLoad: 'check-sso',
+          checkLoginIframe: false,
+          silentCheckSsoRedirectUri: window.location.origin + '/silent-check-sso.html',
+          silentCheckSsoFallback: false,
+        });
+      }
 
-            setUser({
-              id: kc.tokenParsed.sub || 'unknown',
-              nome: kc.tokenParsed.name || kc.tokenParsed.preferred_username || 'Usuário',
-              email: kc.tokenParsed.email || '',
-              role: primaryRole,
-              centroComandoId: 'cc1', 
-              centroComandoNome: 'COMCEN Mato Grosso', 
-            });
-            setRole(primaryRole);
-          }
-          setIsInitialized(true);
-        }).catch(console.error);
+      try {
+        const authenticated = await initPromise!;
+        setIsAuthenticated(authenticated);
+        if (authenticated && kc.tokenParsed) {
+          const realmRoles = kc.tokenParsed.realm_access?.roles || [];
+          let primaryRole: UserRole = 'COMBATENTE';
+          if (realmRoles.includes('ROLE_ADMIN')) primaryRole = 'ADMIN';
+          else if (realmRoles.includes('ROLE_CENTRO_COMANDO_CENTRAL')) primaryRole = 'CENTRO_COMANDO_CENTRAL';
+          else if (realmRoles.includes('ROLE_CENTRO_COMANDO')) primaryRole = 'CENTRO_COMANDO';
+
+          setUser({
+            id: kc.tokenParsed.sub || 'unknown',
+            nome: kc.tokenParsed.name || kc.tokenParsed.preferred_username || 'Usuário',
+            email: kc.tokenParsed.email || '',
+            role: primaryRole,
+            centroComandoId: 'cc1',
+            centroComandoNome: 'COMCEN Mato Grosso',
+          });
+          setRole(primaryRole);
+        }
+      } catch (e) {
+        console.warn('Keycloak init error (check-sso):', e);
+      } finally {
+        setIsInitialized(true);
       }
     }
-    
+
     initAuth();
-  }, [isInitialized]);
+  }, []);
 
   const login = async () => {
+    const keycloakUrl = import.meta.env.VITE_KEYCLOAK_URL || 'http://localhost:9000';
     const kc = await getKeycloak();
-    if (!kc) return;
+    if (!kc) {
+      window.location.href = `${keycloakUrl}/realms/fortivus/protocol/openid-connect/auth?client_id=fortivus-web&redirect_uri=${encodeURIComponent(window.location.origin)}&response_type=code&scope=openid`;
+      return;
+    }
     try {
-      if (!kc.adapter) {
-        console.warn("Keycloak adapter is missing. Attempting to initialize with login-required...");
-        await kc.init({ onLoad: 'login-required', checkLoginIframe: false });
-      } else {
-        await kc.login();
-      }
+      await kc.login();
     } catch (err) {
       console.error("Failed to execute login:", err);
-      // Fallback: manually redirect to keycloak if library fails
-      window.location.href = `http://localhost:9000/realms/fortivus/protocol/openid-connect/auth?client_id=fortivus-web&redirect_uri=${encodeURIComponent(window.location.origin)}&response_type=code&scope=openid`;
+      window.location.href = `${keycloakUrl}/realms/fortivus/protocol/openid-connect/auth?client_id=fortivus-web&redirect_uri=${encodeURIComponent(window.location.origin)}&response_type=code&scope=openid`;
     }
   };
   const logout = async () => {
