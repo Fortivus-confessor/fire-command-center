@@ -14,6 +14,7 @@ export default defineConfig({
   },
   vite: {
     server: {
+      allowedHosts: 'all',
       proxy: {
         '/combate': {
           target: 'http://traefik:80',
