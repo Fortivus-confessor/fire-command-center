@@ -290,8 +290,7 @@ function OrdemServicoDetalhePage() {
                     <TableCell>{formatDateBR(d.dataInicio)}</TableCell>
                     <TableCell className="text-right">
                       <div className="flex justify-end gap-1">
-                        {/* A pessoa responsável, um centro de comando ou um admin podem editar */}
-                        {(canManage || isCentroComando || String(d.responsavelId) === String(currentUser?.id)) && (
+                        {(canManage || isCentroComando) && (
                         <Button variant="ghost" size="icon" onClick={() => openEditDespacho(d)} className="hover:text-command">
                           <Pencil className="h-4 w-4" />
                         </Button>

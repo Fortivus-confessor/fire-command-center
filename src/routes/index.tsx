@@ -1,5 +1,5 @@
-import { createFileRoute } from "@tanstack/react-router";
-import { useState } from "react";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { useState, useEffect } from "react";
 import { TopBar } from "@/components/fortivus/TopBar";
 import { KpiStrip } from "@/components/fortivus/KpiStrip";
 import { SituationMap } from "@/components/fortivus/map/SituationMap";
@@ -8,6 +8,7 @@ import { OrdersColumn } from "@/components/fortivus/OrdersColumn";
 import { DispatchColumn } from "@/components/fortivus/DispatchColumn";
 import { Timeline } from "@/components/fortivus/Timeline";
 import { MobileBottomNav } from "@/components/fortivus/MobileNav";
+import { useAuth } from "@/contexts/AuthContext";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -21,6 +22,14 @@ export const Route = createFileRoute("/")({
 
 function MissionControl() {
   const [selectedFire, setSelectedFire] = useState<string>("f1");
+  const { role, isInitialized } = useAuth();
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    if (isInitialized && role === 'COMBATENTE') {
+      navigate({ to: '/despachos' });
+    }
+  }, [isInitialized, role, navigate]);
 
   return (
     <div className="min-h-screen bg-background text-foreground flex flex-col">
