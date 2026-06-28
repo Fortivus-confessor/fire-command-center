@@ -1,6 +1,6 @@
 import { createFileRoute, useNavigate } from '@tanstack/react-router';
 import { useState } from 'react';
-import { ArrowLeft, FileText, Plus, Truck, Pencil, MapPin } from 'lucide-react';
+import { ArrowLeft, FileText, Plus, Truck, Pencil, MapPin, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { fetchWithAuth } from '@/lib/api';
