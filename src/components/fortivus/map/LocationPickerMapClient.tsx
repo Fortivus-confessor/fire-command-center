@@ -85,7 +85,7 @@ export default function LocationPickerMapClient({ initialPosition = [-15.601, -5
   };
 
   return (
-    <div style={{ height, width: '100%', borderRadius: '0.5rem', overflow: 'hidden', border: '1px solid hsl(var(--border))' }}>
+    <div style={{ height, width: '100%', borderRadius: '0.5rem', overflow: 'hidden', border: '1px solid hsl(var(--border))', position: 'relative', zIndex: 0 }}>
       <MapContainer 
         center={initialPosition} 
         zoom={12} 

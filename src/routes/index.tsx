@@ -32,23 +32,21 @@ function MissionControl() {
   }, [isInitialized, role, navigate]);
 
   return (
-    <div className="min-h-screen bg-background text-foreground flex flex-col">
+    <>
       {/* Ambient glow background */}
       <div className="pointer-events-none fixed inset-0 -z-10 overflow-hidden">
         <div className="absolute -top-40 -left-40 h-[40rem] w-[40rem] rounded-full bg-fire/8 blur-3xl" />
         <div className="absolute -bottom-40 -right-40 h-[40rem] w-[40rem] rounded-full bg-command/8 blur-3xl" />
       </div>
 
-      <main className="flex-1 px-3 sm:px-5 py-3 sm:py-4 space-y-3 sm:space-y-4 pb-24 lg:pb-4">
+      <div className="flex flex-col h-full gap-3 sm:gap-4 pb-20 lg:pb-0">
         <KpiStrip />
-
-        {/* Map */}
-        <section className="h-[calc(100vh-160px)] min-h-[500px]">
+        <div className="flex-1 min-h-[400px]">
           <SituationMap selectedId={selectedFire} onSelect={setSelectedFire} />
-        </section>
-      </main>
+        </div>
+      </div>
 
       <MobileBottomNav />
-    </div>
+    </>
   );
 }

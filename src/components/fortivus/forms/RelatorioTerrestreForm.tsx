@@ -459,7 +459,7 @@ export function RelatorioTerrestreForm({
       {/* ── Área de Atuação ── */}
       <div className={sectionClass(!!errors.areaAtuacao)} data-error={submitted && !!errors.areaAtuacao}>
         {sectionHeader('Área de Atuação da Equipe')}
-        <div className="relative rounded-lg overflow-hidden border border-border h-[350px]">
+        <div className="relative rounded-lg overflow-hidden border border-border h-[240px] sm:h-[350px] sticky top-0 z-20">
           <SituationMapClient 
              hideEvents={true}
              isolatedEventId={eventoFogoId}

@@ -224,7 +224,7 @@ export default function SituationMapClient({
   };
 
   return (
-    <div className="relative h-full w-full overflow-hidden rounded-xl border border-border">
+    <div className="relative z-0 h-full w-full overflow-hidden rounded-xl border border-border">
       <MapContainer
         center={MAP_CENTER}
         zoom={MAP_ZOOM}
