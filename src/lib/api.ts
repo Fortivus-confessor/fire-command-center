@@ -1,9 +1,15 @@
 import { getKeycloak } from '../contexts/AuthContext';
 
 const isServer = typeof window === 'undefined';
+
+// VITE_API_PUBLIC_BASE: URL pública do VPS (ex: https://fortivus.xyz)
+// Necessário quando o frontend roda em domínio diferente do backend (ex: workers.dev)
+// Em desenvolvimento ou quando frontend e backend compartilham o mesmo domínio, deixar vazio.
+const API_PUBLIC_BASE = import.meta.env.VITE_API_PUBLIC_BASE || '';
+
 const API_BASE_URL = isServer
   ? (import.meta.env.VITE_API_SSR_BASE_URL || 'http://localhost:8000/combate/api/v1')
-  : '/combate/api/v1';
+  : `${API_PUBLIC_BASE}/combate/api/v1`;
 
 export async function fetchWithAuth(endpoint: string, options: RequestInit = {}) {
   const kc = await getKeycloak();
@@ -85,8 +91,7 @@ export async function fetchAttachmentWithAuth(endpoint: string, options: Request
     headers.set('Authorization', `Bearer ${token}`);
   }
 
-  // Uses root path instead of /combate
-  const ATTACHMENT_BASE_URL = isServer ? 'http://localhost:8000' : '';
+  const ATTACHMENT_BASE_URL = API_PUBLIC_BASE;
   const response = await fetch(`${ATTACHMENT_BASE_URL}${endpoint}`, {
     ...options,
     headers
