@@ -24,6 +24,7 @@ export async function fetchWithAuth(endpoint: string, options: RequestInit = {})
     } catch (error) {
       console.error("Failed to refresh token", error);
       kc.login();
+      throw new Error('Session expired, redirecting to login');
     }
   }
 
@@ -43,8 +44,9 @@ export async function fetchWithAuth(endpoint: string, options: RequestInit = {})
   if (!response.ok) {
     if (response.status === 401 && kc) {
       kc.login();
+      throw new Error('Unauthorized, redirecting to login');
     }
-    
+
     let errorMsg = `API Error: ${response.status} ${response.statusText}`;
     try {
       const errData = await response.json();
@@ -80,6 +82,7 @@ export async function fetchAttachmentWithAuth(endpoint: string, options: Request
     } catch (error) {
       console.error("Failed to refresh token", error);
       kc.login();
+      throw new Error('Session expired, redirecting to login');
     }
   }
 
