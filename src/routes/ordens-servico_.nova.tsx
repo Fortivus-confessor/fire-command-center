@@ -6,6 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { useQuery } from '@tanstack/react-query';
 import { fetchWithAuth } from '@/lib/api';
+import { canAccess } from '@/lib/roles';
 import SituationMapClient from '../components/fortivus/map/SituationMapClient';
 import { useAuth } from '@/contexts/AuthContext';
 import { Label } from '@/components/ui/label';
@@ -39,6 +40,12 @@ function NovaOrdemServicoPage() {
   const { role, user } = useAuth();
   const eventoFogoId = searchParams.eventoFogoId;
   const [errors, setErrors] = useState<Record<string, string>>({});
+
+  useEffect(() => {
+    if (role && !canAccess(role, 'ordens-servico', 'create')) {
+      navigate({ to: '/ordens-servico' });
+    }
+  }, [role, navigate]);
 
   const [isDms, setIsDms] = useState(false);
   const [latInput, setLatInput] = useState('');

@@ -169,8 +169,10 @@ function VeiculosPage() {
   }
 
   const { data: todosUsuarios = [] } = useQuery<any[]>({
-    queryKey: ['usuarios'],
-    queryFn: () => fetchWithAuth('/admin/usuarios')
+    queryKey: ['usuarios-lista-cc'],
+    queryFn: () => fetchWithAuth('/admin/usuarios'),
+    enabled: role === 'CENTRO_COMANDO', // só busca todos os usuários quando necessário para filtro de CC
+    staleTime: 5 * 60 * 1000,
   });
 
   const currentUser = todosUsuarios.find((u: any) => u.email === user?.email);

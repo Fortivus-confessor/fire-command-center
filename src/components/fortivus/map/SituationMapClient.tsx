@@ -237,11 +237,11 @@ export default function SituationMapClient({
         {!hideEvents && <VectorFocosLayer visible={showFocos} />}
 
         <LayersControl>
-          <LayersControl.BaseLayer name="🌑 CartoDB Dark">
+          <LayersControl.BaseLayer checked name="🌑 CartoDB Dark">
             <TileLayer url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png" maxZoom={20} />
           </LayersControl.BaseLayer>
 
-          <LayersControl.BaseLayer checked name="🛰️ Google Satellite">
+          <LayersControl.BaseLayer name="🛰️ Google Satellite">
             <TileLayer url="https://mt1.google.com/vt/lyrs=s&x={x}&y={y}&z={z}" maxZoom={20} />
           </LayersControl.BaseLayer>
 
