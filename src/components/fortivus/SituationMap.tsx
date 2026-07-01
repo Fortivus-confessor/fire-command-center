@@ -17,7 +17,11 @@ export function SituationMap({ selectedId, onSelect }: Props) {
   return (
     <div className="relative h-full w-full overflow-hidden rounded-xl border border-border bg-secondary/40 grid-bg">
       {/* Stylized landmass shapes */}
-      <svg viewBox="0 0 100 60" preserveAspectRatio="none" className="absolute inset-0 h-full w-full opacity-60">
+      <svg
+        viewBox="0 0 100 60"
+        preserveAspectRatio="none"
+        className="absolute inset-0 h-full w-full opacity-60"
+      >
         <defs>
           <radialGradient id="glow" cx="50%" cy="50%" r="50%">
             <stop offset="0%" stopColor="var(--command)" stopOpacity="0.18" />
@@ -89,21 +93,41 @@ export function SituationMap({ selectedId, onSelect }: Props) {
       </div>
 
       <div className="absolute top-3 right-3 flex flex-col gap-1.5">
-        <button className="glass h-8 w-8 grid place-items-center rounded-md hover:bg-secondary"><Plus className="h-4 w-4" /></button>
-        <button className="glass h-8 w-8 grid place-items-center rounded-md hover:bg-secondary"><Minus className="h-4 w-4" /></button>
-        <button className="glass h-8 w-8 grid place-items-center rounded-md hover:bg-secondary"><Crosshair className="h-4 w-4" /></button>
-        <button className="glass h-8 w-8 grid place-items-center rounded-md hover:bg-secondary"><Layers className="h-4 w-4" /></button>
-        <button className="glass h-8 w-8 grid place-items-center rounded-md hover:bg-secondary"><Maximize2 className="h-4 w-4" /></button>
+        <button className="glass h-8 w-8 grid place-items-center rounded-md hover:bg-secondary">
+          <Plus className="h-4 w-4" />
+        </button>
+        <button className="glass h-8 w-8 grid place-items-center rounded-md hover:bg-secondary">
+          <Minus className="h-4 w-4" />
+        </button>
+        <button className="glass h-8 w-8 grid place-items-center rounded-md hover:bg-secondary">
+          <Crosshair className="h-4 w-4" />
+        </button>
+        <button className="glass h-8 w-8 grid place-items-center rounded-md hover:bg-secondary">
+          <Layers className="h-4 w-4" />
+        </button>
+        <button className="glass h-8 w-8 grid place-items-center rounded-md hover:bg-secondary">
+          <Maximize2 className="h-4 w-4" />
+        </button>
       </div>
 
       <div className="absolute bottom-3 left-3 glass rounded-lg px-2.5 py-2 text-[10px] mono space-y-1">
-        <div className="flex items-center gap-2"><span className="h-2 w-2 rounded-full" style={{ background: "var(--fire)" }} />Extremo · FRP &gt; 300</div>
-        <div className="flex items-center gap-2"><span className="h-2 w-2 rounded-full" style={{ background: "var(--warning)" }} />Alto · FRP 100–300</div>
-        <div className="flex items-center gap-2"><span className="h-2 w-2 rounded-full" style={{ background: "var(--command)" }} />Médio</div>
-        <div className="flex items-center gap-2"><span className="h-2 w-2 rounded-full" style={{ background: "var(--success)" }} />Baixo</div>
+        <div className="flex items-center gap-2">
+          <span className="h-2 w-2 rounded-full" style={{ background: "var(--fire)" }} />
+          Extremo · FRP &gt; 300
+        </div>
+        <div className="flex items-center gap-2">
+          <span className="h-2 w-2 rounded-full" style={{ background: "var(--warning)" }} />
+          Alto · FRP 100–300
+        </div>
+        <div className="flex items-center gap-2">
+          <span className="h-2 w-2 rounded-full" style={{ background: "var(--command)" }} />
+          Médio
+        </div>
+        <div className="flex items-center gap-2">
+          <span className="h-2 w-2 rounded-full" style={{ background: "var(--success)" }} />
+          Baixo
+        </div>
       </div>
-
-      
     </div>
   );
 }

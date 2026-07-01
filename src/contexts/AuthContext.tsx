@@ -1,18 +1,18 @@
-import { createContext, useContext, useState, useEffect, type ReactNode } from 'react';
-import type { User, UserRole } from '../lib/roles';
+import { createContext, useContext, useState, useEffect, type ReactNode } from "react";
+import type { User, UserRole } from "../lib/roles";
 // Import dinâmico do Keycloak para evitar quebra no SSR
 
 let keycloakInstance: any = null;
 let initPromise: Promise<boolean> | null = null;
 
 async function getKeycloak() {
-  if (typeof window === 'undefined') return null;
+  if (typeof window === "undefined") return null;
   if (!keycloakInstance) {
-    const { default: Keycloak } = await import('keycloak-js');
+    const { default: Keycloak } = await import("keycloak-js");
     keycloakInstance = new Keycloak({
-      url: import.meta.env.VITE_KEYCLOAK_URL || 'http://localhost:9000',
-      realm: 'fortivus',
-      clientId: 'fortivus-web'
+      url: import.meta.env.VITE_KEYCLOAK_URL || "http://localhost:9000",
+      realm: "fortivus",
+      clientId: "fortivus-web",
     });
   }
   return keycloakInstance;
@@ -45,9 +45,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       if (!initPromise) {
         initPromise = kc.init({
-          onLoad: 'check-sso',
+          onLoad: "check-sso",
           checkLoginIframe: false,
-          silentCheckSsoRedirectUri: window.location.origin + '/silent-check-sso.html',
+          silentCheckSsoRedirectUri: window.location.origin + "/silent-check-sso.html",
           silentCheckSsoFallback: false,
         });
       }
@@ -57,23 +57,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setIsAuthenticated(authenticated);
         if (authenticated && kc.tokenParsed) {
           const realmRoles = kc.tokenParsed.realm_access?.roles || [];
-          let primaryRole: UserRole = 'COMBATENTE';
-          if (realmRoles.includes('ROLE_ADMIN')) primaryRole = 'ADMIN';
-          else if (realmRoles.includes('ROLE_CENTRO_COMANDO_CENTRAL')) primaryRole = 'CENTRO_COMANDO_CENTRAL';
-          else if (realmRoles.includes('ROLE_CENTRO_COMANDO')) primaryRole = 'CENTRO_COMANDO';
+          let primaryRole: UserRole = "COMBATENTE";
+          if (realmRoles.includes("ROLE_ADMIN")) primaryRole = "ADMIN";
+          else if (realmRoles.includes("ROLE_CENTRO_COMANDO_CENTRAL"))
+            primaryRole = "CENTRO_COMANDO_CENTRAL";
+          else if (realmRoles.includes("ROLE_CENTRO_COMANDO")) primaryRole = "CENTRO_COMANDO";
 
           setUser({
-            id: kc.tokenParsed.sub || 'unknown',
-            nome: kc.tokenParsed.name || kc.tokenParsed.preferred_username || 'Usuário',
-            email: kc.tokenParsed.email || '',
+            id: kc.tokenParsed.sub || "unknown",
+            nome: kc.tokenParsed.name || kc.tokenParsed.preferred_username || "Usuário",
+            email: kc.tokenParsed.email || "",
             role: primaryRole,
-            centroComandoId: 'cc1',
-            centroComandoNome: 'COMCEN Mato Grosso',
+            centroComandoId: "cc1",
+            centroComandoNome: "COMCEN Mato Grosso",
           });
           setRole(primaryRole);
         }
       } catch (e) {
-        console.warn('Keycloak init error (check-sso):', e);
+        console.warn("Keycloak init error (check-sso):", e);
       } finally {
         setIsInitialized(true);
       }
@@ -83,7 +84,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const login = async () => {
-    const keycloakUrl = import.meta.env.VITE_KEYCLOAK_URL || 'http://localhost:9000';
+    const keycloakUrl = import.meta.env.VITE_KEYCLOAK_URL || "http://localhost:9000";
     const kc = await getKeycloak();
     if (!kc) {
       window.location.href = `${keycloakUrl}/realms/fortivus/protocol/openid-connect/auth?client_id=fortivus-web&redirect_uri=${encodeURIComponent(window.location.origin)}&response_type=code&scope=openid`;
@@ -115,7 +116,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         isAuthenticated,
         isInitialized,
         login,
-        logout
+        logout,
       }}
     >
       {children}
@@ -125,6 +126,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
 export function useAuth() {
   const ctx = useContext(AuthContext);
-  if (!ctx) throw new Error('useAuth must be used inside AuthProvider');
+  if (!ctx) throw new Error("useAuth must be used inside AuthProvider");
   return ctx;
 }

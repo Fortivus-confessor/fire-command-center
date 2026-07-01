@@ -1,36 +1,42 @@
-import { createFileRoute, useNavigate } from '@tanstack/react-router';
-import { useState } from 'react';
-import { Plus, ArrowLeft, FileText, MapPin, ArrowRightLeft, Search } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
-import { useQuery } from '@tanstack/react-query';
-import { fetchWithAuth } from '@/lib/api';
-import SituationMapClient from '../components/fortivus/map/SituationMapClient';
-import { useAuth } from '@/contexts/AuthContext';
-import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { toast } from 'sonner';
-import { useEffect } from 'react';
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { useState } from "react";
+import { Plus, ArrowLeft, FileText, MapPin, ArrowRightLeft, Search } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { useQuery } from "@tanstack/react-query";
+import { fetchWithAuth } from "@/lib/api";
+import SituationMapClient from "../components/fortivus/map/SituationMapClient";
+import { useAuth } from "@/contexts/AuthContext";
+import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { toast } from "sonner";
+import { useEffect } from "react";
 
-export const Route = createFileRoute('/ordens-servico_/nova')({
+export const Route = createFileRoute("/ordens-servico_/nova")({
   component: NovaOrdemServicoPage,
   validateSearch: (search: Record<string, unknown>) => {
     return {
       eventoFogoId: search.eventoFogoId as string | undefined,
-    }
-  }
+    };
+  },
 });
 
 const emptyForm = {
-  comando: '',
-  equipe: '',
-  tipoDespacho: '',
-  prioridade: '',
-  responsavel: '',
-  descricao: '',
-  latLng: '',
-  eventoFogoId: '',
+  comando: "",
+  equipe: "",
+  tipoDespacho: "",
+  prioridade: "",
+  responsavel: "",
+  descricao: "",
+  latLng: "",
+  eventoFogoId: "",
 };
 
 function NovaOrdemServicoPage() {
@@ -41,19 +47,21 @@ function NovaOrdemServicoPage() {
   const [errors, setErrors] = useState<Record<string, string>>({});
 
   const [isDms, setIsDms] = useState(false);
-  const [latInput, setLatInput] = useState('');
-  const [lngInput, setLngInput] = useState('');
-  const [flyTo, setFlyTo] = useState<{lat: number, lng: number} | null>(null);
+  const [latInput, setLatInput] = useState("");
+  const [lngInput, setLngInput] = useState("");
+  const [flyTo, setFlyTo] = useState<{ lat: number; lng: number } | null>(null);
 
-  const [addressSearch, setAddressSearch] = useState('');
+  const [addressSearch, setAddressSearch] = useState("");
   const [addressResults, setAddressResults] = useState<any[]>([]);
 
   useEffect(() => {
     const timer = setTimeout(() => {
       if (addressSearch.length > 2) {
-        fetch(`https://nominatim.openstreetmap.org/search?format=json&countrycodes=br&q=${encodeURIComponent(addressSearch)}`)
-          .then(res => res.json())
-          .then(data => setAddressResults(data || []))
+        fetch(
+          `https://nominatim.openstreetmap.org/search?format=json&countrycodes=br&q=${encodeURIComponent(addressSearch)}`,
+        )
+          .then((res) => res.json())
+          .then((data) => setAddressResults(data || []))
           .catch(console.error);
       } else {
         setAddressResults([]);
@@ -66,7 +74,7 @@ function NovaOrdemServicoPage() {
     const lat = parseFloat(res.lat);
     const lng = parseFloat(res.lon);
     if (!isNaN(lat) && !isNaN(lng)) {
-      setForm(prev => ({ ...prev, latLng: `${lat.toFixed(6)}, ${lng.toFixed(6)}` }));
+      setForm((prev) => ({ ...prev, latLng: `${lat.toFixed(6)}, ${lng.toFixed(6)}` }));
       if (isDms) {
         setLatInput(ddToDms(lat, false));
         setLngInput(ddToDms(lng, true));
@@ -81,51 +89,51 @@ function NovaOrdemServicoPage() {
   }
 
   const { data: centrosDeComandoDB = [] } = useQuery<any[]>({
-    queryKey: ['centros-comando'],
-    queryFn: () => fetchWithAuth('/admin/centros'),
+    queryKey: ["centros-comando"],
+    queryFn: () => fetchWithAuth("/admin/centros"),
   });
 
   const { data: usuariosDB = [] } = useQuery<any[]>({
-    queryKey: ['usuarios'],
-    queryFn: () => fetchWithAuth('/admin/usuarios'),
+    queryKey: ["usuarios"],
+    queryFn: () => fetchWithAuth("/admin/usuarios"),
   });
 
-  const currentUser = usuariosDB.find(u => u.email === user?.email);
-  const myCentroComandoId = currentUser?.centroComandoId ? String(currentUser.centroComandoId) : '';
-  const isCentroComando = role === 'CENTRO_COMANDO';
+  const currentUser = usuariosDB.find((u) => u.email === user?.email);
+  const myCentroComandoId = currentUser?.centroComandoId ? String(currentUser.centroComandoId) : "";
+  const isCentroComando = role === "CENTRO_COMANDO";
 
   // We initialize the form conditionally but since we need data from query, we do it in a useEffect or lazily
-  const [form, setForm] = useState({ ...emptyForm, eventoFogoId: eventoFogoId || '' });
+  const [form, setForm] = useState({ ...emptyForm, eventoFogoId: eventoFogoId || "" });
 
   useEffect(() => {
     if (isCentroComando && myCentroComandoId && !form.comando) {
-      setForm(prev => ({ ...prev, comando: myCentroComandoId }));
+      setForm((prev) => ({ ...prev, comando: myCentroComandoId }));
     }
   }, [isCentroComando, myCentroComandoId, form.comando]);
 
   const { data: escalasAtivas = [] } = useQuery<any[]>({
-    queryKey: ['escalas-ativas', form.comando],
+    queryKey: ["escalas-ativas", form.comando],
     queryFn: () => fetchWithAuth(`/operacional/escalas/centro/${form.comando}/ativas`),
     enabled: !!form.comando,
   });
 
   const { data: todasEscalas = [] } = useQuery<any[]>({
-    queryKey: ['escalas'],
-    queryFn: () => fetchWithAuth('/operacional/escalas')
+    queryKey: ["escalas"],
+    queryFn: () => fetchWithAuth("/operacional/escalas"),
   });
 
   const { data: ordensServicoDB = [] } = useQuery<any[]>({
-    queryKey: ['ordens-servico'],
-    queryFn: () => fetchWithAuth('/operacional/os'),
+    queryKey: ["ordens-servico"],
+    queryFn: () => fetchWithAuth("/operacional/os"),
   });
 
   const { data: todosDespachos = [] } = useQuery<any[]>({
-    queryKey: ['despachos'],
-    queryFn: () => fetchWithAuth('/operacional/despachos')
+    queryKey: ["despachos"],
+    queryFn: () => fetchWithAuth("/operacional/despachos"),
   });
 
   const { data: eventoFogo } = useQuery<any>({
-    queryKey: ['fireEvent', eventoFogoId],
+    queryKey: ["fireEvent", eventoFogoId],
     queryFn: async () => {
       if (!eventoFogoId) return null;
       try {
@@ -137,23 +145,24 @@ function NovaOrdemServicoPage() {
       }
     },
     enabled: !!eventoFogoId,
-    retry: false
+    retry: false,
   });
 
-  const isEscalaWorking = form.equipe ? todosDespachos.some(d => 
-    String(d.escalaId) === form.equipe && 
-    !['CONCLUIDA', 'CANCELADA'].includes(d.status)
-  ) : false;
+  const isEscalaWorking = form.equipe
+    ? todosDespachos.some(
+        (d) => String(d.escalaId) === form.equipe && !["CONCLUIDA", "CANCELADA"].includes(d.status),
+      )
+    : false;
 
   async function save() {
     try {
       const newErrors: Record<string, string> = {};
-      if (!form.tipoDespacho) newErrors.tipoDespacho = 'Obrigatório';
-      if (!form.prioridade) newErrors.prioridade = 'Obrigatório';
-      if (!form.comando) newErrors.comando = 'Obrigatório';
-      if (!form.equipe) newErrors.equipe = 'Obrigatório';
-      if (!form.responsavel) newErrors.responsavel = 'Obrigatório';
-      if (!form.descricao) newErrors.descricao = 'Obrigatório';
+      if (!form.tipoDespacho) newErrors.tipoDespacho = "Obrigatório";
+      if (!form.prioridade) newErrors.prioridade = "Obrigatório";
+      if (!form.comando) newErrors.comando = "Obrigatório";
+      if (!form.equipe) newErrors.equipe = "Obrigatório";
+      if (!form.responsavel) newErrors.responsavel = "Obrigatório";
+      if (!form.descricao) newErrors.descricao = "Obrigatório";
 
       if (Object.keys(newErrors).length > 0) {
         setErrors(newErrors);
@@ -161,9 +170,11 @@ function NovaOrdemServicoPage() {
         return;
       }
       setErrors({});
-      
+
       if (form.eventoFogoId) {
-        const hasExistingOS = ordensServicoDB.some((os: any) => String(os.eventoFogoId) === String(form.eventoFogoId));
+        const hasExistingOS = ordensServicoDB.some(
+          (os: any) => String(os.eventoFogoId) === String(form.eventoFogoId),
+        );
         if (hasExistingOS) {
           toast.error("Este Evento de Fogo já possui uma Ordem de Serviço vinculada.");
           return;
@@ -172,26 +183,26 @@ function NovaOrdemServicoPage() {
 
       const latDD = parseCoordinateToDD(latInput);
       const lngDD = parseCoordinateToDD(lngInput);
-      
+
       const p = {
         descricaoTarefa: form.descricao,
         eventoFogoId: form.eventoFogoId || null,
-        status: 'EM_EXECUCAO',
+        status: "EM_EXECUCAO",
         prioridade: form.prioridade,
         escalaId: form.equipe,
         responsavelId: form.responsavel,
         tipoDespacho: form.tipoDespacho,
         latitude: !isNaN(latDD) ? latDD : null,
-        longitude: !isNaN(lngDD) ? lngDD : null
+        longitude: !isNaN(lngDD) ? lngDD : null,
       };
 
-      const res = await fetchWithAuth('/operacional/os', {
-        method: 'POST',
+      const res = await fetchWithAuth("/operacional/os", {
+        method: "POST",
         body: JSON.stringify(p),
       });
       if (res && res.id) {
         toast.success("Despacho e OS criados com sucesso!");
-        navigate({ to: '/ordens-servico', search: { highlightId: undefined } });
+        navigate({ to: "/ordens-servico", search: { highlightId: undefined } });
       } else {
         toast.error("Erro ao criar OS.");
       }
@@ -203,15 +214,18 @@ function NovaOrdemServicoPage() {
 
   function parseCoordinateToDD(coordStr: string): number {
     if (!coordStr) return NaN;
-    if (coordStr.includes('°') || coordStr.includes('\'') || coordStr.includes('"')) {
+    if (coordStr.includes("°") || coordStr.includes("'") || coordStr.includes('"')) {
       const parts = coordStr.match(/(-?\d+)\s*°?\s*(\d+)?\s*'?\s*([\d.]+)?\s*"?\s*([NSWE])?/i);
       if (!parts) return NaN;
-      let dd = parseFloat(parts[1] || '0') + parseFloat(parts[2] || '0') / 60 + parseFloat(parts[3] || '0') / 3600;
+      let dd =
+        parseFloat(parts[1] || "0") +
+        parseFloat(parts[2] || "0") / 60 +
+        parseFloat(parts[3] || "0") / 3600;
       if (parts[4]) {
         const dir = parts[4].toUpperCase();
-        if (dir === 'S' || dir === 'W') dd = -dd;
-      } else if (coordStr.trim().startsWith('-')) {
-         dd = -Math.abs(dd);
+        if (dir === "S" || dir === "W") dd = -dd;
+      } else if (coordStr.trim().startsWith("-")) {
+        dd = -Math.abs(dd);
       }
       return dd;
     } else {
@@ -220,8 +234,8 @@ function NovaOrdemServicoPage() {
   }
 
   function ddToDms(dd: number, isLng: boolean) {
-    if (isNaN(dd)) return '';
-    const dir = dd < 0 ? (isLng ? 'W' : 'S') : (isLng ? 'E' : 'N');
+    if (isNaN(dd)) return "";
+    const dir = dd < 0 ? (isLng ? "W" : "S") : isLng ? "E" : "N";
     const absDd = Math.abs(dd);
     const deg = Math.floor(absDd);
     const min = Math.floor((absDd - deg) * 60);
@@ -243,7 +257,7 @@ function NovaOrdemServicoPage() {
   function toggleFormat() {
     const latDD = parseCoordinateToDD(latInput);
     const lngDD = parseCoordinateToDD(lngInput);
-    
+
     if (isDms) {
       setLatInput(isNaN(latDD) ? latInput : latDD.toFixed(6));
       setLngInput(isNaN(lngDD) ? lngInput : lngDD.toFixed(6));
@@ -259,7 +273,7 @@ function NovaOrdemServicoPage() {
     const latDD = parseCoordinateToDD(latInput);
     const lngDD = parseCoordinateToDD(lngInput);
     if (!isNaN(latDD) && !isNaN(lngDD)) {
-      setForm(prev => ({ ...prev, latLng: `${latDD.toFixed(6)}, ${lngDD.toFixed(6)}` }));
+      setForm((prev) => ({ ...prev, latLng: `${latDD.toFixed(6)}, ${lngDD.toFixed(6)}` }));
       setFlyTo({ lat: latDD, lng: lngDD });
     }
   }
@@ -268,13 +282,17 @@ function NovaOrdemServicoPage() {
     <div className="p-4 sm:p-6 space-y-6 h-full flex flex-col">
       {/* Header */}
       <div className="flex items-center gap-4">
-        <Button variant="outline" size="icon" onClick={() => navigate({ to: '/ordens-servico', search: { highlightId: undefined } })}>
+        <Button
+          variant="outline"
+          size="icon"
+          onClick={() => navigate({ to: "/ordens-servico", search: { highlightId: undefined } })}
+        >
           <ArrowLeft className="h-4 w-4" />
         </Button>
         <div>
           <h1 className="text-2xl font-bold text-foreground flex items-center gap-2">
             <FileText className="h-6 w-6 text-fire" />
-            {eventoFogoId ? 'Cadastrar OS para evento de fogo' : 'Nova Ordem de Serviço Livre'}
+            {eventoFogoId ? "Cadastrar OS para evento de fogo" : "Nova Ordem de Serviço Livre"}
           </h1>
           <p className="text-sm text-muted-foreground mt-1">
             Selecione a equipe, defina as diretrizes e despache a Ordem de Serviço.
@@ -308,14 +326,32 @@ function NovaOrdemServicoPage() {
             )}
           </div>
           <div className="rounded-xl overflow-hidden glass border border-border flex-1 relative">
-            <SituationMapClient 
-               selectedId={eventoFogoId} 
-               isolatedEventId={eventoFogoId || 'NONE_ISOLATED'}
-               onClickMap={handleMapClick}
-               activePin={form.latLng ? { lat: parseFloat(form.latLng.split(',')[0]), lng: parseFloat(form.latLng.split(',')[1]) } : null}
-               center={flyTo}
-               hideEvents={true}
-               extraMarkers={eventoFogo?.latitude && eventoFogo?.longitude ? [{ lat: eventoFogo.latitude, lng: eventoFogo.longitude, color: '#f97316', tooltip: 'Evento de Fogo' }] : []}
+            <SituationMapClient
+              selectedId={eventoFogoId}
+              isolatedEventId={eventoFogoId || "NONE_ISOLATED"}
+              onClickMap={handleMapClick}
+              activePin={
+                form.latLng
+                  ? {
+                      lat: parseFloat(form.latLng.split(",")[0]),
+                      lng: parseFloat(form.latLng.split(",")[1]),
+                    }
+                  : null
+              }
+              center={flyTo}
+              hideEvents={true}
+              extraMarkers={
+                eventoFogo?.latitude && eventoFogo?.longitude
+                  ? [
+                      {
+                        lat: eventoFogo.latitude,
+                        lng: eventoFogo.longitude,
+                        color: "#f97316",
+                        tooltip: "Evento de Fogo",
+                      },
+                    ]
+                  : []
+              }
             />
           </div>
         </div>
@@ -331,11 +367,19 @@ function NovaOrdemServicoPage() {
                 </div>
               </div>
             )}
-            
+
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label className={errors.tipoDespacho ? "text-red-500" : ""}>Tipo de Despacho *</Label>
-                <Select value={form.tipoDespacho} onValueChange={(v) => { setForm({ ...form, tipoDespacho: v as any }); setErrors({...errors, tipoDespacho: ''}); }}>
+                <Label className={errors.tipoDespacho ? "text-red-500" : ""}>
+                  Tipo de Despacho *
+                </Label>
+                <Select
+                  value={form.tipoDespacho}
+                  onValueChange={(v) => {
+                    setForm({ ...form, tipoDespacho: v as any });
+                    setErrors({ ...errors, tipoDespacho: "" });
+                  }}
+                >
                   <SelectTrigger className={errors.tipoDespacho ? "border-red-500" : ""}>
                     <SelectValue placeholder="Selecione o tipo" />
                   </SelectTrigger>
@@ -345,11 +389,19 @@ function NovaOrdemServicoPage() {
                     <SelectItem value="MAQUINARIO">Combate Incêndio Maquinário</SelectItem>
                   </SelectContent>
                 </Select>
-                {errors.tipoDespacho && <p className="text-xs text-red-500">{errors.tipoDespacho}</p>}
+                {errors.tipoDespacho && (
+                  <p className="text-xs text-red-500">{errors.tipoDespacho}</p>
+                )}
               </div>
               <div className="space-y-2">
                 <Label className={errors.prioridade ? "text-red-500" : ""}>Prioridade *</Label>
-                <Select value={form.prioridade} onValueChange={(v: any) => { setForm({ ...form, prioridade: v }); setErrors({...errors, prioridade: ''}); }}>
+                <Select
+                  value={form.prioridade}
+                  onValueChange={(v: any) => {
+                    setForm({ ...form, prioridade: v });
+                    setErrors({ ...errors, prioridade: "" });
+                  }}
+                >
                   <SelectTrigger className={errors.prioridade ? "border-red-500" : ""}>
                     <SelectValue />
                   </SelectTrigger>
@@ -366,25 +418,47 @@ function NovaOrdemServicoPage() {
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label className={errors.comando ? "text-red-500" : ""}>Comando (Centro) *</Label>
-                <Select disabled={isCentroComando} value={form.comando || ''} onValueChange={(v) => { setForm({ ...form, comando: v, equipe: '', responsavel: '' }); setErrors({...errors, comando: ''}); }}>
+                <Select
+                  disabled={isCentroComando}
+                  value={form.comando || ""}
+                  onValueChange={(v) => {
+                    setForm({ ...form, comando: v, equipe: "", responsavel: "" });
+                    setErrors({ ...errors, comando: "" });
+                  }}
+                >
                   <SelectTrigger className={errors.comando ? "border-red-500" : ""}>
                     <SelectValue placeholder="Selecione o comando" />
                   </SelectTrigger>
                   <SelectContent>
-                    {centrosDeComandoDB.map((cc: any) => <SelectItem key={cc.id} value={String(cc.id)}>{cc.nome}</SelectItem>)}
+                    {centrosDeComandoDB.map((cc: any) => (
+                      <SelectItem key={cc.id} value={String(cc.id)}>
+                        {cc.nome}
+                      </SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
                 {errors.comando && <p className="text-xs text-red-500">{errors.comando}</p>}
               </div>
               <div className="space-y-2">
                 <Label className={errors.equipe ? "text-red-500" : ""}>Equipe *</Label>
-                <Select disabled={!form.comando} value={form.equipe || ''} onValueChange={(v) => { setForm({ ...form, equipe: v, responsavel: '' }); setErrors({...errors, equipe: ''}); }}>
+                <Select
+                  disabled={!form.comando}
+                  value={form.equipe || ""}
+                  onValueChange={(v) => {
+                    setForm({ ...form, equipe: v, responsavel: "" });
+                    setErrors({ ...errors, equipe: "" });
+                  }}
+                >
                   <SelectTrigger className={errors.equipe ? "border-red-500" : ""}>
                     <SelectValue placeholder="Selecione a escala/equipe" />
                   </SelectTrigger>
                   <SelectContent>
                     {escalasAtivas.map((eq: any) => {
-                      return <SelectItem key={eq.id} value={String(eq.id)}>{eq.equipeNome} - {eq.comandanteNome || 'Sem Cmt'}</SelectItem>
+                      return (
+                        <SelectItem key={eq.id} value={String(eq.id)}>
+                          {eq.equipeNome} - {eq.comandanteNome || "Sem Cmt"}
+                        </SelectItem>
+                      );
                     })}
                   </SelectContent>
                 </Select>
@@ -398,18 +472,38 @@ function NovaOrdemServicoPage() {
             </div>
 
             <div className="space-y-2">
-              <Label className={errors.responsavel ? "text-red-500" : ""}>Usuário Responsável *</Label>
-              <Select disabled={!form.equipe} value={form.responsavel || ''} onValueChange={(v) => { setForm({ ...form, responsavel: v }); setErrors({...errors, responsavel: ''}); }}>
+              <Label className={errors.responsavel ? "text-red-500" : ""}>
+                Usuário Responsável *
+              </Label>
+              <Select
+                disabled={!form.equipe}
+                value={form.responsavel || ""}
+                onValueChange={(v) => {
+                  setForm({ ...form, responsavel: v });
+                  setErrors({ ...errors, responsavel: "" });
+                }}
+              >
                 <SelectTrigger className={errors.responsavel ? "border-red-500" : ""}>
                   <SelectValue placeholder="Selecione o responsável" />
                 </SelectTrigger>
                 <SelectContent>
-                  {usuariosDB.filter((u: any) => {
-                    const selectedScale = todasEscalas.find((e: any) => String(e.id) === String(form.equipe));
-                    if (!selectedScale) return false;
-                    const ids = [...(selectedScale.integranteIds || []), selectedScale.comandanteId].map(String);
-                    return ids.includes(String(u.id));
-                  }).map((u: any) => <SelectItem key={u.id} value={String(u.id)}>{u.nome}</SelectItem>)}
+                  {usuariosDB
+                    .filter((u: any) => {
+                      const selectedScale = todasEscalas.find(
+                        (e: any) => String(e.id) === String(form.equipe),
+                      );
+                      if (!selectedScale) return false;
+                      const ids = [
+                        ...(selectedScale.integranteIds || []),
+                        selectedScale.comandanteId,
+                      ].map(String);
+                      return ids.includes(String(u.id));
+                    })
+                    .map((u: any) => (
+                      <SelectItem key={u.id} value={String(u.id)}>
+                        {u.nome}
+                      </SelectItem>
+                    ))}
                 </SelectContent>
               </Select>
               {errors.responsavel && <p className="text-xs text-red-500">{errors.responsavel}</p>}
@@ -418,14 +512,14 @@ function NovaOrdemServicoPage() {
             <div className="space-y-3">
               <div className="flex items-center justify-between">
                 <Label>Ponto de Encontro / Local (Clique no mapa ou digite)</Label>
-                <Button 
-                  variant="outline" 
-                  size="sm" 
+                <Button
+                  variant="outline"
+                  size="sm"
                   className="h-7 text-xs px-2"
                   onClick={toggleFormat}
                 >
                   <ArrowRightLeft className="w-3 h-3 mr-1" />
-                  {isDms ? 'Alternar para Decimal' : 'Alternar para Graus (DMS)'}
+                  {isDms ? "Alternar para Decimal" : "Alternar para Graus (DMS)"}
                 </Button>
               </div>
               <div className="flex gap-2">
@@ -452,18 +546,28 @@ function NovaOrdemServicoPage() {
             </div>
 
             <div className="space-y-2">
-              <Label className={errors.descricao ? "text-red-500" : ""}>Diretrizes da Missão *</Label>
-              <Textarea 
-                placeholder="Descreva as instruções operacionais para a equipe..." 
+              <Label className={errors.descricao ? "text-red-500" : ""}>
+                Diretrizes da Missão *
+              </Label>
+              <Textarea
+                placeholder="Descreva as instruções operacionais para a equipe..."
                 className={`resize-none h-24 ${errors.descricao ? "border-red-500" : ""}`}
                 value={form.descricao}
-                onChange={(e) => { setForm({ ...form, descricao: e.target.value }); setErrors({...errors, descricao: ''}); }}
+                onChange={(e) => {
+                  setForm({ ...form, descricao: e.target.value });
+                  setErrors({ ...errors, descricao: "" });
+                }}
               />
               {errors.descricao && <p className="text-xs text-red-500">{errors.descricao}</p>}
             </div>
-            
+
             <div className="pt-4 flex justify-end gap-3 border-t border-border">
-              <Button variant="outline" onClick={() => navigate({ to: '/ordens-servico', search: { highlightId: undefined } })}>
+              <Button
+                variant="outline"
+                onClick={() =>
+                  navigate({ to: "/ordens-servico", search: { highlightId: undefined } })
+                }
+              >
                 Cancelar
               </Button>
               <Button onClick={save} className="bg-fire hover:bg-fire/90 text-white">
@@ -471,7 +575,6 @@ function NovaOrdemServicoPage() {
                 Confirmar Despacho
               </Button>
             </div>
-
           </div>
         </div>
       </div>

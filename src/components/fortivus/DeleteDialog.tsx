@@ -7,7 +7,7 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-} from '@/components/ui/alert-dialog';
+} from "@/components/ui/alert-dialog";
 
 export function DeleteDialog({
   open,
@@ -27,19 +27,16 @@ export function DeleteDialog({
       <AlertDialogContent className="glass-strong border-destructive/30">
         <AlertDialogHeader>
           <AlertDialogTitle className="text-destructive">
-            {title || 'Confirmar exclusão'}
+            {title || "Confirmar exclusão"}
           </AlertDialogTitle>
           <AlertDialogDescription>
             {description ||
-              'Esta ação não pode ser desfeita. Tem certeza que deseja excluir este registro?'}
+              "Esta ação não pode ser desfeita. Tem certeza que deseja excluir este registro?"}
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
           <AlertDialogCancel>Cancelar</AlertDialogCancel>
-          <AlertDialogAction
-            onClick={onConfirm}
-            className="bg-destructive hover:bg-destructive/90"
-          >
+          <AlertDialogAction onClick={onConfirm} className="bg-destructive hover:bg-destructive/90">
             Excluir
           </AlertDialogAction>
         </AlertDialogFooter>

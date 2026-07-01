@@ -1,13 +1,13 @@
-import { getKeycloak } from '../contexts/AuthContext';
+import { getKeycloak } from "../contexts/AuthContext";
 
-const isServer = typeof window === 'undefined';
+const isServer = typeof window === "undefined";
 const API_BASE_URL = isServer
-  ? (import.meta.env.VITE_API_SSR_BASE_URL || 'http://localhost:8000/combate/api/v1')
-  : '/combate/api/v1';
+  ? import.meta.env.VITE_API_SSR_BASE_URL || "http://localhost:8000/combate/api/v1"
+  : "/combate/api/v1";
 
 export async function fetchWithAuth(endpoint: string, options: RequestInit = {}) {
   const kc = await getKeycloak();
-  let token = '';
+  let token = "";
 
   if (kc) {
     try {
@@ -23,22 +23,22 @@ export async function fetchWithAuth(endpoint: string, options: RequestInit = {})
 
   const headers = new Headers(options.headers || {});
   if (!(options.body instanceof FormData)) {
-    headers.set('Content-Type', 'application/json');
+    headers.set("Content-Type", "application/json");
   }
   if (token) {
-    headers.set('Authorization', `Bearer ${token}`);
+    headers.set("Authorization", `Bearer ${token}`);
   }
 
   const response = await fetch(`${API_BASE_URL}${endpoint}`, {
     ...options,
-    headers
+    headers,
   });
 
   if (!response.ok) {
     if (response.status === 401 && kc) {
       kc.login();
     }
-    
+
     let errorMsg = `API Error: ${response.status} ${response.statusText}`;
     try {
       const errData = await response.json();
@@ -49,21 +49,21 @@ export async function fetchWithAuth(endpoint: string, options: RequestInit = {})
     throw new Error(errorMsg);
   }
 
-  if (response.status === 204 || response.headers.get('content-length') === '0') {
+  if (response.status === 204 || response.headers.get("content-length") === "0") {
     return null;
   }
-  
-  const contentType = response.headers.get('content-type');
-  if (contentType && contentType.includes('application/json')) {
+
+  const contentType = response.headers.get("content-type");
+  if (contentType && contentType.includes("application/json")) {
     return response.json();
   }
-  
+
   return response.text();
 }
 
 export async function fetchAttachmentWithAuth(endpoint: string, options: RequestInit = {}) {
   const kc = await getKeycloak();
-  let token = '';
+  let token = "";
 
   if (kc) {
     try {
@@ -79,17 +79,17 @@ export async function fetchAttachmentWithAuth(endpoint: string, options: Request
 
   const headers = new Headers(options.headers || {});
   if (!(options.body instanceof FormData)) {
-    headers.set('Content-Type', 'application/json');
+    headers.set("Content-Type", "application/json");
   }
   if (token) {
-    headers.set('Authorization', `Bearer ${token}`);
+    headers.set("Authorization", `Bearer ${token}`);
   }
 
   // Uses root path instead of /combate
-  const ATTACHMENT_BASE_URL = isServer ? 'http://localhost:8000' : '';
+  const ATTACHMENT_BASE_URL = isServer ? "http://localhost:8000" : "";
   const response = await fetch(`${ATTACHMENT_BASE_URL}${endpoint}`, {
     ...options,
-    headers
+    headers,
   });
 
   if (!response.ok) {
@@ -103,8 +103,8 @@ export async function fetchAttachmentWithAuth(endpoint: string, options: Request
     throw new Error(errorMsg);
   }
 
-  const resContentType = response.headers.get('content-type');
-  if (resContentType && resContentType.includes('application/json')) {
+  const resContentType = response.headers.get("content-type");
+  if (resContentType && resContentType.includes("application/json")) {
     return response.json();
   }
   return response.text();

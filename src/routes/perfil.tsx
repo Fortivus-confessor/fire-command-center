@@ -1,13 +1,13 @@
-import { createFileRoute } from '@tanstack/react-router';
-import { useState } from 'react';
-import { useAuth } from '../contexts/AuthContext';
-import { ROLE_LABELS } from '../lib/roles';
-import { fetchWithAuth } from '../lib/api';
-import { Save, Key, Camera, Loader2, LogOut } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
+import { createFileRoute } from "@tanstack/react-router";
+import { useState } from "react";
+import { useAuth } from "../contexts/AuthContext";
+import { ROLE_LABELS } from "../lib/roles";
+import { fetchWithAuth } from "../lib/api";
+import { Save, Key, Camera, Loader2, LogOut } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 
-export const Route = createFileRoute('/perfil')({
+export const Route = createFileRoute("/perfil")({
   component: PerfilPage,
 });
 
@@ -15,15 +15,15 @@ function PerfilPage() {
   const { user, role, logout } = useAuth();
   const [loading, setLoading] = useState(false);
   const [imageLoading, setImageLoading] = useState(false);
-  const [successMsg, setSuccessMsg] = useState('');
+  const [successMsg, setSuccessMsg] = useState("");
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
 
   const [formData, setFormData] = useState({
-    nome: user?.nome || '',
-    email: user?.email || '',
-    senhaAtual: '',
-    novaSenha: '',
-    confirmarSenha: '',
+    nome: user?.nome || "",
+    email: user?.email || "",
+    senhaAtual: "",
+    novaSenha: "",
+    confirmarSenha: "",
   });
 
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -41,17 +41,17 @@ function PerfilPage() {
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-    setSuccessMsg('');
+    setSuccessMsg("");
 
     // Validations
     if (formData.novaSenha) {
       if (!formData.senhaAtual) {
-        alert('A senha atual é obrigatória para alterar a senha.');
+        alert("A senha atual é obrigatória para alterar a senha.");
         setLoading(false);
         return;
       }
       if (formData.novaSenha !== formData.confirmarSenha) {
-        alert('A nova senha e a confirmação não coincidem.');
+        alert("A nova senha e a confirmação não coincidem.");
         setLoading(false);
         return;
       }
@@ -65,22 +65,24 @@ function PerfilPage() {
         novaSenha: formData.novaSenha || null,
       };
 
-      await fetchWithAuth('/operacional/usuarios/perfil', {
-        method: 'PUT',
-        body: JSON.stringify(payload)
+      await fetchWithAuth("/operacional/usuarios/perfil", {
+        method: "PUT",
+        body: JSON.stringify(payload),
       });
-      
+
       if (formData.email !== user?.email) {
-        alert('Seu e-mail foi atualizado com sucesso. Por motivos de segurança, você será desconectado e deverá fazer login novamente com o novo e-mail.');
+        alert(
+          "Seu e-mail foi atualizado com sucesso. Por motivos de segurança, você será desconectado e deverá fazer login novamente com o novo e-mail.",
+        );
         logout();
         return;
       }
 
-      setSuccessMsg('Perfil atualizado com sucesso!');
-      setFormData(prev => ({ ...prev, senhaAtual: '', novaSenha: '', confirmarSenha: '' }));
-      setTimeout(() => setSuccessMsg(''), 3000);
+      setSuccessMsg("Perfil atualizado com sucesso!");
+      setFormData((prev) => ({ ...prev, senhaAtual: "", novaSenha: "", confirmarSenha: "" }));
+      setTimeout(() => setSuccessMsg(""), 3000);
     } catch (err: any) {
-      alert(err.message || 'Erro ao atualizar perfil.');
+      alert(err.message || "Erro ao atualizar perfil.");
     } finally {
       setLoading(false);
     }
@@ -111,10 +113,14 @@ function PerfilPage() {
                 </div>
               ) : null}
               {avatarUrl ? (
-                <img src={avatarUrl} alt="Avatar" className="h-full w-full object-cover transition-opacity duration-300" />
+                <img
+                  src={avatarUrl}
+                  alt="Avatar"
+                  className="h-full w-full object-cover transition-opacity duration-300"
+                />
               ) : (
                 <span className="text-4xl font-bold text-muted-foreground">
-                  {user?.nome?.substring(0, 2).toUpperCase() || 'US'}
+                  {user?.nome?.substring(0, 2).toUpperCase() || "US"}
                 </span>
               )}
             </div>
@@ -125,7 +131,7 @@ function PerfilPage() {
           </div>
           <div className="text-center">
             <h3 className="font-semibold">{user?.nome}</h3>
-            <p className="text-xs text-muted-foreground mt-1">{role ? ROLE_LABELS[role] : ''}</p>
+            <p className="text-xs text-muted-foreground mt-1">{role ? ROLE_LABELS[role] : ""}</p>
           </div>
         </div>
 
@@ -133,22 +139,24 @@ function PerfilPage() {
         <div className="glass-strong rounded-xl border border-border/50 p-6">
           <form onSubmit={handleSave} className="space-y-6">
             <div className="space-y-4">
-              <h3 className="text-lg font-medium border-b border-border pb-2">Informações Básicas</h3>
+              <h3 className="text-lg font-medium border-b border-border pb-2">
+                Informações Básicas
+              </h3>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <label className="text-sm font-medium">Nome Completo</label>
-                  <Input 
-                    value={formData.nome} 
-                    onChange={e => setFormData({ ...formData, nome: e.target.value })} 
+                  <Input
+                    value={formData.nome}
+                    onChange={(e) => setFormData({ ...formData, nome: e.target.value })}
                     className="bg-background/50"
                   />
                 </div>
                 <div className="space-y-2">
                   <label className="text-sm font-medium">E-mail</label>
-                  <Input 
-                    type="email" 
-                    value={formData.email} 
-                    onChange={e => setFormData({ ...formData, email: e.target.value })} 
+                  <Input
+                    type="email"
+                    value={formData.email}
+                    onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                     className="bg-background/50"
                   />
                 </div>
@@ -159,35 +167,35 @@ function PerfilPage() {
               <h3 className="text-lg font-medium border-b border-border pb-2 flex items-center gap-2">
                 <Key className="h-5 w-5 text-muted-foreground" /> Segurança
               </h3>
-              
+
               <div className="space-y-4 max-w-md">
                 <div className="space-y-2">
                   <label className="text-sm font-medium text-muted-foreground">Senha Atual</label>
-                  <Input 
-                    type="password" 
+                  <Input
+                    type="password"
                     placeholder="Necessário para alterar a senha"
                     value={formData.senhaAtual}
-                    onChange={e => setFormData({ ...formData, senhaAtual: e.target.value })}
+                    onChange={(e) => setFormData({ ...formData, senhaAtual: e.target.value })}
                     className="bg-background/50"
                   />
                 </div>
-                
+
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <label className="text-sm font-medium">Nova Senha</label>
-                    <Input 
-                      type="password" 
+                    <Input
+                      type="password"
                       value={formData.novaSenha}
-                      onChange={e => setFormData({ ...formData, novaSenha: e.target.value })}
+                      onChange={(e) => setFormData({ ...formData, novaSenha: e.target.value })}
                       className="bg-background/50"
                     />
                   </div>
                   <div className="space-y-2">
                     <label className="text-sm font-medium">Confirmar Senha</label>
-                    <Input 
-                      type="password" 
+                    <Input
+                      type="password"
                       value={formData.confirmarSenha}
-                      onChange={e => setFormData({ ...formData, confirmarSenha: e.target.value })}
+                      onChange={(e) => setFormData({ ...formData, confirmarSenha: e.target.value })}
                       className="bg-background/50"
                     />
                   </div>
@@ -204,7 +212,11 @@ function PerfilPage() {
 
             <div className="flex justify-end pt-4 border-t border-border">
               <Button type="submit" disabled={loading} className="gap-2 min-w-[140px]">
-                {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+                {loading ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <Save className="h-4 w-4" />
+                )}
                 Salvar Alterações
               </Button>
             </div>

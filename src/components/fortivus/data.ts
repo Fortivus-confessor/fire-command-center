@@ -49,4 +49,8 @@ export interface Equipe {
 export const fires: FireEvent[] = [];
 export const ordens: OrdemServico[] = [];
 export const equipes: Equipe[] = [];
-export const timeline: { t: string; label: string; tone: "fire" | "command" | "muted" | "success" }[] = [];
+export const timeline: {
+  t: string;
+  label: string;
+  tone: "fire" | "command" | "muted" | "success";
+}[] = [];

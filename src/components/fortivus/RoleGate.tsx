@@ -1,6 +1,6 @@
-import type { ReactNode } from 'react';
-import { useCanAccess } from '../../hooks/useCanAccess';
-import type { Resource, Action } from '../../lib/roles';
+import type { ReactNode } from "react";
+import { useCanAccess } from "../../hooks/useCanAccess";
+import type { Resource, Action } from "../../lib/roles";
 
 export function RoleGate({
   resource,

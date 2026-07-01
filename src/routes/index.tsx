@@ -14,7 +14,11 @@ export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
       { title: "FORTIVUS — Sala de Situação · Incêndios Florestais" },
-      { name: "description", content: "Mission Control FORTIVUS: monitore focos do NASA/FIRMS, planeje OS e despache brigadas, helitack e maquinário em tempo real." },
+      {
+        name: "description",
+        content:
+          "Mission Control FORTIVUS: monitore focos do NASA/FIRMS, planeje OS e despache brigadas, helitack e maquinário em tempo real.",
+      },
     ],
   }),
   component: MissionControl,
@@ -26,8 +30,8 @@ function MissionControl() {
   const navigate = useNavigate();
 
   useEffect(() => {
-    if (isInitialized && role === 'COMBATENTE') {
-      navigate({ to: '/despachos' });
+    if (isInitialized && role === "COMBATENTE") {
+      navigate({ to: "/despachos" });
     }
   }, [isInitialized, role, navigate]);
 

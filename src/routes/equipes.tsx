@@ -1,12 +1,22 @@
-import { createFileRoute } from '@tanstack/react-router';
-import { useState } from 'react';
-import { Plus, Search, Pencil, Trash2, Users, Filter, Loader2, ChevronLeft, ChevronRight } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { fetchWithAuth } from '@/lib/api';
-import { useCanAccess } from '@/hooks/useCanAccess';
-import { useAuth } from '@/contexts/AuthContext';
+import { createFileRoute } from "@tanstack/react-router";
+import { useState } from "react";
+import {
+  Plus,
+  Search,
+  Pencil,
+  Trash2,
+  Users,
+  Filter,
+  Loader2,
+  ChevronLeft,
+  ChevronRight,
+} from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { fetchWithAuth } from "@/lib/api";
+import { useCanAccess } from "@/hooks/useCanAccess";
+import { useAuth } from "@/contexts/AuthContext";
 import {
   Table,
   TableBody,
@@ -14,8 +24,8 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from '@/components/ui/table';
-import { Badge } from '@/components/ui/badge';
+} from "@/components/ui/table";
+import { Badge } from "@/components/ui/badge";
 import {
   Dialog,
   DialogContent,
@@ -23,7 +33,7 @@ import {
   DialogTitle,
   DialogFooter,
   DialogDescription,
-} from '@/components/ui/dialog';
+} from "@/components/ui/dialog";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -33,17 +43,17 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-} from '@/components/ui/alert-dialog';
-import { Label } from '@/components/ui/label';
+} from "@/components/ui/alert-dialog";
+import { Label } from "@/components/ui/label";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '@/components/ui/select';
+} from "@/components/ui/select";
 
-export const Route = createFileRoute('/equipes')({
+export const Route = createFileRoute("/equipes")({
   component: EquipesPage,
 });
 
@@ -60,26 +70,31 @@ interface EquipeDTO {
 }
 
 const emptyForm: EquipeDTO = {
-  nome: '',
-  centroComandoId: '',
-  categoria: 'TERRESTRE',
+  nome: "",
+  centroComandoId: "",
+  categoria: "TERRESTRE",
 };
 
 // ── Helpers ────────────────────────────────────────────
 function tipoBadge(t: string) {
   switch (t) {
-    case 'TERRESTRE': return <Badge className="bg-success/20 text-success border-success/30">Terrestre</Badge>;
-    case 'AEREO': return <Badge className="bg-command/20 text-command border-command/30">Aéreo</Badge>;
-    case 'MAQUINARIO': return <Badge className="bg-warning/20 text-warning border-warning/30">Maquinário</Badge>;
-    case 'AQUATICO': return <Badge className="bg-info/20 text-info border-info/30 text-blue-400">Aquático</Badge>;
-    default: return <Badge variant="secondary">{t}</Badge>;
+    case "TERRESTRE":
+      return <Badge className="bg-success/20 text-success border-success/30">Terrestre</Badge>;
+    case "AEREO":
+      return <Badge className="bg-command/20 text-command border-command/30">Aéreo</Badge>;
+    case "MAQUINARIO":
+      return <Badge className="bg-warning/20 text-warning border-warning/30">Maquinário</Badge>;
+    case "AQUATICO":
+      return <Badge className="bg-info/20 text-info border-info/30 text-blue-400">Aquático</Badge>;
+    default:
+      return <Badge variant="secondary">{t}</Badge>;
   }
 }
 
 // ── Page Component ─────────────────────────────────────
 function EquipesPage() {
   const queryClient = useQueryClient();
-  const canManage = useCanAccess('equipes', 'edit');
+  const canManage = useCanAccess("equipes", "edit");
   const { role } = useAuth();
 
   const [pageIndex, setPageIndex] = useState(0);
@@ -87,44 +102,44 @@ function EquipesPage() {
   const pageSize = listAll ? 1000 : 10;
 
   const { data: pageData, isLoading: loadingEquipes } = useQuery<any>({
-    queryKey: ['equipes', pageIndex, pageSize],
-    queryFn: () => fetchWithAuth(`/admin/equipes/paged?page=${pageIndex}&size=${pageSize}`)
+    queryKey: ["equipes", pageIndex, pageSize],
+    queryFn: () => fetchWithAuth(`/admin/equipes/paged?page=${pageIndex}&size=${pageSize}`),
   });
 
   const equipes = pageData?.content || [];
 
   const { data: centros = [] } = useQuery<CentroComandoDTO[]>({
-    queryKey: ['centros-comando'],
-    queryFn: () => fetchWithAuth('/admin/centros'),
+    queryKey: ["centros-comando"],
+    queryFn: () => fetchWithAuth("/admin/centros"),
   });
 
   const mutationCreateEdit = useMutation({
     mutationFn: (equipe: EquipeDTO) => {
       const isEdit = !!equipe.id;
-      const url = isEdit ? `/admin/equipes/${equipe.id}` : '/admin/equipes';
-      const method = isEdit ? 'PUT' : 'POST';
+      const url = isEdit ? `/admin/equipes/${equipe.id}` : "/admin/equipes";
+      const method = isEdit ? "PUT" : "POST";
       return fetchWithAuth(url, {
         method,
         body: JSON.stringify(equipe),
       });
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['equipes'] });
+      queryClient.invalidateQueries({ queryKey: ["equipes"] });
       setDialogOpen(false);
     },
   });
 
   const mutationDelete = useMutation({
-    mutationFn: (id: string) => fetchWithAuth(`/admin/equipes/${id}`, { method: 'DELETE' }),
+    mutationFn: (id: string) => fetchWithAuth(`/admin/equipes/${id}`, { method: "DELETE" }),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['equipes'] });
+      queryClient.invalidateQueries({ queryKey: ["equipes"] });
       setDeleteDialogOpen(false);
       setDeletingId(null);
     },
   });
 
-  const [search, setSearch] = useState('');
-  const [filterTipo, setFilterTipo] = useState('all');
+  const [search, setSearch] = useState("");
+  const [filterTipo, setFilterTipo] = useState("all");
 
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingItem, setEditingItem] = useState<EquipeDTO | null>(null);
@@ -134,12 +149,12 @@ function EquipesPage() {
   const [deletingId, setDeletingId] = useState<string | null>(null);
 
   const filtered = equipes.filter((item: EquipeDTO) => {
-    const centroNome = centros.find(c => c.id === item.centroComandoId)?.nome || '';
+    const centroNome = centros.find((c) => c.id === item.centroComandoId)?.nome || "";
     const matchSearch =
       !search ||
       item.nome.toLowerCase().includes(search.toLowerCase()) ||
       centroNome.toLowerCase().includes(search.toLowerCase());
-    const matchTipo = filterTipo === 'all' || item.categoria === filterTipo;
+    const matchTipo = filterTipo === "all" || item.categoria === filterTipo;
     return matchSearch && matchTipo;
   });
 
@@ -154,8 +169,8 @@ function EquipesPage() {
     setForm({
       id: item.id,
       nome: item.nome,
-      centroComandoId: item.centroComandoId || '',
-      categoria: item.categoria || 'TERRESTRE',
+      centroComandoId: item.centroComandoId || "",
+      categoria: item.categoria || "TERRESTRE",
     });
     setDialogOpen(true);
   }
@@ -253,16 +268,28 @@ function EquipesPage() {
                 filtered.map((item: EquipeDTO) => (
                   <TableRow key={item.id} className="hover:bg-secondary/20 transition">
                     <TableCell className="mono font-bold">{item.nome}</TableCell>
-                    <TableCell>{centros.find(c => c.id === item.centroComandoId)?.nome || 'Sem centro'}</TableCell>
+                    <TableCell>
+                      {centros.find((c) => c.id === item.centroComandoId)?.nome || "Sem centro"}
+                    </TableCell>
                     <TableCell>{tipoBadge(item.categoria)}</TableCell>
                     <TableCell className="text-right">
                       <div className="flex justify-end gap-1">
                         {canManage && (
                           <>
-                            <Button variant="ghost" size="icon" onClick={() => openEdit(item)} className="h-8 w-8 hover:text-command">
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => openEdit(item)}
+                              className="h-8 w-8 hover:text-command"
+                            >
                               <Pencil className="h-4 w-4" />
                             </Button>
-                            <Button variant="ghost" size="icon" onClick={() => confirmDelete(item.id!)} className="h-8 w-8 hover:text-destructive">
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => confirmDelete(item.id!)}
+                              className="h-8 w-8 hover:text-destructive"
+                            >
                               <Trash2 className="h-4 w-4" />
                             </Button>
                           </>
@@ -275,42 +302,44 @@ function EquipesPage() {
             </TableBody>
           </Table>
         </div>
-        
-          {!listAll && pageData && pageData.totalPages > 1 && (
-            <div className="px-4 py-3 border-t border-border flex items-center justify-between">
-              <div className="text-sm text-muted-foreground">
-                Página {pageData.number + 1} de {pageData.totalPages} (Mostrando {filtered.length} de {pageData.totalElements})
-              </div>
-              <div className="flex gap-2">
-                <Button 
-                  variant="outline" 
-                  size="sm" 
-                  onClick={() => setPageIndex(p => Math.max(0, p - 1))}
-                  disabled={pageData.first}
-                >
-                  <ChevronLeft className="h-4 w-4" />
-                </Button>
-                <Button 
-                  variant="outline" 
-                  size="sm" 
-                  onClick={() => setPageIndex(p => p + 1)}
-                  disabled={pageData.last}
-                >
-                  <ChevronRight className="h-4 w-4" />
-                </Button>
-              </div>
-            </div>
-          )}
 
+        {!listAll && pageData && pageData.totalPages > 1 && (
+          <div className="px-4 py-3 border-t border-border flex items-center justify-between">
+            <div className="text-sm text-muted-foreground">
+              Página {pageData.number + 1} de {pageData.totalPages} (Mostrando {filtered.length} de{" "}
+              {pageData.totalElements})
+            </div>
+            <div className="flex gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setPageIndex((p) => Math.max(0, p - 1))}
+                disabled={pageData.first}
+              >
+                <ChevronLeft className="h-4 w-4" />
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setPageIndex((p) => p + 1)}
+                disabled={pageData.last}
+              >
+                <ChevronRight className="h-4 w-4" />
+              </Button>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Create/Edit Dialog */}
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
         <DialogContent className="glass-strong sm:max-w-[800px] max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>{editingItem ? 'Editar Equipe' : 'Nova Equipe'}</DialogTitle>
+            <DialogTitle>{editingItem ? "Editar Equipe" : "Nova Equipe"}</DialogTitle>
             <DialogDescription>
-              {editingItem ? 'Atualize os dados da equipe.' : 'Preencha os dados para cadastrar uma nova equipe.'}
+              {editingItem
+                ? "Atualize os dados da equipe."
+                : "Preencha os dados para cadastrar uma nova equipe."}
             </DialogDescription>
           </DialogHeader>
           <div className="grid gap-4 py-4">
@@ -326,7 +355,10 @@ function EquipesPage() {
               </div>
               <div className="space-y-2">
                 <Label>Tipo</Label>
-                <Select value={form.categoria} onValueChange={(v) => setForm({ ...form, categoria: v })}>
+                <Select
+                  value={form.categoria}
+                  onValueChange={(v) => setForm({ ...form, categoria: v })}
+                >
                   <SelectTrigger>
                     <SelectValue />
                   </SelectTrigger>
@@ -341,22 +373,44 @@ function EquipesPage() {
             </div>
             <div className="space-y-2">
               <Label>Centro de Comando</Label>
-              <Select disabled={role === 'CENTRO_COMANDO'} value={form.centroComandoId} onValueChange={(v) => setForm({ ...form, centroComandoId: v })}>
+              <Select
+                disabled={role === "CENTRO_COMANDO"}
+                value={form.centroComandoId}
+                onValueChange={(v) => setForm({ ...form, centroComandoId: v })}
+              >
                 <SelectTrigger>
                   <SelectValue placeholder="Selecione o centro" />
                 </SelectTrigger>
                 <SelectContent>
                   {centros.map((cc) => (
-                    <SelectItem key={cc.id} value={cc.id}>{cc.nome}</SelectItem>
+                    <SelectItem key={cc.id} value={cc.id}>
+                      {cc.nome}
+                    </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setDialogOpen(false)} disabled={mutationCreateEdit.isPending}>Cancelar</Button>
-            <Button onClick={handleSave} className="bg-fire hover:bg-fire/90 text-white" disabled={mutationCreateEdit.isPending}>
-              {mutationCreateEdit.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : editingItem ? 'Salvar Alterações' : 'Criar Equipe'}
+            <Button
+              variant="outline"
+              onClick={() => setDialogOpen(false)}
+              disabled={mutationCreateEdit.isPending}
+            >
+              Cancelar
+            </Button>
+            <Button
+              onClick={handleSave}
+              className="bg-fire hover:bg-fire/90 text-white"
+              disabled={mutationCreateEdit.isPending}
+            >
+              {mutationCreateEdit.isPending ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : editingItem ? (
+                "Salvar Alterações"
+              ) : (
+                "Criar Equipe"
+              )}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -373,8 +427,12 @@ function EquipesPage() {
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel disabled={mutationDelete.isPending}>Cancelar</AlertDialogCancel>
-            <AlertDialogAction onClick={handleDelete} className="bg-destructive hover:bg-destructive/90" disabled={mutationDelete.isPending}>
-              {mutationDelete.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Excluir'}
+            <AlertDialogAction
+              onClick={handleDelete}
+              className="bg-destructive hover:bg-destructive/90"
+              disabled={mutationDelete.isPending}
+            >
+              {mutationDelete.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : "Excluir"}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
@@ -382,4 +440,3 @@ function EquipesPage() {
     </div>
   );
 }
-

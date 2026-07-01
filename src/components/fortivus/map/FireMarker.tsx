@@ -1,13 +1,13 @@
-import { Marker, Popup } from 'react-leaflet';
-import L from 'leaflet';
-import { AlertTriangle, ExternalLink } from 'lucide-react';
-import { useNavigate } from '@tanstack/react-router';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { useQuery } from '@tanstack/react-query';
-import { fetchWithAuth } from '@/lib/api';
+import { Marker, Popup } from "react-leaflet";
+import L from "leaflet";
+import { AlertTriangle, ExternalLink } from "lucide-react";
+import { useNavigate } from "@tanstack/react-router";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { useQuery } from "@tanstack/react-query";
+import { fetchWithAuth } from "@/lib/api";
 
-export type RiskLevel = 'extremo' | 'alto' | 'medio' | 'baixo';
+export type RiskLevel = "extremo" | "alto" | "medio" | "baixo";
 
 export interface FireData {
   id: string;
@@ -25,23 +25,24 @@ export interface FireData {
 }
 
 const RISK_COLORS: Record<RiskLevel, string> = {
-  extremo: '#f97316',
-  alto: '#eab308',
-  medio: '#3b82f6',
-  baixo: '#22c55e',
+  extremo: "#f97316",
+  alto: "#eab308",
+  medio: "#3b82f6",
+  baixo: "#22c55e",
 };
 
 const RISK_LABELS: Record<RiskLevel, string> = {
-  extremo: 'EXTREMO',
-  alto: 'ALTO',
-  medio: 'MÉDIO',
-  baixo: 'BAIXO',
+  extremo: "EXTREMO",
+  alto: "ALTO",
+  medio: "MÉDIO",
+  baixo: "BAIXO",
 };
 
 function makeFireIcon(color: string, size: number, risco: RiskLevel) {
-  const pulse = risco === 'extremo'
-    ? `<span style="position:absolute;inset:-8px;border-radius:50%;border:2px solid ${color};opacity:0.6;animation:ping 2s cubic-bezier(0,0,0.2,1) infinite"></span>`
-    : '';
+  const pulse =
+    risco === "extremo"
+      ? `<span style="position:absolute;inset:-8px;border-radius:50%;border:2px solid ${color};opacity:0.6;animation:ping 2s cubic-bezier(0,0,0.2,1) infinite"></span>`
+      : "";
   return L.divIcon({
     html: `<div style="position:relative;width:${size}px;height:${size}px">
       ${pulse}
@@ -51,7 +52,7 @@ function makeFireIcon(color: string, size: number, risco: RiskLevel) {
         </svg>
       </span>
     </div>`,
-    className: '',
+    className: "",
     iconSize: [size, size],
     iconAnchor: [size / 2, size],
   });
@@ -66,12 +67,12 @@ interface FireMarkerProps {
 
 export function FireMarker({ fire, selected, onSelect }: FireMarkerProps) {
   const color = RISK_COLORS[fire.risco];
-  const size = fire.risco === 'extremo' ? 36 : fire.risco === 'alto' ? 32 : 28;
+  const size = fire.risco === "extremo" ? 36 : fire.risco === "alto" ? 32 : 28;
   const navigate = useNavigate();
 
   const { data: ordensServico = [] } = useQuery({
-    queryKey: ['ordens-servico'],
-    queryFn: () => fetchWithAuth('/operacional/os'),
+    queryKey: ["ordens-servico"],
+    queryFn: () => fetchWithAuth("/operacional/os"),
   });
 
   const osVinculada = ordensServico.find((os: any) => os.eventoFogoId === fire.id);
@@ -84,7 +85,10 @@ export function FireMarker({ fire, selected, onSelect }: FireMarkerProps) {
       eventHandlers={{ click: () => onSelect?.(fire.id) }}
     >
       <Popup offset={[0, -size]}>
-        <div className="p-3 bg-[#0f172a] rounded-lg border border-slate-800 text-slate-200" style={{ minWidth: 200 }}>
+        <div
+          className="p-3 bg-[#0f172a] rounded-lg border border-slate-800 text-slate-200"
+          style={{ minWidth: 200 }}
+        >
           <div className="flex items-center justify-between mb-3 border-b border-slate-800 pb-2">
             <Badge variant="outline" style={{ borderColor: color, color }}>
               {RISK_LABELS[fire.risco]}
@@ -107,7 +111,9 @@ export function FireMarker({ fire, selected, onSelect }: FireMarkerProps) {
                 size="sm"
                 variant="outline"
                 className="w-full text-xs h-8 border-command/30 text-command hover:bg-command/10"
-                onClick={() => navigate({ to: '/ordens-servico', search: { highlightId: osVinculada.id } })}
+                onClick={() =>
+                  navigate({ to: "/ordens-servico", search: { highlightId: osVinculada.id } })
+                }
               >
                 <ExternalLink className="mr-2 h-3 w-3" />
                 Visualizar OS Vinculada
@@ -116,7 +122,9 @@ export function FireMarker({ fire, selected, onSelect }: FireMarkerProps) {
               <Button
                 size="sm"
                 className="w-full text-xs h-8 bg-fire hover:bg-fire/90 text-white"
-                onClick={() => navigate({ to: '/ordens-servico/nova', search: { eventoFogoId: fire.id } })}
+                onClick={() =>
+                  navigate({ to: "/ordens-servico/nova", search: { eventoFogoId: fire.id } })
+                }
               >
                 <AlertTriangle className="mr-2 h-3 w-3" />
                 Despachar Nova OS

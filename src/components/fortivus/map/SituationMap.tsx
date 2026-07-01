@@ -1,7 +1,7 @@
-import { lazy, Suspense, useEffect, useState } from 'react';
+import { lazy, Suspense, useEffect, useState } from "react";
 
 // Lazy-load the actual map to avoid SSR issues with Leaflet (which requires `window`)
-const LeafletMap = lazy(() => import('./SituationMapClient'));
+const LeafletMap = lazy(() => import("./SituationMapClient"));
 
 interface Props {
   selectedId?: string;

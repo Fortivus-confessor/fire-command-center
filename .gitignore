@@ -8,9 +8,15 @@ yarn-error.log*
 # dependencies
 node_modules/
 dist/
-dist-ssr/
 build/
 *.local
+
+# gerenciador de pacotes canonico e bun (ver Dockerfile); nao commitar lockfile do npm
+package-lock.json
+
+# build cache / codegen
+.tanstack/
+src/routeTree.gen.ts
 
 # Editor directories and files
 .vscode/*

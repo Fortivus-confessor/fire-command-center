@@ -1,6 +1,6 @@
-import 'leaflet/dist/leaflet.css';
+import "leaflet/dist/leaflet.css";
 
-import { useEffect, useState, useMemo, useRef } from 'react';
+import { useEffect, useState, useMemo, useRef } from "react";
 import {
   MapContainer,
   TileLayer,
@@ -11,50 +11,50 @@ import {
   Marker,
   useMap,
   useMapEvents,
-} from 'react-leaflet';
-import L from 'leaflet';
-import { useQuery } from '@tanstack/react-query';
-import { useNavigate } from '@tanstack/react-router';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { fetchWithAuth } from '../../../lib/api';
-import { AlertTriangle, ExternalLink } from 'lucide-react';
+} from "react-leaflet";
+import L from "leaflet";
+import { useQuery } from "@tanstack/react-query";
+import { useNavigate } from "@tanstack/react-router";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { fetchWithAuth } from "../../../lib/api";
+import { AlertTriangle, ExternalLink } from "lucide-react";
 
 const MAP_CENTER: [number, number] = [-14.235, -51.925];
 const MAP_ZOOM = 4;
 
 const RISK_COLORS: Record<string, string> = {
-  extremo: '#f97316',
-  alto: '#eab308',
-  medio: '#3b82f6',
-  baixo: '#22c55e',
+  extremo: "#f97316",
+  alto: "#eab308",
+  medio: "#3b82f6",
+  baixo: "#22c55e",
 };
 
 const RISK_LABELS: Record<string, string> = {
-  extremo: 'EXTREMO',
-  alto: 'ALTO',
-  medio: 'MÉDIO',
-  baixo: 'BAIXO',
+  extremo: "EXTREMO",
+  alto: "ALTO",
+  medio: "MÉDIO",
+  baixo: "BAIXO",
 };
 
 const legendItems = [
-  { id: 'extremo', label: 'Extremo · FRP ≥ 300', color: '#f97316' },
-  { id: 'alto', label: 'Alto · FRP 100–300', color: '#eab308' },
-  { id: 'medio', label: 'Médio · FRP 50–100', color: '#3b82f6' },
-  { id: 'baixo', label: 'Baixo · FRP < 50', color: '#22c55e' },
+  { id: "extremo", label: "Extremo · FRP ≥ 300", color: "#f97316" },
+  { id: "alto", label: "Alto · FRP 100–300", color: "#eab308" },
+  { id: "medio", label: "Médio · FRP 50–100", color: "#3b82f6" },
+  { id: "baixo", label: "Baixo · FRP < 50", color: "#22c55e" },
 ];
 
 function computeRisk(e: any): string {
-  if (e.status === 'ATIVO_SEVERO' || e.frpTotal >= 300) return 'extremo';
-  if (e.frpTotal >= 100) return 'alto';
-  if (e.frpTotal >= 50) return 'medio';
-  return 'baixo';
+  if (e.status === "ATIVO_SEVERO" || e.frpTotal >= 300) return "extremo";
+  if (e.frpTotal >= 100) return "alto";
+  if (e.frpTotal >= 50) return "medio";
+  return "baixo";
 }
 
 function makePinIcon(color: string) {
   return L.divIcon({
     html: `<svg width="24" height="32" viewBox="0 0 24 32" fill="${color}" xmlns="http://www.w3.org/2000/svg" style="filter:drop-shadow(0 2px 4px rgba(0,0,0,0.6))"><path d="M12 0C5.373 0 0 5.373 0 12c0 9 12 20 12 20S24 21 24 12c0-6.627-5.373-12-12-12zm0 16a4 4 0 1 1 0-8 4 4 0 0 1 0 8z"/></svg>`,
-    className: '',
+    className: "",
     iconSize: [24, 32],
     iconAnchor: [12, 32],
   });
@@ -63,7 +63,7 @@ function makePinIcon(color: string) {
 function makeDotIcon(color: string) {
   return L.divIcon({
     html: `<div style="width:14px;height:14px;border-radius:50%;background:${color};border:2px solid rgba(0,0,0,0.6);box-shadow:0 0 10px 3px ${color}aa"></div>`,
-    className: '',
+    className: "",
     iconSize: [14, 14],
     iconAnchor: [7, 7],
   });
@@ -84,7 +84,9 @@ function MapController({
 
   useEffect(() => {
     const timer = setTimeout(() => {
-      try { map.invalidateSize(); } catch {}
+      try {
+        map.invalidateSize();
+      } catch {}
     }, 200);
     return () => clearTimeout(timer);
   }, [map]);
@@ -125,21 +127,21 @@ function VectorFocosLayer({ visible }: { visible: boolean }) {
     }
 
     const layer = L_any.vectorGrid.protobuf(
-      'http://localhost:3001/public.tb_focos_calor/{z}/{x}/{y}.pbf',
+      "http://localhost:3001/public.tb_focos_calor/{z}/{x}/{y}.pbf",
       {
         vectorTileLayerStyles: {
-          'public.tb_focos_calor': {
+          "public.tb_focos_calor": {
             weight: 1,
-            color: '#b91c1c',
+            color: "#b91c1c",
             fill: true,
-            fillColor: '#ef4444',
+            fillColor: "#ef4444",
             fillOpacity: 0.8,
             radius: 3,
           },
         },
         interactive: false,
         maxNativeZoom: 14,
-      }
+      },
     );
     layer.addTo(map);
     layerRef.current = layer;
@@ -188,24 +190,30 @@ export default function SituationMapClient({
   const [coords, setCoords] = useState({ lat: MAP_CENTER[0], lng: MAP_CENTER[1], zoom: MAP_ZOOM });
   const [showFocos, setShowFocos] = useState(false);
   const [activeRisks, setActiveRisks] = useState<Record<string, boolean>>({
-    extremo: true, alto: true, medio: true, baixo: true,
+    extremo: true,
+    alto: true,
+    medio: true,
+    baixo: true,
   });
   const [geoData, setGeoData] = useState<any>(null);
   const navigate = useNavigate();
 
   const { data: focos = [] } = useQuery({
-    queryKey: ['focos-ativos'],
-    queryFn: () => fetch('/api/v1/fire-events/active').then(r => r.json()),
+    queryKey: ["focos-ativos"],
+    queryFn: () => fetch("/api/v1/fire-events/active").then((r) => r.json()),
     enabled: !hideEvents,
   });
 
   const { data: ordensServico = [] } = useQuery({
-    queryKey: ['ordens-servico'],
-    queryFn: () => fetchWithAuth('/operacional/os'),
+    queryKey: ["ordens-servico"],
+    queryFn: () => fetchWithAuth("/operacional/os"),
   });
 
   useEffect(() => {
-    fetch('/brazil-states.json').then(r => r.json()).then(setGeoData).catch(console.error);
+    fetch("/brazil-states.json")
+      .then((r) => r.json())
+      .then(setGeoData)
+      .catch(console.error);
   }, []);
 
   const filteredFocos = useMemo(() => {
@@ -216,10 +224,10 @@ export default function SituationMapClient({
   }, [focos, activeRisks, isolatedEventId]);
 
   const brazilStyle = {
-    color: '#10b981',
+    color: "#10b981",
     weight: 1.5,
     opacity: 0.6,
-    fillColor: '#f97316',
+    fillColor: "#f97316",
     fillOpacity: 0.05,
   };
 
@@ -228,7 +236,7 @@ export default function SituationMapClient({
       <MapContainer
         center={MAP_CENTER}
         zoom={MAP_ZOOM}
-        style={{ height: '100%', width: '100%', background: '#0d1117' }}
+        style={{ height: "100%", width: "100%", background: "#0d1117" }}
         attributionControl={false}
         zoomControl={false}
       >
@@ -238,7 +246,10 @@ export default function SituationMapClient({
 
         <LayersControl>
           <LayersControl.BaseLayer name="🌑 CartoDB Dark">
-            <TileLayer url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png" maxZoom={20} />
+            <TileLayer
+              url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
+              maxZoom={20}
+            />
           </LayersControl.BaseLayer>
 
           <LayersControl.BaseLayer checked name="🛰️ Google Satellite">
@@ -263,9 +274,9 @@ export default function SituationMapClient({
         {/* Fire event markers */}
         {!hideEvents &&
           filteredFocos.map((e: any) => {
-            const color = RISK_COLORS[e.risco] || '#3b82f6';
-            const glowRadius = e.risco === 'extremo' ? 24 : e.risco === 'alto' ? 20 : 16;
-            const coreRadius = e.risco === 'extremo' ? 10 : e.risco === 'alto' ? 8 : 6;
+            const color = RISK_COLORS[e.risco] || "#3b82f6";
+            const glowRadius = e.risco === "extremo" ? 24 : e.risco === "alto" ? 20 : 16;
+            const coreRadius = e.risco === "extremo" ? 10 : e.risco === "alto" ? 8 : 6;
             const codigo = String(e.id).substring(0, 8).toUpperCase();
             const osVinculada = ordensServico.find((os: any) => os.eventoFogoId === e.id);
 
@@ -280,11 +291,14 @@ export default function SituationMapClient({
                 <CircleMarker
                   center={[e.latitude, e.longitude]}
                   radius={coreRadius}
-                  pathOptions={{ color: '#000', weight: 2, fillColor: color, fillOpacity: 1 }}
+                  pathOptions={{ color: "#000", weight: 2, fillColor: color, fillOpacity: 1 }}
                   eventHandlers={{ click: () => onSelect?.(String(e.id)) }}
                 >
                   <Popup>
-                    <div className="p-3 bg-[#0f172a] rounded-lg border border-slate-800 text-slate-200" style={{ minWidth: 200 }}>
+                    <div
+                      className="p-3 bg-[#0f172a] rounded-lg border border-slate-800 text-slate-200"
+                      style={{ minWidth: 200 }}
+                    >
                       <div className="flex items-center justify-between mb-3 border-b border-slate-800 pb-2">
                         <Badge variant="outline" style={{ borderColor: color, color }}>
                           {RISK_LABELS[e.risco]}
@@ -294,7 +308,9 @@ export default function SituationMapClient({
                       <div className="grid grid-cols-2 gap-2 text-xs mb-3">
                         <div>
                           <span className="text-slate-500 block">FRP Total</span>
-                          <span className="font-mono font-medium">{Number(e.frpTotal || 0).toFixed(1)} MW</span>
+                          <span className="font-mono font-medium">
+                            {Number(e.frpTotal || 0).toFixed(1)} MW
+                          </span>
                         </div>
                         <div>
                           <span className="text-slate-500 block">Focos (Pontos)</span>
@@ -307,7 +323,9 @@ export default function SituationMapClient({
                             size="sm"
                             variant="outline"
                             className="w-full text-xs h-8 border-command/30 text-command hover:bg-command/10"
-                            onClick={() => navigate({ to: `/ordens-servico/${osVinculada.id}` as any })}
+                            onClick={() =>
+                              navigate({ to: `/ordens-servico/${osVinculada.id}` as any })
+                            }
                           >
                             <ExternalLink className="mr-2 h-3 w-3" />
                             Visualizar OS Vinculada
@@ -316,7 +334,12 @@ export default function SituationMapClient({
                           <Button
                             size="sm"
                             className="w-full text-xs h-8 bg-fire hover:bg-fire/90 text-white"
-                            onClick={() => navigate({ to: '/ordens-servico/nova', search: { eventoFogoId: e.id } })}
+                            onClick={() =>
+                              navigate({
+                                to: "/ordens-servico/nova",
+                                search: { eventoFogoId: e.id },
+                              })
+                            }
                           >
                             <AlertTriangle className="mr-2 h-3 w-3" />
                             Despachar Nova OS
@@ -330,22 +353,40 @@ export default function SituationMapClient({
             );
           })}
 
-        {activePin && <Marker position={[activePin.lat, activePin.lng]} icon={makePinIcon('#ef4444')} />}
-        {dispatchPin && <Marker position={[dispatchPin.lat, dispatchPin.lng]} icon={makePinIcon('#3b82f6')} />}
+        {activePin && (
+          <Marker position={[activePin.lat, activePin.lng]} icon={makePinIcon("#ef4444")} />
+        )}
+        {dispatchPin && (
+          <Marker position={[dispatchPin.lat, dispatchPin.lng]} icon={makePinIcon("#3b82f6")} />
+        )}
         {extraMarkers?.map((m, i) => (
-          <Marker key={i} position={[m.lat, m.lng]} icon={makeDotIcon(m.color || '#f59e0b')}>
-            {m.tooltip && <Popup><span className="text-xs">{m.tooltip}</span></Popup>}
+          <Marker key={i} position={[m.lat, m.lng]} icon={makeDotIcon(m.color || "#f59e0b")}>
+            {m.tooltip && (
+              <Popup>
+                <span className="text-xs">{m.tooltip}</span>
+              </Popup>
+            )}
           </Marker>
         ))}
       </MapContainer>
 
       {/* HUD */}
       <div className="absolute top-3 right-14 z-[1000] glass rounded-lg px-2.5 py-1.5 text-[10px] mono text-muted-foreground flex items-center gap-2 pointer-events-none">
-        <svg className="h-3.5 w-3.5 text-command" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <svg
+          className="h-3.5 w-3.5 text-command"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        >
           <circle cx="12" cy="12" r="10" />
           <path d="M16.24 7.76l-2.12 6.36-6.36 2.12 2.12-6.36 6.36-2.12z" />
         </svg>
-        <span>LAT {coords.lat.toFixed(2)}° · LNG {coords.lng.toFixed(2)}°</span>
+        <span>
+          LAT {coords.lat.toFixed(2)}° · LNG {coords.lng.toFixed(2)}°
+        </span>
         <span className="text-border">|</span>
         <span>ZOOM {coords.zoom.toFixed(1)}</span>
       </div>
@@ -354,42 +395,43 @@ export default function SituationMapClient({
       {!hideEvents && (
         <button
           type="button"
-          onClick={() => setShowFocos(v => !v)}
+          onClick={() => setShowFocos((v) => !v)}
           className={`absolute bottom-14 left-3 z-[1000] px-3 py-1.5 rounded-lg text-[11px] font-semibold border transition-colors ${
             showFocos
-              ? 'bg-red-600 border-red-700 text-white'
-              : 'glass border-slate-700 text-slate-300 hover:bg-slate-800/60'
+              ? "bg-red-600 border-red-700 text-white"
+              : "glass border-slate-700 text-slate-300 hover:bg-slate-800/60"
           }`}
         >
-          {showFocos ? '🔥 Ocultar Focos Individuais' : '🔥 Mostrar Focos Individuais'}
+          {showFocos ? "🔥 Ocultar Focos Individuais" : "🔥 Mostrar Focos Individuais"}
         </button>
       )}
 
       {/* Legend */}
       {!hideEvents && (
         <div className="absolute bottom-3 left-3 z-[1000] glass rounded-lg px-2.5 py-2 text-[10px] mono space-y-1">
-          {legendItems.map(item => {
+          {legendItems.map((item) => {
             const isActive = activeRisks[item.id];
             return (
               <button
                 type="button"
                 key={item.id}
-                onClick={() => setActiveRisks(prev => ({ ...prev, [item.id]: !prev[item.id] }))}
+                onClick={() => setActiveRisks((prev) => ({ ...prev, [item.id]: !prev[item.id] }))}
                 className="flex items-center gap-2 w-full text-left hover:opacity-80 transition-opacity"
                 style={{ opacity: isActive ? 1 : 0.4 }}
               >
                 <span
                   className="h-2 w-2 rounded-full flex-shrink-0"
-                  style={{ background: item.color, boxShadow: isActive ? `0 0 6px ${item.color}88` : 'none' }}
+                  style={{
+                    background: item.color,
+                    boxShadow: isActive ? `0 0 6px ${item.color}88` : "none",
+                  }}
                 />
-                <span className={isActive ? 'text-slate-200' : 'text-slate-500'}>{item.label}</span>
+                <span className={isActive ? "text-slate-200" : "text-slate-500"}>{item.label}</span>
               </button>
             );
           })}
         </div>
       )}
-
-    
     </div>
   );
 }

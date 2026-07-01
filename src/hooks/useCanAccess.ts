@@ -1,5 +1,5 @@
-import { useAuth } from '../contexts/AuthContext';
-import { canAccess, type Resource, type Action } from '../lib/roles';
+import { useAuth } from "../contexts/AuthContext";
+import { canAccess, type Resource, type Action } from "../lib/roles";
 
 export function useCanAccess(resource: Resource, action: Action): boolean {
   const { role } = useAuth();

@@ -1,29 +1,31 @@
-import { useAuth } from '../../contexts/AuthContext';
-import { ShieldAlert, Map, Route, TreePine, Flame } from 'lucide-react';
-import { Button } from '@/components/ui/button';
+import { useAuth } from "../../contexts/AuthContext";
+import { ShieldAlert, Map, Route, TreePine, Flame } from "lucide-react";
+import { Button } from "@/components/ui/button";
 
 export function LandingPage() {
   const { login } = useAuth();
 
   return (
     <div className="min-h-screen bg-[#0B1220] flex flex-col items-center justify-center text-white relative overflow-hidden">
-      
       {/* Background Decorators */}
       <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-[#2196F3]/10 rounded-full blur-[120px] -z-10 pointer-events-none" />
       <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-orange-500/10 rounded-full blur-[120px] -z-10 pointer-events-none" />
 
       {/* Main Content */}
       <div className="max-w-4xl w-full px-6 text-center space-y-12">
-        
         {/* Logo and Title */}
         <div className="space-y-6">
           <div className="relative inline-flex items-center justify-center">
             <div className="absolute inset-0 bg-gradient-to-tr from-blue-600 to-cyan-500 blur-3xl opacity-20 rounded-full animate-pulse" />
             <div className="relative">
-              <img src="/icone_fortivus_oficial.png" alt="Fortivus Logo" className="w-40 h-40 object-contain drop-shadow-2xl" />
+              <img
+                src="/icone_fortivus_oficial.png"
+                alt="Fortivus Logo"
+                className="w-40 h-40 object-contain drop-shadow-2xl"
+              />
             </div>
           </div>
-          
+
           <div className="space-y-4">
             <h1 className="text-5xl sm:text-7xl font-extrabold tracking-tight font-display">
               FORTIVUS
@@ -64,8 +66,8 @@ export function LandingPage() {
 
         {/* Login Action */}
         <div className="pt-4">
-          <Button 
-            size="lg" 
+          <Button
+            size="lg"
             onClick={() => login()}
             className="h-14 px-10 text-lg font-bold tracking-wide bg-gradient-to-r from-blue-600 to-[#0F172A] hover:from-blue-500 hover:to-[#1E293B] border border-blue-500/30 text-white shadow-[0_0_20px_rgba(33,150,243,0.3)] hover:shadow-[0_0_30px_rgba(33,150,243,0.5)] transition-all duration-300 hover:-translate-y-1"
           >
@@ -75,7 +77,6 @@ export function LandingPage() {
             Acesso restrito a usuários autorizados do sistema FORTIVUS.
           </p>
         </div>
-
       </div>
     </div>
   );

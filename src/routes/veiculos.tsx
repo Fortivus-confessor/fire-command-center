@@ -1,8 +1,19 @@
-import { createFileRoute } from '@tanstack/react-router';
-import { useState } from 'react';
-import { Plus, Search, Pencil, Trash2, Truck, Filter, ChevronLeft, ChevronRight, Eye, X } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
+import { createFileRoute } from "@tanstack/react-router";
+import { useState } from "react";
+import {
+  Plus,
+  Search,
+  Pencil,
+  Trash2,
+  Truck,
+  Filter,
+  ChevronLeft,
+  ChevronRight,
+  Eye,
+  X,
+} from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import {
   Table,
   TableBody,
@@ -10,8 +21,8 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from '@/components/ui/table';
-import { Badge } from '@/components/ui/badge';
+} from "@/components/ui/table";
+import { Badge } from "@/components/ui/badge";
 import {
   Dialog,
   DialogContent,
@@ -19,7 +30,7 @@ import {
   DialogTitle,
   DialogFooter,
   DialogDescription,
-} from '@/components/ui/dialog';
+} from "@/components/ui/dialog";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -29,17 +40,17 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-} from '@/components/ui/alert-dialog';
-import { Label } from '@/components/ui/label';
+} from "@/components/ui/alert-dialog";
+import { Label } from "@/components/ui/label";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '@/components/ui/select';
+} from "@/components/ui/select";
 
-export const Route = createFileRoute('/veiculos')({
+export const Route = createFileRoute("/veiculos")({
   component: VeiculosPage,
 });
 
@@ -49,102 +60,113 @@ interface Veiculo {
   identificador: string;
   prefixo: string;
   modelo: string;
-  tipo: 'TERRESTRE' | 'AEREO' | 'MAQUINARIO' | 'AQUATICO';
-  categoria?: 'TERRESTRE' | 'AEREO' | 'MAQUINARIO' | 'AQUATICO';
-  contrato: 'Locado' | 'Órgão de Apoio' | 'Próprio';
+  tipo: "TERRESTRE" | "AEREO" | "MAQUINARIO" | "AQUATICO";
+  categoria?: "TERRESTRE" | "AEREO" | "MAQUINARIO" | "AQUATICO";
+  contrato: "Locado" | "Órgão de Apoio" | "Próprio";
   fotoUrl?: string;
   centroComandoId?: string;
 }
 
 const emptyForm = {
-  identificador: '',
-  prefixo: '',
-  modelo: '',
-  tipo: '' as any,
-  contrato: '' as any,
+  identificador: "",
+  prefixo: "",
+  modelo: "",
+  tipo: "" as any,
+  contrato: "" as any,
   fotoArquivo: null as File | null,
-  centroComando: '',
+  centroComando: "",
 };
 
 // ── Helpers ────────────────────────────────────────────
 function tipoBadge(t: string) {
   switch (t) {
-    case 'TERRESTRE': return <Badge className="bg-success/20 text-success border-success/30">Terrestre</Badge>;
-    case 'AEREO': return <Badge className="bg-command/20 text-command border-command/30">Aéreo</Badge>;
-    case 'MAQUINARIO': return <Badge className="bg-warning/20 text-warning border-warning/30">Maquinário</Badge>;
-    case 'AQUATICO': return <Badge className="bg-info/20 text-info border-info/30 text-blue-400">Aquático</Badge>;
-    default: return <Badge variant="secondary">{t}</Badge>;
+    case "TERRESTRE":
+      return <Badge className="bg-success/20 text-success border-success/30">Terrestre</Badge>;
+    case "AEREO":
+      return <Badge className="bg-command/20 text-command border-command/30">Aéreo</Badge>;
+    case "MAQUINARIO":
+      return <Badge className="bg-warning/20 text-warning border-warning/30">Maquinário</Badge>;
+    case "AQUATICO":
+      return <Badge className="bg-info/20 text-info border-info/30 text-blue-400">Aquático</Badge>;
+    default:
+      return <Badge variant="secondary">{t}</Badge>;
   }
 }
 
 function contratoBadge(c: string) {
   switch (c) {
-    case 'Próprio': return <Badge className="bg-command/20 text-command border-command/30">{c}</Badge>;
-    case 'Locado': return <Badge className="bg-warning/20 text-warning border-warning/30">{c}</Badge>;
-    case 'Órgão de Apoio': return <Badge className="bg-info/20 text-info border-info/30 text-blue-400">{c}</Badge>;
-    default: return <Badge variant="secondary">{c}</Badge>;
+    case "Próprio":
+      return <Badge className="bg-command/20 text-command border-command/30">{c}</Badge>;
+    case "Locado":
+      return <Badge className="bg-warning/20 text-warning border-warning/30">{c}</Badge>;
+    case "Órgão de Apoio":
+      return <Badge className="bg-info/20 text-info border-info/30 text-blue-400">{c}</Badge>;
+    default:
+      return <Badge variant="secondary">{c}</Badge>;
   }
 }
 
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { fetchWithAuth } from '../lib/api';
-import { useCanAccess } from '../hooks/useCanAccess';
-import { useAuth } from '../contexts/AuthContext';
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { fetchWithAuth } from "../lib/api";
+import { useCanAccess } from "../hooks/useCanAccess";
+import { useAuth } from "../contexts/AuthContext";
 
 // ── Page Component ─────────────────────────────────────
 function VeiculosPage() {
   const queryClient = useQueryClient();
-  const canManage = useCanAccess('veiculos', 'edit');
+  const canManage = useCanAccess("veiculos", "edit");
   const { role, user } = useAuth();
 
   const { data: veiculosData = [], isLoading } = useQuery<Veiculo[]>({
-    queryKey: ['veiculos'],
-    queryFn: () => fetchWithAuth('/ativos/frota')
+    queryKey: ["veiculos"],
+    queryFn: () => fetchWithAuth("/ativos/frota"),
   });
 
   const { data: centrosDeComandoDB = [] } = useQuery<any[]>({
-    queryKey: ['centros-comando'],
-    queryFn: () => fetchWithAuth('/admin/centros'),
+    queryKey: ["centros-comando"],
+    queryFn: () => fetchWithAuth("/admin/centros"),
   });
 
   const saveMutation = useMutation({
     mutationFn: async (veiculo: any) => {
       if (veiculo.removeExistingPhoto && veiculo.id) {
-        await fetchWithAuth(`/ativos/frota/${veiculo.id}/foto`, { method: 'DELETE' }).catch(console.error);
+        await fetchWithAuth(`/ativos/frota/${veiculo.id}/foto`, { method: "DELETE" }).catch(
+          console.error,
+        );
       }
 
       const formData = new FormData();
-      if (veiculo.id) formData.append('id', veiculo.id);
-      formData.append('identificador', veiculo.identificador);
-      formData.append('prefixo', veiculo.tipo === 'TERRESTRE' ? (veiculo.prefixo || '') : '');
-      formData.append('modelo', veiculo.modelo);
-      formData.append('categoria', veiculo.tipo);
+      if (veiculo.id) formData.append("id", veiculo.id);
+      formData.append("identificador", veiculo.identificador);
+      formData.append("prefixo", veiculo.tipo === "TERRESTRE" ? veiculo.prefixo || "" : "");
+      formData.append("modelo", veiculo.modelo);
+      formData.append("categoria", veiculo.tipo);
       if (veiculo.contrato) {
-        formData.append('contrato', veiculo.contrato);
+        formData.append("contrato", veiculo.contrato);
       }
-      if (veiculo.centroComando && veiculo.centroComando !== 'Nenhum') {
-        formData.append('centroComandoId', veiculo.centroComando);
+      if (veiculo.centroComando && veiculo.centroComando !== "Nenhum") {
+        formData.append("centroComandoId", veiculo.centroComando);
       }
       if (veiculo.fotoArquivo) {
-        formData.append('fotoArquivo', veiculo.fotoArquivo);
+        formData.append("fotoArquivo", veiculo.fotoArquivo);
       }
-      
-      return fetchWithAuth('/ativos/frota', {
-        method: 'POST',
+
+      return fetchWithAuth("/ativos/frota", {
+        method: "POST",
         body: formData,
       });
     },
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['veiculos'] })
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["veiculos"] }),
   });
 
   const deleteMutation = useMutation({
-    mutationFn: (id: string) => fetchWithAuth(`/ativos/frota/${id}`, { method: 'DELETE' }),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['veiculos'] })
+    mutationFn: (id: string) => fetchWithAuth(`/ativos/frota/${id}`, { method: "DELETE" }),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["veiculos"] }),
   });
 
-  const [search, setSearch] = useState('');
-  const [filterTipo, setFilterTipo] = useState('all');
-  const [filterContrato, setFilterContrato] = useState('all');
+  const [search, setSearch] = useState("");
+  const [filterTipo, setFilterTipo] = useState("all");
+  const [filterContrato, setFilterContrato] = useState("all");
 
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingItem, setEditingItem] = useState<Veiculo | null>(null);
@@ -169,13 +191,13 @@ function VeiculosPage() {
   }
 
   const { data: todosUsuarios = [] } = useQuery<any[]>({
-    queryKey: ['usuarios'],
-    queryFn: () => fetchWithAuth('/admin/usuarios')
+    queryKey: ["usuarios"],
+    queryFn: () => fetchWithAuth("/admin/usuarios"),
   });
 
   const currentUser = todosUsuarios.find((u: any) => u.email === user?.email);
-  const myCentroComandoId = currentUser?.centroComandoId ? String(currentUser.centroComandoId) : '';
-  const isCentroComando = role === 'CENTRO_COMANDO';
+  const myCentroComandoId = currentUser?.centroComandoId ? String(currentUser.centroComandoId) : "";
+  const isCentroComando = role === "CENTRO_COMANDO";
 
   const filtered = veiculosData.filter((item: any) => {
     // CC restriction
@@ -184,14 +206,14 @@ function VeiculosPage() {
     }
     // Adapter do backend (categoria -> tipo)
     const tipoItem = item.categoria || item.tipo;
-    const contratoItem = item.contrato || 'Próprio';
+    const contratoItem = item.contrato || "Próprio";
     const matchSearch =
       !search ||
       (item.identificador && item.identificador.toLowerCase().includes(search.toLowerCase())) ||
       (item.modelo && item.modelo.toLowerCase().includes(search.toLowerCase())) ||
       (item.prefixo && item.prefixo.toLowerCase().includes(search.toLowerCase()));
-    const matchTipo = filterTipo === 'all' || tipoItem === filterTipo;
-    const matchContrato = filterContrato === 'all' || contratoItem === filterContrato;
+    const matchTipo = filterTipo === "all" || tipoItem === filterTipo;
+    const matchContrato = filterContrato === "all" || contratoItem === filterContrato;
     return matchSearch && matchTipo && matchContrato;
   });
 
@@ -202,7 +224,7 @@ function VeiculosPage() {
 
   function openNew() {
     setEditingItem(null);
-    setForm({ ...emptyForm, centroComando: isCentroComando ? myCentroComandoId : '' });
+    setForm({ ...emptyForm, centroComando: isCentroComando ? myCentroComandoId : "" });
     setPreviewUrl(null);
     setRemoveExistingPhoto(false);
     setFormError(null);
@@ -213,13 +235,13 @@ function VeiculosPage() {
   function openEdit(item: any) {
     setEditingItem(item);
     setForm({
-      identificador: item.identificador || '',
-      prefixo: item.prefixo || '',
-      modelo: item.modelo || '',
-      tipo: item.categoria || item.tipo || '',
-      contrato: item.contrato || '',
+      identificador: item.identificador || "",
+      prefixo: item.prefixo || "",
+      modelo: item.modelo || "",
+      tipo: item.categoria || item.tipo || "",
+      contrato: item.contrato || "",
       fotoArquivo: null,
-      centroComando: item.centroComandoId || '',
+      centroComando: item.centroComandoId || "",
     });
     setPreviewUrl(item.fotoUrl || null);
     setRemoveExistingPhoto(false);
@@ -234,27 +256,32 @@ function VeiculosPage() {
     const newErrors: Record<string, string> = {};
 
     if (!form.tipo) newErrors.tipo = "Selecione o tipo.";
-    if (!form.centroComando || form.centroComando === 'Nenhum') newErrors.centroComando = "Selecione o centro de comando.";
+    if (!form.centroComando || form.centroComando === "Nenhum")
+      newErrors.centroComando = "Selecione o centro de comando.";
     if (!form.identificador) newErrors.identificador = "Informe o identificador.";
-    if (form.tipo === 'TERRESTRE' && !form.prefixo) newErrors.prefixo = "Informe o prefixo.";
+    if (form.tipo === "TERRESTRE" && !form.prefixo) newErrors.prefixo = "Informe o prefixo.";
     if (!form.modelo) newErrors.modelo = "Informe o modelo.";
     if (!form.contrato) newErrors.contrato = "Selecione o contrato.";
 
-    const identificadorExiste = veiculosData.some((v: any) => v.identificador.toLowerCase() === form.identificador?.toLowerCase() && v.id !== editingItem?.id);
+    const identificadorExiste = veiculosData.some(
+      (v: any) =>
+        v.identificador.toLowerCase() === form.identificador?.toLowerCase() &&
+        v.id !== editingItem?.id,
+    );
     if (identificadorExiste) {
       newErrors.identificador = "Já existe um veículo cadastrado com este identificador.";
     }
 
     if (Object.keys(newErrors).length > 0) {
       setErrors(newErrors);
-      setFormError('Por favor, corrija os erros destacados abaixo.');
+      setFormError("Por favor, corrija os erros destacados abaixo.");
       return;
     }
 
     saveMutation.mutate({
       id: editingItem?.id,
       removeExistingPhoto,
-      ...form
+      ...form,
     });
     setDialogOpen(false);
   }
@@ -286,10 +313,10 @@ function VeiculosPage() {
           </p>
         </div>
         {(canManage || isCentroComando) && (
-        <Button onClick={openNew} className="bg-fire hover:bg-fire/90 text-white">
-          <Plus className="h-4 w-4 mr-2" />
-          Novo Veículo
-        </Button>
+          <Button onClick={openNew} className="bg-fire hover:bg-fire/90 text-white">
+            <Plus className="h-4 w-4 mr-2" />
+            Novo Veículo
+          </Button>
         )}
       </div>
 
@@ -359,12 +386,16 @@ function VeiculosPage() {
                     <TableCell className="font-medium">
                       <div className="flex items-center gap-2">
                         {item.fotoUrl && (
-                          <div 
+                          <div
                             className="w-8 h-8 rounded-full overflow-hidden border border-border cursor-pointer hover:ring-2 hover:ring-primary transition shrink-0"
                             onClick={() => openImageModal(item.fotoUrl as string)}
                             title="Ver imagem grande"
                           >
-                            <img src={item.fotoUrl} alt="Foto" className="w-full h-full object-cover" />
+                            <img
+                              src={item.fotoUrl}
+                              alt="Foto"
+                              className="w-full h-full object-cover"
+                            />
                           </div>
                         )}
                         {!item.fotoUrl && (
@@ -375,24 +406,43 @@ function VeiculosPage() {
                         {item.identificador}
                       </div>
                     </TableCell>
-                    <TableCell className="mono">{ (item.categoria || item.tipo) === 'TERRESTRE' ? (item.prefixo || '-') : '-'}</TableCell>
+                    <TableCell className="mono">
+                      {(item.categoria || item.tipo) === "TERRESTRE" ? item.prefixo || "-" : "-"}
+                    </TableCell>
                     <TableCell>{item.modelo}</TableCell>
                     <TableCell>{tipoBadge(item.categoria || item.tipo)}</TableCell>
-                    <TableCell>{contratoBadge(item.contrato || 'Próprio')}</TableCell>
+                    <TableCell>{contratoBadge(item.contrato || "Próprio")}</TableCell>
                     <TableCell className="text-right">
                       <div className="flex justify-end gap-1">
-                        <Button variant="ghost" size="icon" onClick={() => openView(item)} className="h-8 w-8 hover:text-primary">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => openView(item)}
+                          className="h-8 w-8 hover:text-primary"
+                        >
                           <Eye className="h-4 w-4" />
                         </Button>
-                        {(canManage || (isCentroComando && String(item.centroComandoId) === myCentroComandoId)) && (
-                        <>
-                        <Button variant="ghost" size="icon" onClick={() => openEdit(item)} className="h-8 w-8 hover:text-command">
-                          <Pencil className="h-4 w-4" />
-                        </Button>
-                        <Button variant="ghost" size="icon" onClick={() => confirmDelete(item.id)} className="h-8 w-8 hover:text-destructive">
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                        </>
+                        {(canManage ||
+                          (isCentroComando &&
+                            String(item.centroComandoId) === myCentroComandoId)) && (
+                          <>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => openEdit(item)}
+                              className="h-8 w-8 hover:text-command"
+                            >
+                              <Pencil className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => confirmDelete(item.id)}
+                              className="h-8 w-8 hover:text-destructive"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </>
                         )}
                       </div>
                     </TableCell>
@@ -402,22 +452,26 @@ function VeiculosPage() {
             </TableBody>
           </Table>
         </div>
-        
-              </div>
+      </div>
 
       {/* Create/Edit Dialog */}
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
         <DialogContent className="glass-strong sm:max-w-[800px] max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>{editingItem ? 'Editar Veículo' : 'Novo Veículo'}</DialogTitle>
+            <DialogTitle>{editingItem ? "Editar Veículo" : "Novo Veículo"}</DialogTitle>
             <DialogDescription>
-              {editingItem ? 'Atualize os dados do veículo.' : 'Preencha os dados para cadastrar um novo veículo.'}
+              {editingItem
+                ? "Atualize os dados do veículo."
+                : "Preencha os dados para cadastrar um novo veículo."}
             </DialogDescription>
           </DialogHeader>
           <div className="grid gap-4 py-4">
             <div className="space-y-2">
               <Label className={errors.tipo ? "text-destructive" : ""}>Tipo *</Label>
-              <Select value={form.tipo} onValueChange={(v) => setForm({ ...form, tipo: v as Veiculo['tipo'] })}>
+              <Select
+                value={form.tipo}
+                onValueChange={(v) => setForm({ ...form, tipo: v as Veiculo["tipo"] })}
+              >
                 <SelectTrigger className={errors.tipo ? "border-destructive" : ""}>
                   <SelectValue placeholder="Selecione um tipo" />
                 </SelectTrigger>
@@ -431,23 +485,38 @@ function VeiculosPage() {
               {errors.tipo && <p className="text-xs text-destructive">{errors.tipo}</p>}
             </div>
             <div className="space-y-2">
-              <Label className={errors.centroComando ? "text-destructive" : ""}>Centro de Comando *</Label>
-              <Select disabled={isCentroComando} value={form.centroComando} onValueChange={(v) => setForm({ ...form, centroComando: v })}>
+              <Label className={errors.centroComando ? "text-destructive" : ""}>
+                Centro de Comando *
+              </Label>
+              <Select
+                disabled={isCentroComando}
+                value={form.centroComando}
+                onValueChange={(v) => setForm({ ...form, centroComando: v })}
+              >
                 <SelectTrigger className={errors.centroComando ? "border-destructive" : ""}>
                   <SelectValue placeholder="Selecione um centro" />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="Nenhum">Nenhum</SelectItem>
                   {centrosDeComandoDB.map((cc: any) => (
-                    <SelectItem key={cc.id} value={String(cc.id)}>{cc.nome}</SelectItem>
+                    <SelectItem key={cc.id} value={String(cc.id)}>
+                      {cc.nome}
+                    </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
-              {errors.centroComando && <p className="text-xs text-destructive">{errors.centroComando}</p>}
+              {errors.centroComando && (
+                <p className="text-xs text-destructive">{errors.centroComando}</p>
+              )}
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="identificador" className={errors.identificador ? "text-destructive" : ""}>Identificador (Placa/Código) *</Label>
+                <Label
+                  htmlFor="identificador"
+                  className={errors.identificador ? "text-destructive" : ""}
+                >
+                  Identificador (Placa/Código) *
+                </Label>
                 <Input
                   id="identificador"
                   value={form.identificador}
@@ -455,11 +524,15 @@ function VeiculosPage() {
                   placeholder="Ex: ABC-1D23"
                   className={"mono " + (errors.identificador ? "border-destructive" : "")}
                 />
-                {errors.identificador && <p className="text-xs text-destructive">{errors.identificador}</p>}
+                {errors.identificador && (
+                  <p className="text-xs text-destructive">{errors.identificador}</p>
+                )}
               </div>
-              {form.tipo === 'TERRESTRE' && (
+              {form.tipo === "TERRESTRE" && (
                 <div className="space-y-2">
-                  <Label htmlFor="prefixo" className={errors.prefixo ? "text-destructive" : ""}>Prefixo *</Label>
+                  <Label htmlFor="prefixo" className={errors.prefixo ? "text-destructive" : ""}>
+                    Prefixo *
+                  </Label>
                   <Input
                     id="prefixo"
                     value={form.prefixo}
@@ -473,7 +546,9 @@ function VeiculosPage() {
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="modelo" className={errors.modelo ? "text-destructive" : ""}>Modelo *</Label>
+                <Label htmlFor="modelo" className={errors.modelo ? "text-destructive" : ""}>
+                  Modelo *
+                </Label>
                 <Input
                   id="modelo"
                   value={form.modelo}
@@ -485,7 +560,10 @@ function VeiculosPage() {
               </div>
               <div className="space-y-2">
                 <Label className={errors.contrato ? "text-destructive" : ""}>Contrato *</Label>
-                <Select value={form.contrato} onValueChange={(v) => setForm({ ...form, contrato: v as Veiculo['contrato'] })}>
+                <Select
+                  value={form.contrato}
+                  onValueChange={(v) => setForm({ ...form, contrato: v as Veiculo["contrato"] })}
+                >
                   <SelectTrigger className={errors.contrato ? "border-destructive" : ""}>
                     <SelectValue placeholder="Selecione um contrato" />
                   </SelectTrigger>
@@ -505,9 +583,9 @@ function VeiculosPage() {
                   <div className="relative w-32 h-32 rounded-lg border border-border overflow-hidden shrink-0 group">
                     <img src={previewUrl} alt="Preview" className="w-full h-full object-cover" />
                     <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition flex items-center justify-center">
-                      <Button 
-                        variant="destructive" 
-                        size="icon" 
+                      <Button
+                        variant="destructive"
+                        size="icon"
                         className="h-8 w-8"
                         onClick={() => {
                           setPreviewUrl(null);
@@ -529,8 +607,8 @@ function VeiculosPage() {
                       const file = e.target.files?.[0];
                       if (file) {
                         if (file.size > 10 * 1024 * 1024) {
-                          alert('A imagem deve ter no máximo 10MB.');
-                          e.target.value = '';
+                          alert("A imagem deve ter no máximo 10MB.");
+                          e.target.value = "";
                           return;
                         }
                         setForm({ ...form, fotoArquivo: file });
@@ -540,21 +618,22 @@ function VeiculosPage() {
                     }}
                   />
                   <p className="text-xs text-muted-foreground mt-2">
-                    {previewUrl ? 'Selecione outra imagem para substituir.' : 'Selecione uma imagem para o veículo.'}
+                    {previewUrl
+                      ? "Selecione outra imagem para substituir."
+                      : "Selecione uma imagem para o veículo."}
                   </p>
                 </div>
               </div>
             </div>
-            
-            {formError && (
-              <div className="text-sm text-destructive mt-2">{formError}</div>
-            )}
 
+            {formError && <div className="text-sm text-destructive mt-2">{formError}</div>}
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setDialogOpen(false)}>Cancelar</Button>
+            <Button variant="outline" onClick={() => setDialogOpen(false)}>
+              Cancelar
+            </Button>
             <Button onClick={handleSave} className="bg-fire hover:bg-fire/90 text-white">
-              {editingItem ? 'Salvar Alterações' : 'Criar Veículo'}
+              {editingItem ? "Salvar Alterações" : "Criar Veículo"}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -570,7 +649,11 @@ function VeiculosPage() {
             <div className="space-y-4">
               {viewingItem.fotoUrl && (
                 <div className="w-full h-48 rounded-lg overflow-hidden border border-border">
-                  <img src={viewingItem.fotoUrl} alt="Veículo" className="w-full h-full object-cover" />
+                  <img
+                    src={viewingItem.fotoUrl}
+                    alt="Veículo"
+                    className="w-full h-full object-cover"
+                  />
                 </div>
               )}
               <div className="grid grid-cols-2 gap-4">
@@ -584,7 +667,11 @@ function VeiculosPage() {
                 </div>
                 <div>
                   <p className="text-sm text-muted-foreground">Prefixo</p>
-                  <p className="font-medium">{(viewingItem.categoria || viewingItem.tipo) === 'TERRESTRE' ? (viewingItem.prefixo || '-') : '-'}</p>
+                  <p className="font-medium">
+                    {(viewingItem.categoria || viewingItem.tipo) === "TERRESTRE"
+                      ? viewingItem.prefixo || "-"
+                      : "-"}
+                  </p>
                 </div>
                 <div>
                   <p className="text-sm text-muted-foreground">Tipo</p>
@@ -592,7 +679,7 @@ function VeiculosPage() {
                 </div>
                 <div>
                   <p className="text-sm text-muted-foreground">Contrato</p>
-                  <div>{contratoBadge(viewingItem.contrato || 'Próprio')}</div>
+                  <div>{contratoBadge(viewingItem.contrato || "Próprio")}</div>
                 </div>
               </div>
             </div>
@@ -604,7 +691,11 @@ function VeiculosPage() {
       <Dialog open={imageModalOpen} onOpenChange={setImageModalOpen}>
         <DialogContent className="sm:max-w-[700px] p-1 bg-black/90 border-none flex justify-center items-center">
           {imageModalUrl && (
-             <img src={imageModalUrl} alt="Veículo Ampliado" className="max-w-full max-h-[85vh] object-contain rounded-md" />
+            <img
+              src={imageModalUrl}
+              alt="Veículo Ampliado"
+              className="max-w-full max-h-[85vh] object-contain rounded-md"
+            />
           )}
         </DialogContent>
       </Dialog>
@@ -620,7 +711,10 @@ function VeiculosPage() {
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancelar</AlertDialogCancel>
-            <AlertDialogAction onClick={handleDelete} className="bg-destructive hover:bg-destructive/90">
+            <AlertDialogAction
+              onClick={handleDelete}
+              className="bg-destructive hover:bg-destructive/90"
+            >
               Excluir
             </AlertDialogAction>
           </AlertDialogFooter>

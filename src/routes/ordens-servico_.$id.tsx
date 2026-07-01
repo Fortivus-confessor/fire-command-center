@@ -1,10 +1,10 @@
-import { createFileRoute, useNavigate } from '@tanstack/react-router';
-import { useState } from 'react';
-import { ArrowLeft, FileText, Plus, Truck, Pencil, MapPin, Trash2 } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { fetchWithAuth } from '@/lib/api';
-import { Badge } from '@/components/ui/badge';
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { useState } from "react";
+import { ArrowLeft, FileText, Plus, Truck, Pencil, MapPin, Trash2 } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { fetchWithAuth } from "@/lib/api";
+import { Badge } from "@/components/ui/badge";
 import {
   Table,
   TableBody,
@@ -12,9 +12,9 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from '@/components/ui/table';
-import { toast } from 'sonner';
-import { useAuth } from '@/contexts/AuthContext';
+} from "@/components/ui/table";
+import { toast } from "sonner";
+import { useAuth } from "@/contexts/AuthContext";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -24,68 +24,95 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-} from '@/components/ui/alert-dialog';
-import { useCanAccess } from '@/hooks/useCanAccess';
+} from "@/components/ui/alert-dialog";
+import { useCanAccess } from "@/hooks/useCanAccess";
 
-export const Route = createFileRoute('/ordens-servico_/$id')({
+export const Route = createFileRoute("/ordens-servico_/$id")({
   component: OrdemServicoDetalhePage,
 });
 
 function getSmartIdOs(os: any) {
-  if (!os) return '--';
+  if (!os) return "--";
   return os.smartId || `OS${os.id}`;
 }
 
 function formatDateBR(dateStr: string) {
-  if (!dateStr) return '—';
-  return new Date(dateStr).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' });
+  if (!dateStr) return "—";
+  return new Date(dateStr).toLocaleString("pt-BR", { dateStyle: "short", timeStyle: "short" });
 }
 
 function formatStatus(status: string) {
   switch (status) {
-    case 'ABERTA': return 'Aberta';
-    case 'EM_ANDAMENTO': return 'Em Andamento';
-    case 'EM_EXECUCAO': return 'Em Execução';
-    case 'CONCLUIDA': return 'Concluída';
-    case 'CANCELADA': return 'Cancelada';
-    case 'EM_DESLOCAMENTO': return 'Em Deslocamento';
-    case 'EM_COMBATE': return 'Em Combate';
-    case 'EM_RETORNO': return 'Em Retorno';
-    default: return status || 'N/A';
+    case "ABERTA":
+      return "Aberta";
+    case "EM_ANDAMENTO":
+      return "Em Andamento";
+    case "EM_EXECUCAO":
+      return "Em Execução";
+    case "CONCLUIDA":
+      return "Concluída";
+    case "CANCELADA":
+      return "Cancelada";
+    case "EM_DESLOCAMENTO":
+      return "Em Deslocamento";
+    case "EM_COMBATE":
+      return "Em Combate";
+    case "EM_RETORNO":
+      return "Em Retorno";
+    default:
+      return status || "N/A";
   }
 }
 
 function statusBadge(s: string) {
   const display = formatStatus(s);
   switch (s) {
-    case 'ABERTA': return <Badge variant="secondary">{display}</Badge>;
-    case 'EM_ANDAMENTO':
-    case 'EM_EXECUCAO': 
-    case 'EM_DESLOCAMENTO':
-    case 'EM_COMBATE':
-    case 'EM_RETORNO':
-      return <Badge className="bg-amber-500/10 text-amber-500 border-amber-500/30">{display}</Badge>;
-    case 'CONCLUIDA': return <Badge className="bg-emerald-500/10 text-emerald-500 border-emerald-500/30">{display}</Badge>;
-    case 'CANCELADA': return <Badge className="bg-red-500/10 text-red-500 border-red-500/30">{display}</Badge>;
-    default: return <Badge variant="secondary">{display}</Badge>;
+    case "ABERTA":
+      return <Badge variant="secondary">{display}</Badge>;
+    case "EM_ANDAMENTO":
+    case "EM_EXECUCAO":
+    case "EM_DESLOCAMENTO":
+    case "EM_COMBATE":
+    case "EM_RETORNO":
+      return (
+        <Badge className="bg-amber-500/10 text-amber-500 border-amber-500/30">{display}</Badge>
+      );
+    case "CONCLUIDA":
+      return (
+        <Badge className="bg-emerald-500/10 text-emerald-500 border-emerald-500/30">
+          {display}
+        </Badge>
+      );
+    case "CANCELADA":
+      return <Badge className="bg-red-500/10 text-red-500 border-red-500/30">{display}</Badge>;
+    default:
+      return <Badge variant="secondary">{display}</Badge>;
   }
 }
 
 function prioridadeBadge(p: string) {
   switch (p) {
-    case 'P1': return <Badge className="bg-fire/20 text-fire border-fire/30">P1 - Extrema</Badge>;
-    case 'P2': return <Badge className="bg-warning/20 text-warning border-warning/30">P2 - Alta</Badge>;
-    case 'P3': return <Badge className="bg-command/20 text-command border-command/30">P3 - Média</Badge>;
-    default: return <Badge variant="secondary">{p}</Badge>;
+    case "P1":
+      return <Badge className="bg-fire/20 text-fire border-fire/30">P1 - Extrema</Badge>;
+    case "P2":
+      return <Badge className="bg-warning/20 text-warning border-warning/30">P2 - Alta</Badge>;
+    case "P3":
+      return <Badge className="bg-command/20 text-command border-command/30">P3 - Média</Badge>;
+    default:
+      return <Badge variant="secondary">{p}</Badge>;
   }
 }
 
 function categoriaBadge(c: string) {
-  switch(c) {
-    case 'TERRESTRE': return <Badge className="bg-success/20 text-success border-success/30">Terrestre</Badge>;
-    case 'AEREO': return <Badge className="bg-command/20 text-command border-command/30">Aéreo</Badge>;
-    case 'MAQUINARIO': return <Badge className="bg-warning/20 text-warning border-warning/30">Maquinário</Badge>;
-    default: return <Badge variant="secondary">{c || 'N/A'}</Badge>;
+  switch (c) {
+    case "TERRESTRE":
+      return <Badge className="bg-success/20 text-success border-success/30">Terrestre</Badge>;
+    case "AEREO":
+      return <Badge className="bg-command/20 text-command border-command/30">Aéreo</Badge>;
+    case "MAQUINARIO":
+      return <Badge className="bg-warning/20 text-warning border-warning/30">Maquinário</Badge>;
+    default:
+      return <Badge variant="secondary">{c || "N/A"}</Badge>;
   }
 }
 
@@ -94,58 +121,59 @@ function OrdemServicoDetalhePage() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { role, user } = useAuth();
-  const canManage = useCanAccess('ordens-servico', 'edit');
+  const canManage = useCanAccess("ordens-servico", "edit");
 
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
 
   const { data: os, isLoading: loadingOs } = useQuery<any>({
-    queryKey: ['os', id],
-    queryFn: () => fetchWithAuth(`/operacional/os/${id}`)
+    queryKey: ["os", id],
+    queryFn: () => fetchWithAuth(`/operacional/os/${id}`),
   });
 
   const { data: despachosDB = [] } = useQuery<any[]>({
-    queryKey: ['despachos'],
-    queryFn: () => fetchWithAuth('/operacional/despachos')
+    queryKey: ["despachos"],
+    queryFn: () => fetchWithAuth("/operacional/despachos"),
   });
 
   const { data: todasEscalas = [] } = useQuery<any[]>({
-    queryKey: ['escalas'],
-    queryFn: () => fetchWithAuth('/operacional/escalas')
+    queryKey: ["escalas"],
+    queryFn: () => fetchWithAuth("/operacional/escalas"),
   });
 
   const { data: todasEquipes = [] } = useQuery<any[]>({
-    queryKey: ['equipes'],
-    queryFn: () => fetchWithAuth('/admin/equipes')
+    queryKey: ["equipes"],
+    queryFn: () => fetchWithAuth("/admin/equipes"),
   });
 
   const { data: todosUsuarios = [] } = useQuery<any[]>({
-    queryKey: ['usuarios'],
-    queryFn: () => fetchWithAuth('/admin/usuarios')
+    queryKey: ["usuarios"],
+    queryFn: () => fetchWithAuth("/admin/usuarios"),
   });
 
   const { data: centrosDeComandoDB = [] } = useQuery<any[]>({
-    queryKey: ['centros-comando'],
-    queryFn: () => fetchWithAuth('/admin/centros'),
+    queryKey: ["centros-comando"],
+    queryFn: () => fetchWithAuth("/admin/centros"),
   });
 
   const { data: usuariosDB = [] } = useQuery<any[]>({
-    queryKey: ['usuarios'],
-    queryFn: () => fetchWithAuth('/admin/usuarios'),
+    queryKey: ["usuarios"],
+    queryFn: () => fetchWithAuth("/admin/usuarios"),
   });
 
-  const currentUser = usuariosDB.find(u => u.email === user?.email);
-  const myCentroComandoId = currentUser?.centroComandoId ? String(currentUser.centroComandoId) : '';
-  const isCentroComando = role === 'CENTRO_COMANDO';
+  const currentUser = usuariosDB.find((u) => u.email === user?.email);
+  const myCentroComandoId = currentUser?.centroComandoId ? String(currentUser.centroComandoId) : "";
+  const isCentroComando = role === "CENTRO_COMANDO";
 
-  const despachos = despachosDB.filter(d => String(d.ordemServicoId) === String(id));
+  const despachos = despachosDB.filter((d) => String(d.ordemServicoId) === String(id));
 
   const deleteMutation = useMutation({
-    mutationFn: (despachoId: string) => fetchWithAuth(`/operacional/despachos/${despachoId}`, { method: 'DELETE' }),
+    mutationFn: (despachoId: string) =>
+      fetchWithAuth(`/operacional/despachos/${despachoId}`, { method: "DELETE" }),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['despachos'] });
+      queryClient.invalidateQueries({ queryKey: ["despachos"] });
       toast.success("Despacho excluído com sucesso.");
-    }
+    },
   });
 
   function openNewDespacho() {
@@ -176,7 +204,7 @@ function OrdemServicoDetalhePage() {
   return (
     <div className="p-4 sm:p-6 space-y-6 flex flex-col">
       <div className="flex items-center gap-4">
-        <Button variant="outline" size="icon" onClick={() => navigate({ to: '/ordens-servico' })}>
+        <Button variant="outline" size="icon" onClick={() => navigate({ to: "/ordens-servico" })}>
           <ArrowLeft className="h-4 w-4" />
         </Button>
         <div>
@@ -184,9 +212,7 @@ function OrdemServicoDetalhePage() {
             <FileText className="h-6 w-6 text-fire" />
             Detalhes da Ordem de Serviço
           </h1>
-          <p className="text-sm text-muted-foreground mono mt-1">
-            {getSmartIdOs(os)}
-          </p>
+          <p className="text-sm text-muted-foreground mono mt-1">{getSmartIdOs(os)}</p>
         </div>
       </div>
 
@@ -200,19 +226,21 @@ function OrdemServicoDetalhePage() {
             </div>
             <div>
               <span className="text-muted-foreground block mb-1">Prioridade</span>
-              {prioridadeBadge(os.prioridade || 'P2')}
+              {prioridadeBadge(os.prioridade || "P2")}
             </div>
             <div>
               <span className="text-muted-foreground block mb-1">Tipo Despacho</span>
-              <span className="font-medium">{os.tipoDespacho || 'N/A'}</span>
+              <span className="font-medium">{os.tipoDespacho || "N/A"}</span>
             </div>
             <div>
               <span className="text-muted-foreground block mb-1">Evento de Fogo ID</span>
-              <span className="font-medium mono">{os.eventoFogoId || 'Não vinculado'}</span>
+              <span className="font-medium mono">{os.eventoFogoId || "Não vinculado"}</span>
             </div>
             <div className="col-span-2">
               <span className="text-muted-foreground block mb-1">Diretrizes da Missão</span>
-              <p className="bg-secondary/30 p-3 rounded-md text-sm">{os.descricaoTarefa || 'Sem descrição.'}</p>
+              <p className="bg-secondary/30 p-3 rounded-md text-sm">
+                {os.descricaoTarefa || "Sem descrição."}
+              </p>
             </div>
           </div>
         </div>
@@ -232,7 +260,7 @@ function OrdemServicoDetalhePage() {
               <span className="text-muted-foreground block mb-1">Coordenadas (Lat, Lng)</span>
               <div className="flex items-center gap-2 font-mono bg-secondary/30 p-2 rounded-md">
                 <MapPin className="h-4 w-4 text-muted-foreground" />
-                {os.latitude && os.longitude ? `${os.latitude}, ${os.longitude}` : 'Não informado'}
+                {os.latitude && os.longitude ? `${os.latitude}, ${os.longitude}` : "Não informado"}
               </div>
             </div>
           </div>
@@ -245,10 +273,14 @@ function OrdemServicoDetalhePage() {
           Despachos Relacionados
         </h2>
         {(canManage || isCentroComando) && (
-        <Button onClick={openNewDespacho} size="lg" className="bg-fire hover:bg-fire/90 text-white font-semibold">
-          <Plus className="h-5 w-5 mr-2" />
-          Adicionar Despacho
-        </Button>
+          <Button
+            onClick={openNewDespacho}
+            size="lg"
+            className="bg-fire hover:bg-fire/90 text-white font-semibold"
+          >
+            <Plus className="h-5 w-5 mr-2" />
+            Adicionar Despacho
+          </Button>
         )}
       </div>
 
@@ -257,57 +289,72 @@ function OrdemServicoDetalhePage() {
           <div className="min-w-[900px]">
             <Table>
               <TableHeader className="bg-secondary/40">
-            <TableRow>
-              <TableHead>ID</TableHead>
-              <TableHead>Escala / Equipe</TableHead>
-              <TableHead>Responsável</TableHead>
-              <TableHead>Categoria</TableHead>
-              <TableHead>Status</TableHead>
-              <TableHead>Data Início</TableHead>
-              <TableHead className="text-right">Ações</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {despachos.length === 0 ? (
-              <TableRow>
-                <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
-                  Nenhum despacho vinculado a esta OS.
-                </TableCell>
-              </TableRow>
-            ) : (
-              despachos.map(d => {
-                const esc = todasEscalas.find(e => String(e.id) === String(d.escalaId));
-                const responsavel = todosUsuarios.find(u => String(u.id) === String(d.responsavelId));
-                return (
-                  <TableRow key={d.id}>
-                    <TableCell className="mono">{d.smartId || `D${d.id}`}</TableCell>
-                    <TableCell>
-                      <div className="font-medium">{esc?.equipeNome || 'Equipe Desconhecida'} - {esc?.comandanteNome || 'Comandante Desconhecido'}</div>
-                    </TableCell>
-                    <TableCell>{responsavel?.nome || 'Não Atribuído'}</TableCell>
-                    <TableCell>{categoriaBadge(d.categoria)}</TableCell>
-                    <TableCell>{statusBadge(d.status)}</TableCell>
-                    <TableCell>{formatDateBR(d.dataInicio)}</TableCell>
-                    <TableCell className="text-right">
-                      <div className="flex justify-end gap-1">
-                        {(canManage || isCentroComando) && (
-                        <Button variant="ghost" size="icon" onClick={() => openEditDespacho(d)} className="hover:text-command">
-                          <Pencil className="h-4 w-4" />
-                        </Button>
-                        )}
-                        {(canManage || isCentroComando) && (
-                        <Button variant="ghost" size="icon" onClick={() => confirmDelete(d.id)} className="hover:text-destructive">
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                        )}
-                      </div>
+                <TableRow>
+                  <TableHead>ID</TableHead>
+                  <TableHead>Escala / Equipe</TableHead>
+                  <TableHead>Responsável</TableHead>
+                  <TableHead>Categoria</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead>Data Início</TableHead>
+                  <TableHead className="text-right">Ações</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {despachos.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
+                      Nenhum despacho vinculado a esta OS.
                     </TableCell>
                   </TableRow>
-                );
-              })
-              )}
-            </TableBody>
-          </Table>
+                ) : (
+                  despachos.map((d) => {
+                    const esc = todasEscalas.find((e) => String(e.id) === String(d.escalaId));
+                    const responsavel = todosUsuarios.find(
+                      (u) => String(u.id) === String(d.responsavelId),
+                    );
+                    return (
+                      <TableRow key={d.id}>
+                        <TableCell className="mono">{d.smartId || `D${d.id}`}</TableCell>
+                        <TableCell>
+                          <div className="font-medium">
+                            {esc?.equipeNome || "Equipe Desconhecida"} -{" "}
+                            {esc?.comandanteNome || "Comandante Desconhecido"}
+                          </div>
+                        </TableCell>
+                        <TableCell>{responsavel?.nome || "Não Atribuído"}</TableCell>
+                        <TableCell>{categoriaBadge(d.categoria)}</TableCell>
+                        <TableCell>{statusBadge(d.status)}</TableCell>
+                        <TableCell>{formatDateBR(d.dataInicio)}</TableCell>
+                        <TableCell className="text-right">
+                          <div className="flex justify-end gap-1">
+                            {(canManage || isCentroComando) && (
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => openEditDespacho(d)}
+                                className="hover:text-command"
+                              >
+                                <Pencil className="h-4 w-4" />
+                              </Button>
+                            )}
+                            {(canManage || isCentroComando) && (
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => confirmDelete(d.id)}
+                                className="hover:text-destructive"
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            )}
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })
+                )}
+              </TableBody>
+            </Table>
           </div>
         </div>
       </div>
@@ -322,7 +369,10 @@ function OrdemServicoDetalhePage() {
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancelar</AlertDialogCancel>
-            <AlertDialogAction onClick={handleDelete} className="bg-destructive hover:bg-destructive/90">
+            <AlertDialogAction
+              onClick={handleDelete}
+              className="bg-destructive hover:bg-destructive/90"
+            >
               Excluir
             </AlertDialogAction>
           </AlertDialogFooter>

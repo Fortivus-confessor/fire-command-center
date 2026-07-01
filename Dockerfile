@@ -1,4 +1,4 @@
-FROM oven/bun:1
+FROM oven/bun:1 AS builder
 
 WORKDIR /app
 
@@ -7,6 +7,15 @@ RUN bun install
 
 COPY . .
 
-EXPOSE 5173
+# Variaveis injetadas em build-time pelo docker-compose
+ARG VITE_KEYCLOAK_URL
 
-CMD ["bun", "run", "dev", "--host", "0.0.0.0", "--port", "5173"]
+# Build SPA estatica (sem Cloudflare Workers, sem SSR)
+RUN bunx vite build
+
+FROM nginx:alpine
+
+COPY --from=builder /app/dist /usr/share/nginx/html
+COPY nginx.conf /etc/nginx/conf.d/default.conf
+
+EXPOSE 80

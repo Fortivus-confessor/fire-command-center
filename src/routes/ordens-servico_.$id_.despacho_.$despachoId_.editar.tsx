@@ -1,31 +1,37 @@
-import { createFileRoute, useNavigate } from '@tanstack/react-router';
-import { useState, useEffect } from 'react';
-import { Plus, ArrowLeft, Send, MapPin, ArrowRightLeft, Search } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { fetchWithAuth } from '@/lib/api';
-import SituationMapClient from '../components/fortivus/map/SituationMapClient';
-import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { toast } from 'sonner';
-import { useAuth } from '@/contexts/AuthContext';
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { useState, useEffect } from "react";
+import { Plus, ArrowLeft, Send, MapPin, ArrowRightLeft, Search } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { fetchWithAuth } from "@/lib/api";
+import SituationMapClient from "../components/fortivus/map/SituationMapClient";
+import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { toast } from "sonner";
+import { useAuth } from "@/contexts/AuthContext";
 
-export const Route = createFileRoute('/ordens-servico_/$id_/despacho_/$despachoId_/editar')({
+export const Route = createFileRoute("/ordens-servico_/$id_/despacho_/$despachoId_/editar")({
   component: EditarDespachoPage,
 });
 
 const emptyForm = {
-  comando: '',
-  equipe: '',
-  responsavel: '',
-  categoria: '',
-  descricao: '',
-  latLng: '',
-  status: '',
-  dataInicio: '',
-  dataFim: '',
+  comando: "",
+  equipe: "",
+  responsavel: "",
+  categoria: "",
+  descricao: "",
+  latLng: "",
+  status: "",
+  dataInicio: "",
+  dataFim: "",
 };
 
 function EditarDespachoPage() {
@@ -37,22 +43,22 @@ function EditarDespachoPage() {
   const [errors, setErrors] = useState<Record<string, string>>({});
 
   const [isDms, setIsDms] = useState(false);
-  const [latInput, setLatInput] = useState('');
-  const [lngInput, setLngInput] = useState('');
-  const [flyTo, setFlyTo] = useState<{lat: number, lng: number} | null>(null);
+  const [latInput, setLatInput] = useState("");
+  const [lngInput, setLngInput] = useState("");
+  const [flyTo, setFlyTo] = useState<{ lat: number; lng: number } | null>(null);
 
-  const [addressSearch, setAddressSearch] = useState('');
+  const [addressSearch, setAddressSearch] = useState("");
   const [addressResults, setAddressResults] = useState<any[]>([]);
 
   // Carrega OS original para podermos pular para o local dela
   const { data: os } = useQuery<any>({
-    queryKey: ['os', osId],
+    queryKey: ["os", osId],
     queryFn: () => fetchWithAuth(`/operacional/os/${osId}`),
-    enabled: !!osId
+    enabled: !!osId,
   });
 
   const { data: eventoFogo } = useQuery<any>({
-    queryKey: ['fireEvent', os?.eventoFogoId],
+    queryKey: ["fireEvent", os?.eventoFogoId],
     queryFn: async () => {
       if (!os?.eventoFogoId) return null;
       try {
@@ -64,28 +70,31 @@ function EditarDespachoPage() {
       }
     },
     enabled: !!os?.eventoFogoId,
-    retry: false
+    retry: false,
   });
 
   const { data: despachoOriginal } = useQuery<any>({
-    queryKey: ['despacho', despachoId],
+    queryKey: ["despacho", despachoId],
     queryFn: () => fetchWithAuth(`/operacional/despachos/${despachoId}`),
-    enabled: !!despachoId
+    enabled: !!despachoId,
   });
 
   // Pre-fill latitude/longitude if OS has it
   useEffect(() => {
-    if (despachoOriginal && form.equipe === '') {
-      setForm(prev => ({
+    if (despachoOriginal && form.equipe === "") {
+      setForm((prev) => ({
         ...prev,
         equipe: String(despachoOriginal.escalaId),
         responsavel: String(despachoOriginal.responsavelId),
         categoria: despachoOriginal.categoria,
         descricao: despachoOriginal.descricaoTarefa,
         status: despachoOriginal.status,
-        dataInicio: despachoOriginal.dataInicio ? despachoOriginal.dataInicio.slice(0, 16) : '',
-        dataFim: despachoOriginal.dataFim ? despachoOriginal.dataFim.slice(0, 16) : '',
-        latLng: despachoOriginal.latitude && despachoOriginal.longitude ? `${despachoOriginal.latitude.toFixed(6)}, ${despachoOriginal.longitude.toFixed(6)}` : '',
+        dataInicio: despachoOriginal.dataInicio ? despachoOriginal.dataInicio.slice(0, 16) : "",
+        dataFim: despachoOriginal.dataFim ? despachoOriginal.dataFim.slice(0, 16) : "",
+        latLng:
+          despachoOriginal.latitude && despachoOriginal.longitude
+            ? `${despachoOriginal.latitude.toFixed(6)}, ${despachoOriginal.longitude.toFixed(6)}`
+            : "",
       }));
       if (despachoOriginal.latitude && despachoOriginal.longitude) {
         setLatInput(despachoOriginal.latitude.toFixed(6));
@@ -100,9 +109,11 @@ function EditarDespachoPage() {
   useEffect(() => {
     const timer = setTimeout(() => {
       if (addressSearch.length > 2) {
-        fetch(`https://nominatim.openstreetmap.org/search?format=json&countrycodes=br&q=${encodeURIComponent(addressSearch)}`)
-          .then(res => res.json())
-          .then(data => setAddressResults(data || []))
+        fetch(
+          `https://nominatim.openstreetmap.org/search?format=json&countrycodes=br&q=${encodeURIComponent(addressSearch)}`,
+        )
+          .then((res) => res.json())
+          .then((data) => setAddressResults(data || []))
           .catch(console.error);
       } else {
         setAddressResults([]);
@@ -115,7 +126,7 @@ function EditarDespachoPage() {
     const lat = parseFloat(res.lat);
     const lng = parseFloat(res.lon);
     if (!isNaN(lat) && !isNaN(lng)) {
-      setForm(prev => ({ ...prev, latLng: `${lat.toFixed(6)}, ${lng.toFixed(6)}` }));
+      setForm((prev) => ({ ...prev, latLng: `${lat.toFixed(6)}, ${lng.toFixed(6)}` }));
       if (isDms) {
         setLatInput(ddToDms(lat, false));
         setLngInput(ddToDms(lng, true));
@@ -130,73 +141,78 @@ function EditarDespachoPage() {
   }
 
   const { data: centrosDeComandoDB = [] } = useQuery<any[]>({
-    queryKey: ['centros-comando'],
-    queryFn: () => fetchWithAuth('/admin/centros'),
+    queryKey: ["centros-comando"],
+    queryFn: () => fetchWithAuth("/admin/centros"),
   });
 
   const { data: escalasAtivas = [] } = useQuery<any[]>({
-    queryKey: ['escalas-ativas', form.comando],
+    queryKey: ["escalas-ativas", form.comando],
     queryFn: () => fetchWithAuth(`/operacional/escalas/centro/${form.comando}/ativas`),
     enabled: !!form.comando,
   });
 
   const { data: todasEquipes = [] } = useQuery<any[]>({
-    queryKey: ['equipes'],
-    queryFn: () => fetchWithAuth('/admin/equipes')
+    queryKey: ["equipes"],
+    queryFn: () => fetchWithAuth("/admin/equipes"),
   });
 
   const { data: todasEscalas = [] } = useQuery<any[]>({
-    queryKey: ['todas-escalas'],
-    queryFn: () => fetchWithAuth('/operacional/escalas')
+    queryKey: ["todas-escalas"],
+    queryFn: () => fetchWithAuth("/operacional/escalas"),
   });
 
   useEffect(() => {
     if (despachoOriginal && !form.comando && todasEscalas.length > 0 && todasEquipes.length > 0) {
-      const escala = todasEscalas.find((e: any) => String(e.id) === String(despachoOriginal.escalaId));
+      const escala = todasEscalas.find(
+        (e: any) => String(e.id) === String(despachoOriginal.escalaId),
+      );
       if (escala) {
         const equipe = todasEquipes.find((eq: any) => String(eq.id) === String(escala.equipeId));
         if (equipe && equipe.centroComandoId) {
-          setForm(prev => ({ ...prev, comando: String(equipe.centroComandoId) }));
+          setForm((prev) => ({ ...prev, comando: String(equipe.centroComandoId) }));
         }
       }
     }
   }, [despachoOriginal, todasEscalas, todasEquipes, form.comando]);
 
   const { data: todosUsuarios = [] } = useQuery<any[]>({
-    queryKey: ['usuarios'],
-    queryFn: () => fetchWithAuth('/admin/usuarios')
+    queryKey: ["usuarios"],
+    queryFn: () => fetchWithAuth("/admin/usuarios"),
   });
 
   const currentUser = todosUsuarios.find((u: any) => u.email === user?.email);
-  const myCentroComandoId = currentUser?.centroComandoId ? String(currentUser.centroComandoId) : '';
-  const isCentroComando = role === 'CENTRO_COMANDO';
+  const myCentroComandoId = currentUser?.centroComandoId ? String(currentUser.centroComandoId) : "";
+  const isCentroComando = role === "CENTRO_COMANDO";
 
   const { data: todosDespachos = [] } = useQuery<any[]>({
-    queryKey: ['despachos'],
-    queryFn: () => fetchWithAuth('/operacional/despachos')
+    queryKey: ["despachos"],
+    queryFn: () => fetchWithAuth("/operacional/despachos"),
   });
 
-  const isEscalaWorking = form.equipe ? todosDespachos.some(d => 
-    String(d.escalaId) === form.equipe && 
-    String(d.id) !== despachoId &&
-    !['CONCLUIDA', 'CANCELADA'].includes(d.status)
-  ) : false;
+  const isEscalaWorking = form.equipe
+    ? todosDespachos.some(
+        (d) =>
+          String(d.escalaId) === form.equipe &&
+          String(d.id) !== despachoId &&
+          !["CONCLUIDA", "CANCELADA"].includes(d.status),
+      )
+    : false;
 
   async function save() {
     try {
       const newErrors: Record<string, string> = {};
-      if (!form.comando) newErrors.comando = 'Obrigatório';
-      if (!form.equipe) newErrors.equipe = 'Obrigatório';
-      if (!form.responsavel) newErrors.responsavel = 'Obrigatório';
-      if (!form.categoria) newErrors.categoria = 'Obrigatório';
-      if (!form.descricao) newErrors.descricao = 'Obrigatório';
-      if (!form.status) newErrors.status = 'Obrigatório';
-      if (!form.dataInicio) newErrors.dataInicio = 'Obrigatório';
+      if (!form.comando) newErrors.comando = "Obrigatório";
+      if (!form.equipe) newErrors.equipe = "Obrigatório";
+      if (!form.responsavel) newErrors.responsavel = "Obrigatório";
+      if (!form.categoria) newErrors.categoria = "Obrigatório";
+      if (!form.descricao) newErrors.descricao = "Obrigatório";
+      if (!form.status) newErrors.status = "Obrigatório";
+      if (!form.dataInicio) newErrors.dataInicio = "Obrigatório";
 
       const latDD = parseCoordinateToDD(latInput);
       const lngDD = parseCoordinateToDD(lngInput);
       if (isNaN(latDD) || isNaN(lngDD)) {
-        newErrors.latLng = 'Coordenadas inválidas';
+        newErrors.latLng = "Coordenadas inválidas";
       }
 
       if (Object.keys(newErrors).length > 0) {
@@ -216,19 +232,19 @@ function EditarDespachoPage() {
         dataInicio: form.dataInicio ? new Date(form.dataInicio).toISOString() : null,
         dataFim: form.dataFim ? new Date(form.dataFim).toISOString() : null,
         latitude: latDD,
-        longitude: lngDD
+        longitude: lngDD,
       };
 
       const res = await fetchWithAuth(`/operacional/despachos/${despachoId}`, {
-        method: 'PUT',
+        method: "PUT",
         body: JSON.stringify(p),
       });
-      
+
       if (res && res.id) {
         toast.success("Despacho atualizado com sucesso!");
-        queryClient.removeQueries({ queryKey: ['despacho', despachoId] });
-        queryClient.invalidateQueries({ queryKey: ['os', osId] });
-        queryClient.invalidateQueries({ queryKey: ['despachos'] });
+        queryClient.removeQueries({ queryKey: ["despacho", despachoId] });
+        queryClient.invalidateQueries({ queryKey: ["os", osId] });
+        queryClient.invalidateQueries({ queryKey: ["despachos"] });
         navigate({ to: `/ordens-servico/${osId}` as any });
       } else {
         toast.error("Erro ao atualizar Despacho.");
@@ -241,15 +257,18 @@ function EditarDespachoPage() {
 
   function parseCoordinateToDD(coordStr: string): number {
     if (!coordStr) return NaN;
-    if (coordStr.includes('°') || coordStr.includes('\'') || coordStr.includes('"')) {
+    if (coordStr.includes("°") || coordStr.includes("'") || coordStr.includes('"')) {
       const parts = coordStr.match(/(-?\d+)\s*°?\s*(\d+)?\s*'?\s*([\d.]+)?\s*"?\s*([NSWE])?/i);
       if (!parts) return NaN;
-      let dd = parseFloat(parts[1] || '0') + parseFloat(parts[2] || '0') / 60 + parseFloat(parts[3] || '0') / 3600;
+      let dd =
+        parseFloat(parts[1] || "0") +
+        parseFloat(parts[2] || "0") / 60 +
+        parseFloat(parts[3] || "0") / 3600;
       if (parts[4]) {
         const dir = parts[4].toUpperCase();
-        if (dir === 'S' || dir === 'W') dd = -dd;
-      } else if (coordStr.trim().startsWith('-')) {
-         dd = -Math.abs(dd);
+        if (dir === "S" || dir === "W") dd = -dd;
+      } else if (coordStr.trim().startsWith("-")) {
+        dd = -Math.abs(dd);
       }
       return dd;
     } else {
@@ -258,8 +277,8 @@ function EditarDespachoPage() {
   }
 
   function ddToDms(dd: number, isLng: boolean) {
-    if (isNaN(dd)) return '';
-    const dir = dd < 0 ? (isLng ? 'W' : 'S') : (isLng ? 'E' : 'N');
+    if (isNaN(dd)) return "";
+    const dir = dd < 0 ? (isLng ? "W" : "S") : isLng ? "E" : "N";
     const absDd = Math.abs(dd);
     const deg = Math.floor(absDd);
     const min = Math.floor((absDd - deg) * 60);
@@ -270,7 +289,7 @@ function EditarDespachoPage() {
   function toggleFormat() {
     const latDD = parseCoordinateToDD(latInput);
     const lngDD = parseCoordinateToDD(lngInput);
-    
+
     if (isDms) {
       setLatInput(isNaN(latDD) ? latInput : latDD.toFixed(6));
       setLngInput(isNaN(lngDD) ? lngInput : lngDD.toFixed(6));
@@ -286,7 +305,7 @@ function EditarDespachoPage() {
     const latDD = parseCoordinateToDD(latInput);
     const lngDD = parseCoordinateToDD(lngInput);
     if (!isNaN(latDD) && !isNaN(lngDD)) {
-      setForm(prev => ({ ...prev, latLng: `${latDD.toFixed(6)}, ${lngDD.toFixed(6)}` }));
+      setForm((prev) => ({ ...prev, latLng: `${latDD.toFixed(6)}, ${lngDD.toFixed(6)}` }));
       setFlyTo({ lat: latDD, lng: lngDD });
     }
   }
@@ -305,7 +324,11 @@ function EditarDespachoPage() {
   return (
     <div className="p-4 sm:p-6 space-y-6 h-full flex flex-col">
       <div className="flex items-center gap-4">
-        <Button variant="outline" size="icon" onClick={() => navigate({ to: `/ordens-servico/${osId}` as any })}>
+        <Button
+          variant="outline"
+          size="icon"
+          onClick={() => navigate({ to: `/ordens-servico/${osId}` as any })}
+        >
           <ArrowLeft className="h-4 w-4" />
         </Button>
         <div>
@@ -350,16 +373,34 @@ function EditarDespachoPage() {
               const parsedLng = parseCoordinateToDD(lngInput);
               const hasValidPin = !isNaN(parsedLat) && !isNaN(parsedLng);
               return (
-                <SituationMapClient 
-                  selectedId={os?.eventoFogoId} 
-                  isolatedEventId={os?.eventoFogoId || 'NONE_ISOLATED'}
+                <SituationMapClient
+                  selectedId={os?.eventoFogoId}
+                  isolatedEventId={os?.eventoFogoId || "NONE_ISOLATED"}
                   onClickMap={handleMapClick}
                   flyTo={flyTo}
                   activePin={hasValidPin ? { lat: parsedLat, lng: parsedLng } : null}
                   hideEvents={true}
                   extraMarkers={[
-                    ...(os?.latitude && os?.longitude ? [{ lat: os.latitude, lng: os.longitude, color: '#f59e0b', tooltip: 'Local Inicial da OS' }] : []),
-                    ...(eventoFogo?.latitude && eventoFogo?.longitude ? [{ lat: eventoFogo.latitude, lng: eventoFogo.longitude, color: '#f97316', tooltip: 'Evento de Fogo' }] : [])
+                    ...(os?.latitude && os?.longitude
+                      ? [
+                          {
+                            lat: os.latitude,
+                            lng: os.longitude,
+                            color: "#f59e0b",
+                            tooltip: "Local Inicial da OS",
+                          },
+                        ]
+                      : []),
+                    ...(eventoFogo?.latitude && eventoFogo?.longitude
+                      ? [
+                          {
+                            lat: eventoFogo.latitude,
+                            lng: eventoFogo.longitude,
+                            color: "#f97316",
+                            tooltip: "Evento de Fogo",
+                          },
+                        ]
+                      : []),
                   ]}
                 />
               );
@@ -373,18 +414,29 @@ function EditarDespachoPage() {
         {/* Right Side: Form */}
         <div className="glass border border-border p-6 rounded-xl flex flex-col gap-6 overflow-y-auto">
           <div className="space-y-4">
-            <h2 className="text-lg font-semibold border-b border-border pb-2">Informações do Despacho</h2>
-            
+            <h2 className="text-lg font-semibold border-b border-border pb-2">
+              Informações do Despacho
+            </h2>
+
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label className={errors.comando ? "text-red-500" : ""}>Centro de Comando *</Label>
-                <Select disabled={isCentroComando} value={form.comando} onValueChange={(v) => { setForm({ ...form, comando: v, equipe: '', responsavel: '' }); setErrors({...errors, comando: ''}); }}>
+                <Select
+                  disabled={isCentroComando}
+                  value={form.comando}
+                  onValueChange={(v) => {
+                    setForm({ ...form, comando: v, equipe: "", responsavel: "" });
+                    setErrors({ ...errors, comando: "" });
+                  }}
+                >
                   <SelectTrigger className={errors.comando ? "border-red-500" : ""}>
                     <SelectValue placeholder="Selecione o centro..." />
                   </SelectTrigger>
                   <SelectContent>
-                    {centrosDeComandoDB.map(c => (
-                      <SelectItem key={c.id} value={String(c.id)}>{c.nome}</SelectItem>
+                    {centrosDeComandoDB.map((c) => (
+                      <SelectItem key={c.id} value={String(c.id)}>
+                        {c.nome}
+                      </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
@@ -392,13 +444,27 @@ function EditarDespachoPage() {
               </div>
               <div className="space-y-2">
                 <Label className={errors.equipe ? "text-red-500" : ""}>Escala / Equipe *</Label>
-                <Select disabled={!form.comando} value={form.equipe} onValueChange={(v) => { setForm({ ...form, equipe: v, responsavel: '' }); setErrors({...errors, equipe: ''}); }}>
+                <Select
+                  disabled={!form.comando}
+                  value={form.equipe}
+                  onValueChange={(v) => {
+                    setForm({ ...form, equipe: v, responsavel: "" });
+                    setErrors({ ...errors, equipe: "" });
+                  }}
+                >
                   <SelectTrigger className={errors.equipe ? "border-red-500" : ""}>
-                    <SelectValue placeholder={form.comando ? "Selecione..." : "Selecione comando..."} />
+                    <SelectValue
+                      placeholder={form.comando ? "Selecione..." : "Selecione comando..."}
+                    />
                   </SelectTrigger>
                   <SelectContent>
-                    {escalasAtivas.map(e => {
-                      return <SelectItem key={e.id} value={String(e.id)}>{e.equipeNome || 'Desconhecida'} - {e.comandanteNome || 'Comandante Desconhecido'}</SelectItem>;
+                    {escalasAtivas.map((e) => {
+                      return (
+                        <SelectItem key={e.id} value={String(e.id)}>
+                          {e.equipeNome || "Desconhecida"} -{" "}
+                          {e.comandanteNome || "Comandante Desconhecido"}
+                        </SelectItem>
+                      );
                     })}
                   </SelectContent>
                 </Select>
@@ -413,27 +479,51 @@ function EditarDespachoPage() {
 
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label className={errors.responsavel ? "text-red-500" : ""}>Usuário Responsável *</Label>
-                <Select disabled={!form.equipe} value={form.responsavel} onValueChange={(v) => { setForm({ ...form, responsavel: v }); setErrors({...errors, responsavel: ''}); }}>
+                <Label className={errors.responsavel ? "text-red-500" : ""}>
+                  Usuário Responsável *
+                </Label>
+                <Select
+                  disabled={!form.equipe}
+                  value={form.responsavel}
+                  onValueChange={(v) => {
+                    setForm({ ...form, responsavel: v });
+                    setErrors({ ...errors, responsavel: "" });
+                  }}
+                >
                   <SelectTrigger className={errors.responsavel ? "border-red-500" : ""}>
                     <SelectValue placeholder="Selecione o responsável..." />
                   </SelectTrigger>
                   <SelectContent>
-                    {todosUsuarios.filter((u: any) => {
-                      const selectedScale = todasEscalas.find((e: any) => String(e.id) === String(form.equipe));
-                      if (!selectedScale) return false;
-                      const ids = [...(selectedScale.integranteIds || []), selectedScale.comandanteId].map(String);
-                      return ids.includes(String(u.id));
-                    }).map(u => (
-                      <SelectItem key={u.id} value={String(u.id)}>{u.nome}</SelectItem>
-                    ))}
+                    {todosUsuarios
+                      .filter((u: any) => {
+                        const selectedScale = todasEscalas.find(
+                          (e: any) => String(e.id) === String(form.equipe),
+                        );
+                        if (!selectedScale) return false;
+                        const ids = [
+                          ...(selectedScale.integranteIds || []),
+                          selectedScale.comandanteId,
+                        ].map(String);
+                        return ids.includes(String(u.id));
+                      })
+                      .map((u) => (
+                        <SelectItem key={u.id} value={String(u.id)}>
+                          {u.nome}
+                        </SelectItem>
+                      ))}
                   </SelectContent>
                 </Select>
                 {errors.responsavel && <p className="text-xs text-red-500">{errors.responsavel}</p>}
               </div>
               <div className="space-y-2">
                 <Label className={errors.categoria ? "text-red-500" : ""}>Categoria *</Label>
-                <Select value={form.categoria} onValueChange={(v) => { setForm({ ...form, categoria: v }); setErrors({...errors, categoria: ''}); }}>
+                <Select
+                  value={form.categoria}
+                  onValueChange={(v) => {
+                    setForm({ ...form, categoria: v });
+                    setErrors({ ...errors, categoria: "" });
+                  }}
+                >
                   <SelectTrigger className={errors.categoria ? "border-red-500" : ""}>
                     <SelectValue placeholder="Selecione a categoria..." />
                   </SelectTrigger>
@@ -451,7 +541,13 @@ function EditarDespachoPage() {
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div className="space-y-2">
                 <Label className={errors.status ? "text-red-500" : ""}>Status do Despacho *</Label>
-                <Select value={form.status} onValueChange={(v) => { setForm({ ...form, status: v }); setErrors({...errors, status: ''}); }}>
+                <Select
+                  value={form.status}
+                  onValueChange={(v) => {
+                    setForm({ ...form, status: v });
+                    setErrors({ ...errors, status: "" });
+                  }}
+                >
                   <SelectTrigger className={errors.status ? "border-red-500" : ""}>
                     <SelectValue placeholder="Selecione o status..." />
                   </SelectTrigger>
@@ -464,47 +560,59 @@ function EditarDespachoPage() {
                 {errors.status && <p className="text-xs text-red-500">{errors.status}</p>}
               </div>
               <div className="space-y-2">
-                <Label className={errors.dataInicio ? "text-red-500" : ""}>Data/Hora de Início *</Label>
-                <Input 
-                  type="datetime-local" 
-                  value={form.dataInicio} 
-                  onChange={(e) => { setForm({ ...form, dataInicio: e.target.value }); setErrors({...errors, dataInicio: ''}); }}
+                <Label className={errors.dataInicio ? "text-red-500" : ""}>
+                  Data/Hora de Início *
+                </Label>
+                <Input
+                  type="datetime-local"
+                  value={form.dataInicio}
+                  onChange={(e) => {
+                    setForm({ ...form, dataInicio: e.target.value });
+                    setErrors({ ...errors, dataInicio: "" });
+                  }}
                   className={errors.dataInicio ? "border-red-500" : ""}
                 />
                 {errors.dataInicio && <p className="text-xs text-red-500">{errors.dataInicio}</p>}
               </div>
               <div className="space-y-2">
                 <Label>Data/Hora de Fim</Label>
-                <Input 
-                  type="datetime-local" 
-                  value={form.dataFim} 
+                <Input
+                  type="datetime-local"
+                  value={form.dataFim}
                   onChange={(e) => setForm({ ...form, dataFim: e.target.value })}
                 />
               </div>
             </div>
 
             <div className="space-y-2">
-              <Label className={errors.descricao ? "text-red-500" : ""}>Descrição / Diretrizes *</Label>
+              <Label className={errors.descricao ? "text-red-500" : ""}>
+                Descrição / Diretrizes *
+              </Label>
               <Textarea
                 placeholder="Diretrizes do despacho..."
                 value={form.descricao}
-                onChange={e => { setForm({...form, descricao: e.target.value}); setErrors({...errors, descricao: ''}); }}
+                onChange={(e) => {
+                  setForm({ ...form, descricao: e.target.value });
+                  setErrors({ ...errors, descricao: "" });
+                }}
                 className={`min-h-[100px] ${errors.descricao ? "border-red-500" : ""}`}
               />
               {errors.descricao && <p className="text-xs text-red-500">{errors.descricao}</p>}
             </div>
-            
+
             <div className="space-y-3">
               <div className="flex items-center justify-between">
-                <Label className={errors.latLng ? "text-red-500" : ""}>Ponto de Encontro / Local (Clique no mapa ou digite) *</Label>
-                <Button 
-                  variant="outline" 
-                  size="sm" 
+                <Label className={errors.latLng ? "text-red-500" : ""}>
+                  Ponto de Encontro / Local (Clique no mapa ou digite) *
+                </Label>
+                <Button
+                  variant="outline"
+                  size="sm"
                   className="h-7 text-xs px-2"
                   onClick={toggleFormat}
                 >
                   <ArrowRightLeft className="w-3 h-3 mr-1" />
-                  {isDms ? 'Alternar para Decimal' : 'Alternar para Graus (DMS)'}
+                  {isDms ? "Alternar para Decimal" : "Alternar para Graus (DMS)"}
                 </Button>
               </div>
               <div className="flex gap-2">
@@ -514,7 +622,10 @@ function EditarDespachoPage() {
                     className={`pl-9 text-xs ${errors.latLng ? "border-red-500" : ""}`}
                     placeholder={isDms ? "Lat (ex: 15° 30' 0\" S)" : "Latitude (ex: -15.500)"}
                     value={latInput}
-                    onChange={(e) => { setLatInput(e.target.value); setErrors({...errors, latLng: ''}); }}
+                    onChange={(e) => {
+                      setLatInput(e.target.value);
+                      setErrors({ ...errors, latLng: "" });
+                    }}
                     onBlur={applyManualCoordinates}
                   />
                 </div>
@@ -523,7 +634,10 @@ function EditarDespachoPage() {
                     className={`text-xs ${errors.latLng ? "border-red-500" : ""}`}
                     placeholder={isDms ? "Lng (ex: 50° 0' 0\" W)" : "Longitude (ex: -50.000)"}
                     value={lngInput}
-                    onChange={(e) => { setLngInput(e.target.value); setErrors({...errors, latLng: ''}); }}
+                    onChange={(e) => {
+                      setLngInput(e.target.value);
+                      setErrors({ ...errors, latLng: "" });
+                    }}
                     onBlur={applyManualCoordinates}
                   />
                 </div>
@@ -533,7 +647,12 @@ function EditarDespachoPage() {
           </div>
 
           <div className="mt-auto pt-6 flex justify-end gap-3">
-            <Button variant="outline" onClick={() => navigate({ to: `/ordens-servico/${osId}` as any })}>Cancelar</Button>
+            <Button
+              variant="outline"
+              onClick={() => navigate({ to: `/ordens-servico/${osId}` as any })}
+            >
+              Cancelar
+            </Button>
             <Button onClick={save} className="bg-fire hover:bg-fire/90 text-white min-w-[120px]">
               <Plus className="h-4 w-4 mr-2" /> Salvar Alterações
             </Button>

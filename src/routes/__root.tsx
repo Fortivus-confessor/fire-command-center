@@ -79,10 +79,17 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
       { title: "FORTIVUS — Comando e Controle de Incêndios Florestais" },
-      { name: "description", content: "Sala de situação para gestão, despacho e combate a incêndios florestais. Monitoramento em tempo real de focos, equipes e aeronaves." },
+      {
+        name: "description",
+        content:
+          "Sala de situação para gestão, despacho e combate a incêndios florestais. Monitoramento em tempo real de focos, equipes e aeronaves.",
+      },
       { name: "author", content: "FORTIVUS" },
       { property: "og:title", content: "FORTIVUS — Mission Control de Incêndios Florestais" },
-      { property: "og:description", content: "Comando e controle em tempo real de combate a incêndios florestais." },
+      {
+        property: "og:description",
+        content: "Comando e controle em tempo real de combate a incêndios florestais.",
+      },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
       { name: "twitter:site", content: "@Lovable" },
@@ -146,6 +153,7 @@ function RootComponent() {
 
 function AuthWrapper() {
   const { isAuthenticated, isInitialized } = useAuth();
+  const routerState = useRouterState();
 
   if (!isInitialized) {
     return null; // The AuthContext will render a loading state itself
@@ -155,8 +163,7 @@ function AuthWrapper() {
     return <LandingPage />;
   }
 
-  const routerState = useRouterState();
-  const isPrintPdf = routerState.location.pathname.includes('/relatorio-pdf');
+  const isPrintPdf = routerState.location.pathname.includes("/relatorio-pdf");
 
   if (isPrintPdf) {
     return (

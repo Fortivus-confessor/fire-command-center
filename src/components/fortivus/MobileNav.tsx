@@ -49,7 +49,9 @@ export function MobileBottomNav() {
               >
                 {isActive && <span className="absolute top-0 h-0.5 w-8 rounded-full bg-fire" />}
                 <Icon className={`h-5 w-5 ${isActive ? "text-fire" : "text-muted-foreground"}`} />
-                <span className={isActive ? "text-foreground" : "text-muted-foreground"}>{t.label}</span>
+                <span className={isActive ? "text-foreground" : "text-muted-foreground"}>
+                  {t.label}
+                </span>
               </button>
             );
           })}

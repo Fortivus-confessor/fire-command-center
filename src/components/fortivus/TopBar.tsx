@@ -1,9 +1,9 @@
-import { useState } from 'react';
-import { Bell, Menu } from 'lucide-react';
-import { useAuth } from '../../contexts/AuthContext';
-import { ROLE_LABELS } from '../../lib/roles';
-import { MobileSidebar } from './Sidebar';
-import { Link } from '@tanstack/react-router';
+import { useState } from "react";
+import { Bell, Menu } from "lucide-react";
+import { useAuth } from "../../contexts/AuthContext";
+import { ROLE_LABELS } from "../../lib/roles";
+import { MobileSidebar } from "./Sidebar";
+import { Link } from "@tanstack/react-router";
 
 export function TopBar() {
   const { user, role, isAuthenticated, login } = useAuth();
@@ -27,7 +27,11 @@ export function TopBar() {
             {/* Logo (visible on mobile only since sidebar has it on desktop) */}
             <div className="lg:hidden flex items-center gap-2 min-w-0">
               <div className="relative h-7 w-7 shrink-0">
-                <img src="/icone_fortivus_oficial.png" alt="Fortivus Logo" className="h-full w-full object-contain" />
+                <img
+                  src="/icone_fortivus_oficial.png"
+                  alt="Fortivus Logo"
+                  className="h-full w-full object-contain"
+                />
                 <span className="absolute -bottom-0.5 -right-0.5 h-1.5 w-1.5 rounded-full bg-fire pulse-fire" />
               </div>
               <span className="text-sm font-semibold tracking-wide truncate">FORTIVUS</span>
@@ -35,15 +39,17 @@ export function TopBar() {
           </div>
 
           <div className="flex items-center gap-2 sm:gap-3">
-
             {/* User avatar */}
             {isAuthenticated && user && role ? (
-              <Link to="/perfil" className="hidden sm:flex items-center gap-2 pl-2 border-l border-border cursor-pointer hover:opacity-80 transition">
+              <Link
+                to="/perfil"
+                className="hidden sm:flex items-center gap-2 pl-2 border-l border-border cursor-pointer hover:opacity-80 transition"
+              >
                 <div className="h-8 w-8 rounded-full bg-gradient-to-br from-command to-accent grid place-items-center text-[11px] font-semibold">
                   {user.nome
-                    .split(' ')
+                    .split(" ")
                     .map((n) => n[0])
-                    .join('')
+                    .join("")
                     .slice(0, 2)
                     .toUpperCase()}
                 </div>
@@ -54,7 +60,10 @@ export function TopBar() {
               </Link>
             ) : (
               <div className="hidden sm:flex items-center pl-2 border-l border-border">
-                <button onClick={login} className="text-xs font-medium text-command hover:underline">
+                <button
+                  onClick={login}
+                  className="text-xs font-medium text-command hover:underline"
+                >
                   Fazer Login
                 </button>
               </div>

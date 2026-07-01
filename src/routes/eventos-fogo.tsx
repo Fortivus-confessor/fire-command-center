@@ -1,8 +1,17 @@
-import { createFileRoute, Link } from '@tanstack/react-router';
-import { useState } from 'react';
-import { Search, Flame, AlertTriangle, MapPin, Eye, ExternalLink, ChevronLeft, ChevronRight } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
+import { createFileRoute, Link } from "@tanstack/react-router";
+import { useState } from "react";
+import {
+  Search,
+  Flame,
+  AlertTriangle,
+  MapPin,
+  Eye,
+  ExternalLink,
+  ChevronLeft,
+  ChevronRight,
+} from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import {
   Table,
   TableBody,
@@ -10,22 +19,22 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from '@/components/ui/table';
-import { Switch } from '@/components/ui/switch';
-import { Badge } from '@/components/ui/badge';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { fetchWithAuth } from '@/lib/api';
-import { Label } from '@/components/ui/label';
+} from "@/components/ui/table";
+import { Switch } from "@/components/ui/switch";
+import { Badge } from "@/components/ui/badge";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { fetchWithAuth } from "@/lib/api";
+import { Label } from "@/components/ui/label";
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
   DialogDescription,
-} from '@/components/ui/dialog';
-import { useCanAccess } from '@/hooks/useCanAccess';
+} from "@/components/ui/dialog";
+import { useCanAccess } from "@/hooks/useCanAccess";
 
-export const Route = createFileRoute('/eventos-fogo')({
+export const Route = createFileRoute("/eventos-fogo")({
   component: EventosFogoPage,
 });
 
@@ -54,17 +63,31 @@ interface PageResponse {
 
 // Helpers
 function riscoBadge(status: string) {
-  const norm = (status || '').toUpperCase();
+  const norm = (status || "").toUpperCase();
   switch (norm) {
-    case 'ATIVO_SEVERO': return <Badge className="bg-fire/20 text-fire border-fire/30 uppercase text-[10px]">Extremo</Badge>;
-    case 'MONITORAMENTO': return <Badge className="bg-warning/20 text-warning border-warning/30 uppercase text-[10px]">Médio</Badge>;
-    case 'EXTINTO': return <Badge className="bg-success/20 text-success border-success/30 uppercase text-[10px]">Extinto</Badge>;
-    default: return <Badge variant="secondary">{norm}</Badge>;
+    case "ATIVO_SEVERO":
+      return (
+        <Badge className="bg-fire/20 text-fire border-fire/30 uppercase text-[10px]">Extremo</Badge>
+      );
+    case "MONITORAMENTO":
+      return (
+        <Badge className="bg-warning/20 text-warning border-warning/30 uppercase text-[10px]">
+          Médio
+        </Badge>
+      );
+    case "EXTINTO":
+      return (
+        <Badge className="bg-success/20 text-success border-success/30 uppercase text-[10px]">
+          Extinto
+        </Badge>
+      );
+    default:
+      return <Badge variant="secondary">{norm}</Badge>;
   }
 }
 
 function timeSince(dateStr: string) {
-  if (!dateStr) return '--';
+  if (!dateStr) return "--";
   const diff = Date.now() - new Date(dateStr).getTime();
   const hours = Math.floor(diff / (1000 * 60 * 60));
   if (hours > 24) return `${Math.floor(hours / 24)}d`;
@@ -77,22 +100,23 @@ function EventosFogoPage() {
   const [pageIndex, setPageIndex] = useState(0);
   const [listAll, setListAll] = useState(false);
   const pageSize = listAll ? 1000 : 10;
-  const [search, setSearch] = useState('');
+  const [search, setSearch] = useState("");
   const [selectedEvent, setSelectedEvent] = useState<EventoFogo | null>(null);
-  const canCreateOS = useCanAccess('ordens-servico', 'create');
+  const canCreateOS = useCanAccess("ordens-servico", "create");
 
   const { data: pageData, isLoading } = useQuery<PageResponse>({
-    queryKey: ['eventosFogoPaged', pageIndex, pageSize],
-    queryFn: () => fetch(`/api/v1/fire-events?page=${pageIndex}&size=${pageSize}`).then(res => res.json())
+    queryKey: ["eventosFogoPaged", pageIndex, pageSize],
+    queryFn: () =>
+      fetch(`/api/v1/fire-events?page=${pageIndex}&size=${pageSize}`).then((res) => res.json()),
   });
 
   const { data: ordensServico = [] } = useQuery<any[]>({
-    queryKey: ['ordens-servico'],
-    queryFn: () => fetchWithAuth('/operacional/os')
+    queryKey: ["ordens-servico"],
+    queryFn: () => fetchWithAuth("/operacional/os"),
   });
 
   const eventosData = pageData?.content || [];
-  
+
   const filtered = eventosData.filter((item) => {
     const matchSearch =
       !search ||
@@ -103,11 +127,16 @@ function EventosFogoPage() {
 
   // KPIs
   const totalFocos = pageData?.totalElements || 0;
-  const riscoExtremo = eventosData.filter((e) => e.status === 'ATIVO_SEVERO').length;
+  const riscoExtremo = eventosData.filter((e) => e.status === "ATIVO_SEVERO").length;
 
   const kpis = [
-    { label: 'Total de Eventos', value: totalFocos, icon: Flame, color: 'text-fire' },
-    { label: 'Risco Extremo (Listados)', value: riscoExtremo, icon: AlertTriangle, color: 'text-destructive' },
+    { label: "Total de Eventos", value: totalFocos, icon: Flame, color: "text-fire" },
+    {
+      label: "Risco Extremo (Listados)",
+      value: riscoExtremo,
+      icon: AlertTriangle,
+      color: "text-destructive",
+    },
   ];
 
   return (
@@ -134,17 +163,21 @@ function EventosFogoPage() {
       {/* Main Content */}
       <div className="flex-1 p-6 overflow-auto">
         <div className="max-w-7xl mx-auto space-y-6">
-          
           {/* KPIs */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
             {kpis.map((kpi, i) => (
-              <div key={i} className="bg-card border border-border rounded-xl p-4 flex items-center gap-4">
+              <div
+                key={i}
+                className="bg-card border border-border rounded-xl p-4 flex items-center gap-4"
+              >
                 <div className={`p-3 rounded-lg bg-background ${kpi.color}`}>
                   <kpi.icon className="h-5 w-5" />
                 </div>
                 <div>
                   <div className="text-2xl font-bold">{kpi.value}</div>
-                  <div className="text-xs font-medium text-muted-foreground uppercase tracking-wider">{kpi.label}</div>
+                  <div className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                    {kpi.label}
+                  </div>
                 </div>
               </div>
             ))}
@@ -162,8 +195,8 @@ function EventosFogoPage() {
               />
             </div>
             <div className="flex items-center gap-3">
-              <Button 
-                variant={listAll ? "default" : "outline"} 
+              <Button
+                variant={listAll ? "default" : "outline"}
                 onClick={() => {
                   setListAll(!listAll);
                   setPageIndex(0);
@@ -205,10 +238,14 @@ function EventosFogoPage() {
                     filtered.map((item) => (
                       <TableRow key={item.id} className="hover:bg-muted/30">
                         <TableCell>
-                          <div className="font-mono text-sm font-semibold">{item.codigoVisual || item.id}</div>
+                          <div className="font-mono text-sm font-semibold">
+                            {item.codigoVisual || item.id}
+                          </div>
                         </TableCell>
                         <TableCell>
-                          <div className="font-semibold">{item.frpTotal ? item.frpTotal.toFixed(1) : '--'} MW</div>
+                          <div className="font-semibold">
+                            {item.frpTotal ? item.frpTotal.toFixed(1) : "--"} MW
+                          </div>
                         </TableCell>
                         <TableCell>
                           <div className="text-sm">{item.totalFocos} focos</div>
@@ -221,28 +258,47 @@ function EventosFogoPage() {
                         <TableCell>{riscoBadge(item.status)}</TableCell>
                         <TableCell className="text-right">
                           <div className="flex justify-end gap-2">
-                            <Button variant="ghost" size="sm" onClick={() => setSelectedEvent(item)}>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => setSelectedEvent(item)}
+                            >
                               <Eye className="h-4 w-4 mr-1" /> Visualizar
                             </Button>
-                            {canCreateOS && (() => {
-                              const linkedOs = ordensServico.find((os: any) => os.eventoFogoId === item.id);
-                              if (linkedOs) {
+                            {canCreateOS &&
+                              (() => {
+                                const linkedOs = ordensServico.find(
+                                  (os: any) => os.eventoFogoId === item.id,
+                                );
+                                if (linkedOs) {
+                                  return (
+                                    <Link to={`/ordens-servico/${linkedOs.id}`}>
+                                      <Button
+                                        variant="outline"
+                                        size="sm"
+                                        className="border-command/50 text-command hover:bg-command hover:text-white"
+                                      >
+                                        <ExternalLink className="h-4 w-4 mr-1" /> Visualizar OS
+                                        Vinculada
+                                      </Button>
+                                    </Link>
+                                  );
+                                }
                                 return (
-                                  <Link to={`/ordens-servico/${linkedOs.id}`}>
-                                    <Button variant="outline" size="sm" className="border-command/50 text-command hover:bg-command hover:text-white">
-                                      <ExternalLink className="h-4 w-4 mr-1" /> Visualizar OS Vinculada
+                                  <Link
+                                    to={`/ordens-servico/nova`}
+                                    search={{ eventoFogoId: item.id }}
+                                  >
+                                    <Button
+                                      variant="outline"
+                                      size="sm"
+                                      className="border-command text-command hover:bg-command hover:text-white"
+                                    >
+                                      <ExternalLink className="h-4 w-4 mr-1" /> Despachar OS
                                     </Button>
                                   </Link>
                                 );
-                              }
-                              return (
-                                <Link to={`/ordens-servico/nova`} search={{ eventoFogoId: item.id }}>
-                                  <Button variant="outline" size="sm" className="border-command text-command hover:bg-command hover:text-white">
-                                    <ExternalLink className="h-4 w-4 mr-1" /> Despachar OS
-                                  </Button>
-                                </Link>
-                              );
-                            })()}
+                              })()}
                           </div>
                         </TableCell>
                       </TableRow>
@@ -251,7 +307,7 @@ function EventosFogoPage() {
                 </TableBody>
               </Table>
             </div>
-            
+
             {/* Pagination Controls */}
             {!listAll && pageData && pageData.totalPages > 1 && (
               <div className="px-4 py-3 border-t border-border flex items-center justify-between">
@@ -259,18 +315,18 @@ function EventosFogoPage() {
                   Página {pageData.number + 1} de {pageData.totalPages}
                 </div>
                 <div className="flex gap-2">
-                  <Button 
-                    variant="outline" 
-                    size="sm" 
-                    onClick={() => setPageIndex(p => Math.max(0, p - 1))}
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setPageIndex((p) => Math.max(0, p - 1))}
                     disabled={pageData.first}
                   >
                     <ChevronLeft className="h-4 w-4" />
                   </Button>
-                  <Button 
-                    variant="outline" 
-                    size="sm" 
-                    onClick={() => setPageIndex(p => p + 1)}
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setPageIndex((p) => p + 1)}
                     disabled={pageData.last}
                   >
                     <ChevronRight className="h-4 w-4" />
@@ -294,7 +350,7 @@ function EventosFogoPage() {
               Informações completas do evento de fogo selecionado.
             </DialogDescription>
           </DialogHeader>
-          
+
           {selectedEvent && (
             <div className="space-y-4 py-4">
               <div className="grid grid-cols-2 gap-4">
@@ -304,7 +360,9 @@ function EventosFogoPage() {
                 </div>
                 <div className="space-y-1">
                   <Label className="text-xs text-muted-foreground">Código Visual</Label>
-                  <div className="font-mono text-sm font-bold text-primary">{selectedEvent.codigoVisual}</div>
+                  <div className="font-mono text-sm font-bold text-primary">
+                    {selectedEvent.codigoVisual}
+                  </div>
                 </div>
                 <div className="space-y-1">
                   <Label className="text-xs text-muted-foreground">Status do Risco</Label>
@@ -319,26 +377,42 @@ function EventosFogoPage() {
                 </div>
                 <div className="space-y-1">
                   <Label className="text-xs text-muted-foreground">FRP Total</Label>
-                  <div className="text-sm font-semibold">{selectedEvent.frpTotal?.toFixed(2)} MW</div>
+                  <div className="text-sm font-semibold">
+                    {selectedEvent.frpTotal?.toFixed(2)} MW
+                  </div>
                 </div>
                 <div className="space-y-1">
-                  <Label className="text-xs text-muted-foreground">Quantidade de Focos Agrupados</Label>
+                  <Label className="text-xs text-muted-foreground">
+                    Quantidade de Focos Agrupados
+                  </Label>
                   <div className="text-sm">{selectedEvent.totalFocos} focos</div>
                 </div>
                 <div className="space-y-1">
                   <Label className="text-xs text-muted-foreground">Primeira Detecção</Label>
-                  <div className="text-sm">{new Date(selectedEvent.primeiraDeteccao).toLocaleString()}</div>
+                  <div className="text-sm">
+                    {new Date(selectedEvent.primeiraDeteccao).toLocaleString()}
+                  </div>
                 </div>
                 <div className="space-y-1">
-                  <Label className="text-xs text-muted-foreground">Última Detecção (Ação do Satélite)</Label>
-                  <div className="text-sm">{new Date(selectedEvent.ultimaDeteccao).toLocaleString()}</div>
+                  <Label className="text-xs text-muted-foreground">
+                    Última Detecção (Ação do Satélite)
+                  </Label>
+                  <div className="text-sm">
+                    {new Date(selectedEvent.ultimaDeteccao).toLocaleString()}
+                  </div>
                 </div>
               </div>
 
               <div className="flex justify-end mt-6 gap-3">
-                <Button variant="outline" onClick={() => setSelectedEvent(null)}>Fechar</Button>
+                <Button variant="outline" onClick={() => setSelectedEvent(null)}>
+                  Fechar
+                </Button>
                 {canCreateOS && (
-                  <Link to={`/ordens-servico/nova`} search={{ eventoFogoId: selectedEvent.id }} onClick={() => setSelectedEvent(null)}>
+                  <Link
+                    to={`/ordens-servico/nova`}
+                    search={{ eventoFogoId: selectedEvent.id }}
+                    onClick={() => setSelectedEvent(null)}
+                  >
                     <Button className="bg-command text-white hover:bg-command/90">
                       <ExternalLink className="h-4 w-4 mr-2" />
                       Despachar OS
@@ -353,4 +427,3 @@ function EventosFogoPage() {
     </div>
   );
 }
-

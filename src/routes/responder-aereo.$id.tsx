@@ -1,21 +1,21 @@
-import { createFileRoute, useNavigate, Link } from '@tanstack/react-router';
-import { ArrowLeft, Plane, CheckCircle2, Loader2 } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { RelatorioAereoForm } from '@/components/fortivus/forms/RelatorioAereoForm';
-import { useState, useRef } from 'react';
-import { toast } from 'sonner';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { fetchAttachmentWithAuth, fetchWithAuth } from '@/lib/api';
+import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
+import { ArrowLeft, Plane, CheckCircle2, Loader2 } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { RelatorioAereoForm } from "@/components/fortivus/forms/RelatorioAereoForm";
+import { useState, useRef } from "react";
+import { toast } from "sonner";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { fetchAttachmentWithAuth, fetchWithAuth } from "@/lib/api";
 
-export const Route = createFileRoute('/responder-aereo/$id')({
+export const Route = createFileRoute("/responder-aereo/$id")({
   component: ResponderAereoPage,
 });
 
 function ResponderAereoPage() {
   const { id } = Route.useParams();
   const despachoId = Number(id);
-  const idStr = id.toString().padStart(12, '0');
-  
+  const idStr = id.toString().padStart(12, "0");
+
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -26,61 +26,61 @@ function ResponderAereoPage() {
 
   // ── 1. Fetch Attachments (if any) ──
   const { data: attachments, isLoading: isLoadingAttachments } = useQuery<any[]>({
-    queryKey: ['attachments', despachoId],
+    queryKey: ["attachments", despachoId],
     queryFn: async () => {
       try {
         return await fetchAttachmentWithAuth(`/api/v1/attachments/despacho/${despachoId}`);
       } catch (e: any) {
-        if (e?.message?.includes('404')) return [];
+        if (e?.message?.includes("404")) return [];
         throw e;
       }
     },
-    retry: false
+    retry: false,
   });
 
   const { data: relatorioData, isLoading: isLoadingRelatorio } = useQuery<any>({
-    queryKey: ['relatorio-aereo', despachoId],
+    queryKey: ["relatorio-aereo", despachoId],
     queryFn: async () => {
       try {
         return await fetchWithAuth(`/operacional/despachos/${despachoId}/relatorio-aereo`);
       } catch (e: any) {
-        if (e.message?.includes('404')) return null;
+        if (e.message?.includes("404")) return null;
         throw e;
       }
     },
-    retry: false
+    retry: false,
   });
 
   const { data: despachoData, isLoading: isLoadingDespacho } = useQuery<any>({
-    queryKey: ['despacho', despachoId],
+    queryKey: ["despacho", despachoId],
     queryFn: async () => {
       try {
         return await fetchWithAuth(`/operacional/despachos/${despachoId}`);
       } catch (e: any) {
-        if (e.message?.includes('404')) return null;
+        if (e.message?.includes("404")) return null;
         throw e;
       }
     },
-    retry: false
+    retry: false,
   });
 
   const { data: osData, isLoading: isLoadingOs } = useQuery<any>({
-    queryKey: ['os', despachoData?.ordemServicoId],
+    queryKey: ["os", despachoData?.ordemServicoId],
     queryFn: async () => {
       if (!despachoData?.ordemServicoId) return null;
       try {
         return await fetchWithAuth(`/operacional/os/${despachoData.ordemServicoId}`);
       } catch (e: any) {
-        if (e.message?.includes('404')) return null;
+        if (e.message?.includes("404")) return null;
         throw e;
       }
     },
     enabled: !!despachoData?.ordemServicoId,
-    retry: false
+    retry: false,
   });
 
   const { data: fireEventData, isLoading: isLoadingFireEvent } = useQuery<any>({
-    queryKey: ['fireEvent', osData?.eventoFogoId],
+    queryKey: ["fireEvent", osData?.eventoFogoId],
     queryFn: async () => {
       if (!osData?.eventoFogoId) return null;
       try {
@@ -92,12 +92,17 @@ function ResponderAereoPage() {
       }
     },
     enabled: !!osData?.eventoFogoId,
-    retry: false
+    retry: false,
   });
 
   const relatorioComAnexos = {
     ...relatorioData,
-    anexos: attachments?.filter((a: any) => a.entityType === 'RELATORIO_AEREO').map((a: any) => ({ url: a.url?.replace(/seaweedfs(:\d+)?/, window.location.hostname + '$1') })) || []
+    anexos:
+      attachments
+        ?.filter((a: any) => a.entityType === "RELATORIO_AEREO")
+        .map((a: any) => ({
+          url: a.url?.replace(/seaweedfs(:\d+)?/, window.location.hostname + "$1"),
+        })) || [],
   };
 
   const handleFilesChange = (key: string, files: File[]) => {
@@ -113,13 +118,13 @@ function ResponderAereoPage() {
       const entityId = `00000000-0000-0000-0000-${idStr}`;
       for (const file of files) {
         const formData = new FormData();
-        formData.append('file', file);
-        formData.append('despachoId', String(despachoId));
-        formData.append('entityType', entityType);
-        
+        formData.append("file", file);
+        formData.append("despachoId", String(despachoId));
+        formData.append("entityType", entityType);
+
         await fetchAttachmentWithAuth(`/api/v1/attachments/upload`, {
-          method: 'POST',
-          body: formData
+          method: "POST",
+          body: formData,
         });
       }
     } catch (e) {
@@ -136,27 +141,27 @@ function ResponderAereoPage() {
       // 1. Submit RelatorioAereo
       const finalPayload = {
         ...payload,
-        despachoId: despachoId
+        despachoId: despachoId,
       };
 
       const res = await fetchWithAuth(`/operacional/despachos/finalizar-aereo`, {
-        method: 'POST',
+        method: "POST",
         headers: {
-          'Content-Type': 'application/json',
+          "Content-Type": "application/json",
         },
         body: JSON.stringify(finalPayload),
       });
 
       // 2. Upload Anexos
       const allFiles = [...selectedFiles.current.anexos];
-      
+
       if (allFiles.length > 0) {
-        toast.info('Fazendo upload dos anexos...');
-        await uploadFiles(allFiles, 'RELATORIO_AEREO');
+        toast.info("Fazendo upload dos anexos...");
+        await uploadFiles(allFiles, "RELATORIO_AEREO");
       }
 
       if (deletedFiles.current && deletedFiles.current.length > 0) {
-        toast.info('Aplicando exclusões de anexos...');
+        toast.info("Aplicando exclusões de anexos...");
         for (const urlToRemove of deletedFiles.current) {
           if (!attachments) continue;
           const attachment = attachments.find((a: any) => {
@@ -166,32 +171,37 @@ function ResponderAereoPage() {
               return aPath === urlPath;
             } catch {
               const originalUrl = a.url;
-              const replacedUrl = originalUrl?.replace(/seaweedfs(:\d+)?/, window.location.hostname + '$1');
+              const replacedUrl = originalUrl?.replace(
+                /seaweedfs(:\d+)?/,
+                window.location.hostname + "$1",
+              );
               return replacedUrl === urlToRemove || originalUrl === urlToRemove;
             }
           });
           if (attachment) {
             try {
-              await fetchAttachmentWithAuth(`/api/v1/attachments/${attachment.id}`, { method: 'DELETE' });
+              await fetchAttachmentWithAuth(`/api/v1/attachments/${attachment.id}`, {
+                method: "DELETE",
+              });
             } catch (e) {
               console.error("Falha ao remover arquivo", e);
             }
           }
         }
       }
-      
-      queryClient.invalidateQueries({ queryKey: ['attachments', despachoId] });
-      queryClient.invalidateQueries({ queryKey: ['relatorio-aereo', despachoId] });
-      queryClient.invalidateQueries({ queryKey: ['despacho', despachoId] });
-      
-      toast.success('Relatório Aéreo Finalizado', {
-        description: 'Os dados do relatório aéreo e as evidências foram enviados com sucesso.',
+
+      queryClient.invalidateQueries({ queryKey: ["attachments", despachoId] });
+      queryClient.invalidateQueries({ queryKey: ["relatorio-aereo", despachoId] });
+      queryClient.invalidateQueries({ queryKey: ["despacho", despachoId] });
+
+      toast.success("Relatório Aéreo Finalizado", {
+        description: "Os dados do relatório aéreo e as evidências foram enviados com sucesso.",
       });
-      navigate({ to: '/despachos' });
+      navigate({ to: "/despachos" });
     } catch (err) {
       console.error(err);
-      toast.error('Erro no Envio', {
-        description: 'Houve um problema ao salvar as informações ou realizar o upload das fotos.',
+      toast.error("Erro no Envio", {
+        description: "Houve um problema ao salvar as informações ou realizar o upload das fotos.",
       });
     } finally {
       setIsSubmitting(false);
@@ -218,16 +228,20 @@ function ResponderAereoPage() {
       </div>
 
       <div className="glass-strong rounded-xl border border-border p-4 sm:p-6">
-        {(isLoadingAttachments || isLoadingRelatorio || isLoadingDespacho || isLoadingOs || isLoadingFireEvent) ? (
+        {isLoadingAttachments ||
+        isLoadingRelatorio ||
+        isLoadingDespacho ||
+        isLoadingOs ||
+        isLoadingFireEvent ? (
           <div className="flex justify-center p-8">
             <Loader2 className="h-8 w-8 animate-spin text-command" />
           </div>
         ) : (
-          <RelatorioAereoForm 
+          <RelatorioAereoForm
             initialData={relatorioComAnexos}
-            onSubmit={handleSave} 
+            onSubmit={handleSave}
             onFilesChange={handleFilesChange}
-            onFileRemove={handleFileRemove} 
+            onFileRemove={handleFileRemove}
             eventoFogoId={osData?.eventoFogoId}
             despachoLat={despachoData?.latitude || osData?.latitude}
             despachoLng={despachoData?.longitude || osData?.longitude}
@@ -245,22 +259,31 @@ function ResponderAereoPage() {
               <span>{uploadProgress.toFixed(0)}%</span>
             </div>
             <div className="w-full bg-secondary rounded-full h-1.5">
-              <div className="bg-fire h-1.5 rounded-full transition-all" style={{ width: `${uploadProgress}%` }}></div>
+              <div
+                className="bg-fire h-1.5 rounded-full transition-all"
+                style={{ width: `${uploadProgress}%` }}
+              ></div>
             </div>
           </div>
         )}
         <div className="flex gap-3">
           <Link to="/despachos">
-            <Button variant="outline" type="button" disabled={isSubmitting}>Cancelar</Button>
+            <Button variant="outline" type="button" disabled={isSubmitting}>
+              Cancelar
+            </Button>
           </Link>
-          <Button 
-            type="submit" 
-            form="form-aereo" 
+          <Button
+            type="submit"
+            form="form-aereo"
             className="bg-fire hover:bg-fire/90 text-white gap-2"
             disabled={isSubmitting}
           >
-            {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckCircle2 className="h-4 w-4" />}
-            {isSubmitting ? 'Finalizando...' : 'Finalizar Relatório'}
+            {isSubmitting ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <CheckCircle2 className="h-4 w-4" />
+            )}
+            {isSubmitting ? "Finalizando..." : "Finalizar Relatório"}
           </Button>
         </div>
       </div>
