@@ -198,4 +198,28 @@
     font-family: ui-monospace, "JetBrains Mono", "SF Mono", Menlo, monospace;
     font-feature-settings: "tnum", "zero";
   }
+
+  /* ─── Landing pré-autenticação (escopo isolado, não usado em telas internas) ─── */
+  .lp-fade-up {
+    opacity: 0;
+    transform: translateY(24px);
+    animation: lpFadeUp 0.8s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+  }
+  @keyframes lpFadeUp {
+    to { opacity: 1; transform: translateY(0); }
+  }
+  .lp-float {
+    animation: lpFloat 6s ease-in-out infinite;
+  }
+  @keyframes lpFloat {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-10px); }
+  }
+  .lp-shimmer {
+    background-size: 200% auto;
+    animation: lpShimmer 6s linear infinite;
+  }
+  @keyframes lpShimmer {
+    to { background-position: 200% center; }
+  }
 }

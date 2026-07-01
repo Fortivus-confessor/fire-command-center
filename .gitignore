@@ -19,3 +19,8 @@ build/
 .DS_Store
 
 *.md
+# Exceção: aviso de download do vídeo deve ser versionado
+!public/LEIA-ME_VIDEOS.md
+
+# Vídeo de fundo da Landing Page — baixar do Google Drive (ver public/LEIA-ME_VIDEOS.md)
+*.mp4
