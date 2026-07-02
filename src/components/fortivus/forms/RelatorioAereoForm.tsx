@@ -213,8 +213,8 @@ export function RelatorioAereoForm({
       {/* Área de Atuação */}
       <div className="space-y-3">
         <h3 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground border-b border-border pb-2">Área de Atuação da Equipe</h3>
-        <div className="relative rounded-lg overflow-hidden border border-border h-[240px] sm:h-[350px] sticky top-0 z-20">
-          <SituationMapClient
+        <div className="relative rounded-lg overflow-hidden border border-border h-[350px]">
+          <SituationMapClient 
              hideEvents={true}
              isolatedEventId={eventoFogoId}
              dispatchPin={despachoLat && despachoLng ? { lat: despachoLat, lng: despachoLng } : null}

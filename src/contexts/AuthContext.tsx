@@ -86,14 +86,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const keycloakUrl = import.meta.env.VITE_KEYCLOAK_URL || 'http://localhost:9000';
     const kc = await getKeycloak();
     if (!kc) {
-      window.location.href = `${keycloakUrl}/realms/fortivus/protocol/openid-connect/auth?client_id=fortivus-web&redirect_uri=${encodeURIComponent(window.location.href)}&response_type=code&scope=openid`;
+      window.location.href = `${keycloakUrl}/realms/fortivus/protocol/openid-connect/auth?client_id=fortivus-web&redirect_uri=${encodeURIComponent(window.location.origin)}&response_type=code&scope=openid`;
       return;
     }
     try {
       await kc.login();
     } catch (err) {
       console.error("Failed to execute login:", err);
-      window.location.href = `${keycloakUrl}/realms/fortivus/protocol/openid-connect/auth?client_id=fortivus-web&redirect_uri=${encodeURIComponent(window.location.href)}&response_type=code&scope=openid`;
+      window.location.href = `${keycloakUrl}/realms/fortivus/protocol/openid-connect/auth?client_id=fortivus-web&redirect_uri=${encodeURIComponent(window.location.origin)}&response_type=code&scope=openid`;
     }
   };
   const logout = async () => {
