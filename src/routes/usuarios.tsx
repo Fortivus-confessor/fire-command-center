@@ -133,10 +133,11 @@ function UsuariosPage() {
 
   const usuarios = pageData?.content || [];
 
-  const { data: centros = [] } = useQuery<CentroComandoDTO[]>({
+  const { data: centrosData } = useQuery<CentroComandoDTO[]>({
     queryKey: ['centros-comando'],
     queryFn: () => fetchWithAuth('/admin/centros'),
   });
+  const centros = centrosData || [];
 
   const [viewingItem, setViewingItem] = useState<UsuarioDTO | null>(null);
   const [photoPreview, setPhotoPreview] = useState<string | null>(null);
