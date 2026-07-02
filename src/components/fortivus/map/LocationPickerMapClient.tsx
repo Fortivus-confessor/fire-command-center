@@ -103,8 +103,7 @@ export default function LocationPickerMapClient({
         borderRadius: "0.5rem",
         overflow: "hidden",
         border: "1px solid hsl(var(--border))",
-        position: "relative",
-        zIndex: 0,
+      
       }}
     >
       <MapContainer
