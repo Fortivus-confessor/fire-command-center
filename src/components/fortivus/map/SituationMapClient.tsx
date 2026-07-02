@@ -1,6 +1,6 @@
 import 'leaflet/dist/leaflet.css';
 
-import { useEffect, useState, useMemo } from 'react';
+import { useEffect, useState, useMemo, useRef } from 'react';
 import {
   MapContainer,
   TileLayer,
@@ -110,6 +110,51 @@ function MapController({
   return null;
 }
 
+function VectorFocosLayer({ visible }: { visible: boolean }) {
+  const map = useMap();
+  const layerRef = useRef<any>(null);
+
+  useEffect(() => {
+    const L_any = L as any;
+    if (!visible || !L_any.vectorGrid) {
+      if (layerRef.current) {
+        map.removeLayer(layerRef.current);
+        layerRef.current = null;
+      }
+      return;
+    }
+
+    const layer = L_any.vectorGrid.protobuf(
+      'http://localhost:3001/public.tb_focos_calor/{z}/{x}/{y}.pbf',
+      {
+        vectorTileLayerStyles: {
+          'public.tb_focos_calor': {
+            weight: 1,
+            color: '#b91c1c',
+            fill: true,
+            fillColor: '#ef4444',
+            fillOpacity: 0.8,
+            radius: 3,
+          },
+        },
+        interactive: false,
+        maxNativeZoom: 14,
+      }
+    );
+    layer.addTo(map);
+    layerRef.current = layer;
+
+    return () => {
+      if (layerRef.current) {
+        map.removeLayer(layerRef.current);
+        layerRef.current = null;
+      }
+    };
+  }, [visible, map]);
+
+  return null;
+}
+
 // ── Props ────────────────────────────────────────────────────────────────────
 
 interface Props {
@@ -141,6 +186,7 @@ export default function SituationMapClient({
 }: Props) {
   const effectiveFlyTo = flyTo ?? center;
   const [coords, setCoords] = useState({ lat: MAP_CENTER[0], lng: MAP_CENTER[1], zoom: MAP_ZOOM });
+  const [showFocos, setShowFocos] = useState(false);
   const [activeRisks, setActiveRisks] = useState<Record<string, boolean>>({
     extremo: true, alto: true, medio: true, baixo: true,
   });
@@ -188,12 +234,14 @@ export default function SituationMapClient({
       >
         <MapController onMove={setCoords} onClickMap={onClickMap} flyTo={effectiveFlyTo} />
 
+        {!hideEvents && <VectorFocosLayer visible={showFocos} />}
+
         <LayersControl>
-          <LayersControl.BaseLayer checked name="🌑 CartoDB Dark">
+          <LayersControl.BaseLayer name="🌑 CartoDB Dark">
             <TileLayer url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png" maxZoom={20} />
           </LayersControl.BaseLayer>
 
-          <LayersControl.BaseLayer name="🛰️ Google Satellite">
+          <LayersControl.BaseLayer checked name="🛰️ Google Satellite">
             <TileLayer url="https://mt1.google.com/vt/lyrs=s&x={x}&y={y}&z={z}" maxZoom={20} />
           </LayersControl.BaseLayer>
 
@@ -301,6 +349,21 @@ export default function SituationMapClient({
         <span className="text-border">|</span>
         <span>ZOOM {coords.zoom.toFixed(1)}</span>
       </div>
+
+      {/* Focos individuais toggle */}
+      {!hideEvents && (
+        <button
+          type="button"
+          onClick={() => setShowFocos(v => !v)}
+          className={`absolute bottom-14 left-3 z-[1000] px-3 py-1.5 rounded-lg text-[11px] font-semibold border transition-colors ${
+            showFocos
+              ? 'bg-red-600 border-red-700 text-white'
+              : 'glass border-slate-700 text-slate-300 hover:bg-slate-800/60'
+          }`}
+        >
+          {showFocos ? '🔥 Ocultar Focos Individuais' : '🔥 Mostrar Focos Individuais'}
+        </button>
+      )}
 
       {/* Legend */}
       {!hideEvents && (
